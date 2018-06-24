@@ -21,12 +21,16 @@ To install **westpy** you need to execute:
 
 .. code:: bash
 
+    $ git clone http://greatfire.uchicago.edu/west-public/westpy.git
+    $ cd westpy 
     $ python setup.py install --user
-
+ 
 or simply execute: 
 
 .. code:: bash
 
+    $ http://greatfire.uchicago.edu/west-public/westpy.git
+    $ cd westpy 
     $ make
 
 If the name of your Python compiler is not standard, you can edit the varyable **PYT** in the file **Makefile**.  
