@@ -1,14 +1,15 @@
 from __future__ import print_function
 
+from westpy.units import * 
 from westpy.utils import * 
+from westpy.atom import * 
 from westpy.geometry import * 
-from westpy.species import * 
 from westpy.groundState import * 
-from westpy.plot import * 
 
 __version__ = '3.1.0'
 
 def header() :
+   """Prints welcome header."""
    import datetime
    print(" ")
    print(" _    _ _____ _____ _____            ")

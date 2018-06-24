@@ -7,7 +7,12 @@ Installation
 The recommendend installation method for **westpy** is via python install. 
 The software is tested for python version 3.x and has the following dependencies: 
 
-   - ``ase`` 
+   - ``numpy``
+   - ``scipy``
+   - ``matplotlib``
+   - ``datetime``
+   - ``requests``
+   - ``mendeleev`` 
 
 Source Code Installation
 ========================
