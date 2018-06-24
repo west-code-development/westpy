@@ -1,0 +1,49 @@
+.. westpy documentation master file
+   You can adapt this file completely to your liking, but it should at least
+   contain the root `toctree` directive.
+
+Welcome to westpy's documentation!
+==================================
+
+.. .. important::
+
+    This is documentation for the **westpy** *package*, which is part of the WEST_ framework.
+
+.. _WEST: http://www.west-code.org
+
+Contents
+--------
+
+.. toctree::
+   :hidden:
+   :maxdepth: 2
+
+   overview
+   installation
+   tutorial  
+   manual
+   acknowledge
+
+.. glossary::
+
+    :ref:`overview`
+      An illustration of **westpy**.
+
+    :ref:`installation`
+      Instructions on how to install the **westpy** package.
+
+    :ref:`Tutorial`
+      Compact demonstration of usage of **westpy** for pre- and post-processing WEST calculations.
+
+    :ref:`manual`
+      The complete reference.
+
+    :ref:`acknowledge`
+      Instructions on how to acknowledge this software in publications.
+
+.. note::
+
+   To get help using the **westpy** package, send an email to `mgovoni@anl.gov <mailto:mgovoni@anl.gov>`_.
+
+The **westpy** package is hosted on `GitLab <http://greatfire.uchicago.edu/west-public/westpy>`_, mirrored to `GitHub <https://github.com/west-code-development/westpy>`_, and licensed under the open-source GPLv3 license.
+
