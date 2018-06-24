@@ -29,7 +29,7 @@ or simply execute:
 
 .. code:: bash
 
-    $ http://greatfire.uchicago.edu/west-public/westpy.git
+    $ git clone http://greatfire.uchicago.edu/west-public/westpy.git
     $ cd westpy 
     $ make
 
