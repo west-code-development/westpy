@@ -1,9 +1,9 @@
 .. _tutorial:
 
-Tutorial
-========
+Tutorials
+=========
 
-These tutorial demonstrate how to utilize core features of **westpy**. 
+These tutorials demonstrate how to utilize core features of **westpy**. 
 
 Contents:
 
