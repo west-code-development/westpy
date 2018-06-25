@@ -40,7 +40,8 @@ class Geometry(object) :
       The method checks that: 
          - the cell is set
          - at least one atom has been added
-         - the pseudopotentials of all species are defined
+         - the pseudopotentials of all species are defined 
+         - the pseudopotentials do not contain a mix of upf and xml formats
       """
       isValid = True
       for key in self.isSet.keys() : 
@@ -48,6 +49,7 @@ class Geometry(object) :
          if( not self.isSet[key] ) : 
             print("ERR: set "+key)
       isValid = isValid and self.__atomsMatchSpecies()
+      isValid = isValid and self.pseudoFormat in ["upf","xml"]
       return isValid
    #
    def addSpecies(self, symbol, fname, url) : 
