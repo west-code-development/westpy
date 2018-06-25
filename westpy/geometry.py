@@ -58,7 +58,7 @@ class Geometry(object) :
       :param fname: file name
       :type fname: string
       :param url: url 
-      :type url: units
+      :type url: string
    
       :Example:
 
@@ -68,16 +68,12 @@ class Geometry(object) :
       
       .. note:: You can use this method to add either upf or xml pseudopotentials. However it is forbidded to mix them.  
       """
-      this_pseudo_format = None  
+      this_pseudo_format = None
       if( fname.endswith("upf") or fname.endswith("UPF")) : 
          this_pseudo_format = "upf"
       if( fname.endswith("xml") or fname.endswith("XML")) : 
          this_pseudo_format = "xml"
       assert( this_pseudo_format in ["upf","xml"] )
-      if self.pseudoFormat is None : 
-         self.pseudoFormat = this_pseudo_format
-      else : 
-         assert( self.pseudoFormat == this_pseudo_format ) 
       from mendeleev import element
       el = element(symbol)
       self.species[symbol] = {}
@@ -87,7 +83,21 @@ class Geometry(object) :
       self.species[symbol]["atomic_number"] = el.atomic_number
       self.species[symbol]["name"] = el.name
       self.species[symbol]["mass"] = el.mass
+      self.species[symbol]["format"] = this_pseudo_format
+      self.__updatePseudoFormat()
       self.isSet["species"] = True
+   #
+   def __updatePseudoFormat(self) : 
+      """pseudo format is either upf, xml or mixed.
+      """
+      f = []
+      for key in self.species.keys() :
+         f.append(self.species[key]["format"])
+      self.pseudoFormat = 'mixed'
+      if( all(form == 'upf' for form in f) ) : 
+         self.pseudoFormat = 'upf'
+      if( all(form == 'xml' for form in f) ) : 
+         self.pseudoFormat = 'xml'
    #
    def setCell(self, a1=(0, 0, 0), a2=(0, 0, 0), a3=(0, 0, 0), units=Bohr ) : 
       """Sets cell, given the three vectors :math:`a_1`, :math:`a_2`, :math:`a_3`.

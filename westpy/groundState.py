@@ -111,70 +111,74 @@ class GroundState :
       >>> gs.generateInputPW("pw.in") 
       """
       #
-      with open(fname, "w") as file :
-         file.write("&CONTROL\n")
-         file.write("calculation       = 'scf'\n")
-         file.write("restart_mode      = 'from_scratch'\n")
-         file.write("pseudo_dir        = './'\n")
-         file.write("outdir            = './'\n")
-         file.write("prefix            = 'calc'\n")
-         file.write("wf_collect        = .TRUE.\n")
-         file.write("/\n")
-         file.write("&SYSTEM\n")
-         file.write("ibrav             = 0\n")
-         file.write("nat               = " + str(self.geom.getNumberOfAtoms()) + "\n" )
-         file.write("ntyp              = " + str(self.geom.getNumberOfSpecies()) + "\n" )
-         file.write("ecutwfc           = " + str(self.ecut) + "\n" )
-         file.write("nbnd              = " + str(self.geom.getNumberOfElectrons() + self.nempty) + "\n" )
-         file.write("input_dft         = '" + str(self.xc) +"'\n" )
-         file.write("nosym             = .TRUE.\n" )
-         file.write("noinv             = .TRUE.\n" )
-         if( "nspin" in self.spin.keys() ) : 
-            if( self.spin["nspin"] == 2 ) : 
-               file.write("nspin             = 2\n" )  
-               file.write("tot_magnetization = " + str(self.spin["tot_magnetization"]) + "\n" )  
-            if( self.spin["nspin"] == 4 ) : 
-               file.write("noncolin          = .TRUE.\n" )  
-               from westpy import logical2str
-               file.write("lspinorb          = " + logical2str(self.spin["lspinorb"]) +"\n" )  
-         if( self.isolated ) : 
-            file.write("assume_isolated   = 'mp'\n")
-         file.write("/\n")
+      if( self.geom.pseudoFormat in ["upf"]) : 
          #
-         file.write("&ELECTRONS\n")
-         file.write("diago_full_acc = .TRUE.\n")
-         file.write("conv_tol       = 1.d-8\n")
-         file.write("/\n")
-         #
-         file.write("ATOMIC_SPECIES\n")
-         sp = [] 
-         for atom in self.geom.atoms : 
-            if( atom.symbol not in sp ) :
-               sp.append(atom.symbol)
-               file.write(atom.symbol + " " + str(self.geom.species[atom.symbol]["mass"]) + " " +  self.geom.species[atom.symbol]["fname"] + "\n")
-         #
-         file.write("ATOMIC_POSITIONS {bohr}\n")
-         for atom in self.geom.atoms :
-            file.write(atom.symbol + " " + str(atom.position[0]) + " " + str(atom.position[1]) + " " + str(atom.position[2]) + "\n")
-         # 
-         if ( self.kmesh in ["gamma"] ) :
-            file.write("K_POINTS {gamma}\n")
-         else : 
-            file.write("K_POINTS {automatic}\n")
-            file.write(str(self.kmesh[0]) + " " + str(self.kmesh[1]) + " " + str(self.kmesh[2]) + " 0 0 0\n")
-         #
-         file.write("CELL_PARAMETERS {bohr}\n")
-         cell = self.geom.cell
-         a1 = cell[0]
-         a2 = cell[1]
-         a3 = cell[2]
-         file.write(str(a1[0]) + " " + str(a1[1]) + " " + str(a1[2]) + "\n" )
-         file.write(str(a2[0]) + " " + str(a2[1]) + " " + str(a2[2]) + "\n" )
-         file.write(str(a3[0]) + " " + str(a3[1]) + " " + str(a3[2]) + "\n" )
-         #
-         print("")
-         print("Generated file: ", fname )
-         # 
+         with open(fname, "w") as file :
+            file.write("&CONTROL\n")
+            file.write("calculation       = 'scf'\n")
+            file.write("restart_mode      = 'from_scratch'\n")
+            file.write("pseudo_dir        = './'\n")
+            file.write("outdir            = './'\n")
+            file.write("prefix            = 'calc'\n")
+            file.write("wf_collect        = .TRUE.\n")
+            file.write("/\n")
+            file.write("&SYSTEM\n")
+            file.write("ibrav             = 0\n")
+            file.write("nat               = " + str(self.geom.getNumberOfAtoms()) + "\n" )
+            file.write("ntyp              = " + str(self.geom.getNumberOfSpecies()) + "\n" )
+            file.write("ecutwfc           = " + str(self.ecut) + "\n" )
+            file.write("nbnd              = " + str(self.geom.getNumberOfElectrons() + self.nempty) + "\n" )
+            file.write("input_dft         = '" + str(self.xc) +"'\n" )
+            file.write("nosym             = .TRUE.\n" )
+            file.write("noinv             = .TRUE.\n" )
+            if( "nspin" in self.spin.keys() ) : 
+               if( self.spin["nspin"] == 2 ) : 
+                  file.write("nspin             = 2\n" )  
+                  file.write("tot_magnetization = " + str(self.spin["tot_magnetization"]) + "\n" )  
+               if( self.spin["nspin"] == 4 ) : 
+                  file.write("noncolin          = .TRUE.\n" )  
+                  from westpy import logical2str
+                  file.write("lspinorb          = " + logical2str(self.spin["lspinorb"]) +"\n" )  
+            if( self.isolated ) : 
+               file.write("assume_isolated   = 'mp'\n")
+            file.write("/\n")
+            #
+            file.write("&ELECTRONS\n")
+            file.write("diago_full_acc = .TRUE.\n")
+            file.write("conv_tol       = 1.d-8\n")
+            file.write("/\n")
+            #
+            file.write("ATOMIC_SPECIES\n")
+            sp = [] 
+            for atom in self.geom.atoms : 
+               if( atom.symbol not in sp ) :
+                  sp.append(atom.symbol)
+                  file.write(atom.symbol + " " + str(self.geom.species[atom.symbol]["mass"]) + " " +  self.geom.species[atom.symbol]["fname"] + "\n")
+            #
+            file.write("ATOMIC_POSITIONS {bohr}\n")
+            for atom in self.geom.atoms :
+               file.write(atom.symbol + " " + str(atom.position[0]) + " " + str(atom.position[1]) + " " + str(atom.position[2]) + "\n")
+            # 
+            if ( self.kmesh in ["gamma"] ) :
+               file.write("K_POINTS {gamma}\n")
+            else : 
+               file.write("K_POINTS {automatic}\n")
+               file.write(str(self.kmesh[0]) + " " + str(self.kmesh[1]) + " " + str(self.kmesh[2]) + " 0 0 0\n")
+            #
+            file.write("CELL_PARAMETERS {bohr}\n")
+            cell = self.geom.cell
+            a1 = cell[0]
+            a2 = cell[1]
+            a3 = cell[2]
+            file.write(str(a1[0]) + " " + str(a1[1]) + " " + str(a1[2]) + "\n" )
+            file.write(str(a2[0]) + " " + str(a2[1]) + " " + str(a2[2]) + "\n" )
+            file.write(str(a3[0]) + " " + str(a3[1]) + " " + str(a3[2]) + "\n" )
+            #
+            print("")
+            print("Generated file: ", fname )
+            # 
+      else : 
+         print("Cannot generate input for QuantumEspresso, pseudo are not upf.") 
    # 
    def generateInputQbox(self,fname="qbox.in") : 
       """Generates input file for qbox. Valid only for Qbox calculations. 
@@ -187,37 +191,70 @@ class GroundState :
       >>> gs.generateInputQbox("qbox.in") 
       """
       #
-      with open(fname, "w") as file :
-         # cell 
-         cell = self.geom.cell
-         a1 = cell[0]
-         a2 = cell[1]
-         a3 = cell[2]
-         file.write("set cell " + str(a1[0]) + " " + str(a1[1]) + " " + str(a1[2]) + " " + str(a2[0]) + " " + str(a2[1]) + " " + str(a2[2]) + " " + str(a3[0]) + " " + str(a3[1]) + " " + str(a3[2]) + "\n" )
-         # species
-         sp = [] 
-         for atom in self.geom.atoms : 
-            if( atom.symbol not in sp ) :
-               sp.append(atom.symbol)
-               file.write("species " + self.geom.species[atom.symbol]["name"] + " " +  self.geom.species[atom.symbol]["fname"] + "\n")
-         # atom
-         i = 0
-         for atom in self.geom.atoms :
-            i+=1
-            file.write("atom " + atom.symbol+str(i) + " " + self.geom.species[atom.symbol]["name"] + " " + str(atom.position[0]) + " " + str(atom.position[1]) + " " + str(atom.position[2]) + "\n")
-            #
-         file.write("set ecut " + str(self.ecut) +"\n")
-         if( self.nempty > 0 ) :  
-            file.write("set nempty " + self.nempty + "\n")
-         file.write("set wf_dyn JD\n")
-         file.write("set xc " + self.xc + "\n")
-         file.write("set scf_tol 1.e-8\n")
-         if( "nspin" in self.spin.keys() or self.isolated or self.kmesh not in ["gamma"] ) :  
-            print("ERR: non supported") 
-         file.write("randomize_wf\n")
-         file.write("run -atomic_density 0 100 5\n")
-         file.write("save gs.xml\n")
+      if( self.geom.pseudoFormat in ["xml"] ) :  
          #
-         print("")
-         print("Generated file: ", fname )
-         # 
+         with open(fname, "w") as file :
+            # cell 
+            cell = self.geom.cell
+            a1 = cell[0]
+            a2 = cell[1]
+            a3 = cell[2]
+            file.write("set cell " + str(a1[0]) + " " + str(a1[1]) + " " + str(a1[2]) + " " + str(a2[0]) + " " + str(a2[1]) + " " + str(a2[2]) + " " + str(a3[0]) + " " + str(a3[1]) + " " + str(a3[2]) + "\n" )
+            # species
+            sp = [] 
+            for atom in self.geom.atoms : 
+               if( atom.symbol not in sp ) :
+                  sp.append(atom.symbol)
+                  file.write("species " + self.geom.species[atom.symbol]["name"] + " " +  self.geom.species[atom.symbol]["fname"] + "\n")
+            # atom
+            i = 0
+            for atom in self.geom.atoms :
+               i+=1
+               file.write("atom " + atom.symbol+str(i) + " " + self.geom.species[atom.symbol]["name"] + " " + str(atom.position[0]) + " " + str(atom.position[1]) + " " + str(atom.position[2]) + "\n")
+               #
+            file.write("set ecut " + str(self.ecut) +"\n")
+            if( self.nempty > 0 ) :  
+               file.write("set nempty " + self.nempty + "\n")
+            file.write("set wf_dyn JD\n")
+            file.write("set xc " + self.xc + "\n")
+            file.write("set scf_tol 1.e-8\n")
+            if( "nspin" in self.spin.keys() or self.isolated or self.kmesh not in ["gamma"] ) :  
+               print("ERR: non supported") 
+            file.write("randomize_wf\n")
+            file.write("run -atomic_density 0 100 5\n")
+            file.write("save gs.xml\n")
+            #
+            print("")
+            print("Generated file: ", fname )
+            #
+      else : 
+         print("Cannot generate input for Qbox, pseudo are not xml.") 
+   #
+   def downloadPseudopotentials(self) : 
+      """Download Pseudopotentials.
+   
+      :Example:
+
+      >>> gs.downloadPseudopotentials()
+     
+      .. note:: Pseudopotential files will be downloaded in the current directory. 
+      """
+      self.geom.downloadPseudopotentials()
+   #
+   def updateSpecies(self,symbol,fname,url) :
+      """Update a species.
+   
+      :param symbol: chemical symbol 
+      :type symbol: string
+      :param fname: file name
+      :type fname: string
+      :param url: url 
+      :type url: string
+   
+      :Example:
+
+      >>> geom.addSpecies( "Si", "Si_ONCV_PBE-1.1.upf", "http://www.quantum-simulation.org/potentials/sg15_oncv/upf/Si_ONCV_PBE-1.1.upf" ) 
+      
+      .. note:: You can use this method to add either upf or xml pseudopotentials. However it is forbidded to mix them.  
+      """
+      self.geom.addSpecies(symbol,fname,url) 

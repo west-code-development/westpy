@@ -10,4 +10,4 @@ Contents:
 .. toctree::
    :maxdepth: 1
 
-   westpy_100_Getting_Started
+   westpy_100.ipynb
