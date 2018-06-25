@@ -18,7 +18,7 @@ class Geometry(object) :
    from westpy import Bohr 
    #
    def __init__(self,cell=None) : 
-      self.cell = []
+      self.cell = {}
       self.atoms = []
       self.species = {}
       self.isSet = {}
@@ -121,9 +121,13 @@ class Geometry(object) :
       """
       import numpy as np
       # 
-      self.cell.append( np.array(a1, float) * units )
-      self.cell.append( np.array(a2, float) * units )
-      self.cell.append( np.array(a3, float) * units )
+      self.cell["a1"] = np.array(a1, float) * units 
+      self.cell["a2"] = np.array(a2, float) * units 
+      self.cell["a3"] = np.array(a3, float) * units 
+      self.cell["volume"] = np.dot(self.cell["a1"], np.cross(self.cell["a2"], self.cell["a3"]))
+      self.cell["b1"] = 2.0 * np.pi * np.cross(self.cell["a2"], self.cell["a3"]) / self.cell["volume"]
+      self.cell["b2"] = 2.0 * np.pi * np.cross(self.cell["a3"], self.cell["a1"]) / self.cell["volume"]
+      self.cell["b3"] = 2.0 * np.pi * np.cross(self.cell["a1"], self.cell["a2"]) / self.cell["volume"]
       self.isSet["cell"] = True
    #
    def addAtom(self, symbol, position, units=Bohr) : 

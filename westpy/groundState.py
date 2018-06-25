@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-class GroundState :
+class GroundState(object) :
    """Class for representing a ground state calculation with DFT.
 
    :param geom: geometry (cell, atoms, species)
@@ -166,10 +166,9 @@ class GroundState :
                file.write(str(self.kmesh[0]) + " " + str(self.kmesh[1]) + " " + str(self.kmesh[2]) + " 0 0 0\n")
             #
             file.write("CELL_PARAMETERS {bohr}\n")
-            cell = self.geom.cell
-            a1 = cell[0]
-            a2 = cell[1]
-            a3 = cell[2]
+            a1 = self.geom.cell["a1"]
+            a2 = self.geom.cell["a2"]
+            a3 = self.geom.cell["a3"]
             file.write(str(a1[0]) + " " + str(a1[1]) + " " + str(a1[2]) + "\n" )
             file.write(str(a2[0]) + " " + str(a2[1]) + " " + str(a2[2]) + "\n" )
             file.write(str(a3[0]) + " " + str(a3[1]) + " " + str(a3[2]) + "\n" )
@@ -195,10 +194,9 @@ class GroundState :
          #
          with open(fname, "w") as file :
             # cell 
-            cell = self.geom.cell
-            a1 = cell[0]
-            a2 = cell[1]
-            a3 = cell[2]
+            a1 = self.geom.cell["a1"]
+            a2 = self.geom.cell["a2"]
+            a3 = self.geom.cell["a3"]
             file.write("set cell " + str(a1[0]) + " " + str(a1[1]) + " " + str(a1[2]) + " " + str(a2[0]) + " " + str(a2[1]) + " " + str(a2[2]) + " " + str(a3[0]) + " " + str(a3[1]) + " " + str(a3[2]) + "\n" )
             # species
             sp = [] 

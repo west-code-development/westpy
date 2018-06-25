@@ -5,6 +5,7 @@ from westpy.utils import *
 from westpy.atom import * 
 from westpy.geometry import * 
 from westpy.groundState import * 
+from westpy.electronicStructure import * 
 
 __version__ = '3.1.0'
 
