@@ -69,9 +69,9 @@ class GroundState(object) :
       self.isolated = True
    #
    def setCollinearSpin(self,tot_magnetization=0.) :
-      """Sets collinear spin. Valid only for QuantumEspresso calculations.
+      """Sets collinear spin.
   
-      :param tot_magnetization: total magnetization, optional 
+      :param tot_magnetization: Total majority spin charge - minority spin charge, optional 
       :type tot_magnetization: float      
    
       :Example:
@@ -216,8 +216,13 @@ class GroundState(object) :
             file.write("set wf_dyn JD\n")
             file.write("set xc " + self.xc + "\n")
             file.write("set scf_tol 1.e-8\n")
-            if( "nspin" in self.spin.keys() or self.isolated or self.kmesh not in ["gamma"] ) :  
-               print("ERR: non supported") 
+            if( "nspin" in self.spin.keys() ) : 
+               if( self.spin["nspin"] == 2 ) : 
+                  file.write("set nspin 2\n" )
+                  delta_spin = (self.spin["tot_magnetization"] - (self.geom.getNumberOfElectrons() % 2) ) / 2 
+                  file.write("set delta_spin" + str(self.spin["tot_magnetization"]) + "\n" )  
+               else :  
+                  print("ERR: non supported") 
             file.write("randomize_wf\n")
             file.write("run -atomic_density 0 100 5\n")
             file.write("save gs.xml\n")
