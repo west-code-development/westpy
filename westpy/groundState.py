@@ -16,7 +16,7 @@ class GroundState :
    >>> geom = Geometry() 
    >>> geom.setCell( (1,0,0), (0,1,0), (0,0,1) ) 
    >>> geom.addAtom( "Si", (0,0,0) ) 
-   >>> geom.addSpecies( "Si", "Si_ONCV_PBE-1.1.upf", "http://www.quantum-simulation.org/potentials/sg15_oncv/upf/Si_ONCV_PBE-1.1.upf" ) 
+   >>> geom.addSpecies( "Si", "http://www.quantum-simulation.org/potentials/sg15_oncv/upf/Si_ONCV_PBE-1.1.upf" ) 
    >>> gs = GroundState(geom,"PBE",30.0)
 
    .. note:: Vectors are set in a.u. by default. If you set units=Angstrom a coversion to a.u. will be made.  
@@ -241,20 +241,18 @@ class GroundState :
       """
       self.geom.downloadPseudopotentials()
    #
-   def updateSpecies(self,symbol,fname,url) :
+   def updateSpecies(self,symbol,url) :
       """Update a species.
    
       :param symbol: chemical symbol 
       :type symbol: string
-      :param fname: file name
-      :type fname: string
       :param url: url 
       :type url: string
    
       :Example:
 
-      >>> geom.addSpecies( "Si", "Si_ONCV_PBE-1.1.upf", "http://www.quantum-simulation.org/potentials/sg15_oncv/upf/Si_ONCV_PBE-1.1.upf" ) 
+      >>> geom.addSpecies( "Si", "http://www.quantum-simulation.org/potentials/sg15_oncv/upf/Si_ONCV_PBE-1.1.upf" ) 
       
       .. note:: You can use this method to add either upf or xml pseudopotentials. However it is forbidded to mix them.  
       """
-      self.geom.addSpecies(symbol,fname,url) 
+      self.geom.addSpecies(symbol,url) 

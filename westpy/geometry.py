@@ -9,7 +9,7 @@ class Geometry(object) :
    >>> geom = Geometry()
    >>> geom.setCell( (1,0,0), (0,1,0), (0,0,1) ) 
    >>> geom.addAtom( "Si", (0,0,0) ) 
-   >>> geom.addSpecies( "Si", "Si_ONCV_PBE-1.1.upf", "http://www.quantum-simulation.org/potentials/sg15_oncv/upf/Si_ONCV_PBE-1.1.upf" ) 
+   >>> geom.addSpecies( "Si", "http://www.quantum-simulation.org/potentials/sg15_oncv/upf/Si_ONCV_PBE-1.1.upf" ) 
 
    .. note:: Vectors are set in a.u. by default. If you set units=Angstrom a coversion to a.u. will be made.  
  
@@ -52,13 +52,11 @@ class Geometry(object) :
       isValid = isValid and self.pseudoFormat in ["upf","xml"]
       return isValid
    #
-   def addSpecies(self, symbol, fname, url) : 
+   def addSpecies(self, symbol, url) : 
       """Adds a species.
    
       :param symbol: chemical symbol 
       :type symbol: string
-      :param fname: file name
-      :type fname: string
       :param url: url 
       :type url: string
    
@@ -66,10 +64,12 @@ class Geometry(object) :
 
       >>> from westpy import * 
       >>> geom = Geometry()
-      >>> geom.addSpecies( "Si", "Si_ONCV_PBE-1.1.upf", "http://www.quantum-simulation.org/potentials/sg15_oncv/upf/Si_ONCV_PBE-1.1.upf" ) 
+      >>> geom.addSpecies( "Si", "http://www.quantum-simulation.org/potentials/sg15_oncv/upf/Si_ONCV_PBE-1.1.upf" ) 
       
       .. note:: You can use this method to add either upf or xml pseudopotentials. However it is forbidded to mix them.  
       """
+      from westpy import extractFileNamefromUrl
+      fname = extractFileNamefromUrl(url)
       this_pseudo_format = None
       if( fname.endswith("upf") or fname.endswith("UPF")) : 
          this_pseudo_format = "upf"
@@ -245,8 +245,8 @@ class Geometry(object) :
       >>> from westpy import * 
       >>> geom = Geometry()
       >>> geom.addAtomsFromOnlineXYZ( "http://www.west-code.org/database/gw100/xyz/CH4.xyz" )
-      >>> geom.addSpecies( "C", "C_ONCV_PBE-1.0.xml", "http://www.quantum-simulation.org/potentials/sg15_oncv/xml/C_ONCV_PBE-1.0.xml")
-      >>> geom.addSpecies( "H", "H_ONCV_PBE-1.0.xml", "http://www.quantum-simulation.org/potentials/sg15_oncv/xml/H_ONCV_PBE-1.0.xml")
+      >>> geom.addSpecies( "C", "http://www.quantum-simulation.org/potentials/sg15_oncv/xml/C_ONCV_PBE-1.0.xml")
+      >>> geom.addSpecies( "H", "http://www.quantum-simulation.org/potentials/sg15_oncv/xml/H_ONCV_PBE-1.0.xml")
       >>> nelec = geom.getNumberOfElectrons()
       >>> print( nelec ) 
       8
@@ -279,8 +279,8 @@ class Geometry(object) :
       >>> from westpy import * 
       >>> geom = Geometry()
       >>> geom.addAtomsFromOnlineXYZ( "http://www.west-code.org/database/gw100/xyz/CH4.xyz" )
-      >>> geom.addSpecies( "C", "C_ONCV_PBE-1.0.xml", "http://www.quantum-simulation.org/potentials/sg15_oncv/xml/C_ONCV_PBE-1.0.xml")
-      >>> geom.addSpecies( "H", "H_ONCV_PBE-1.0.xml", "http://www.quantum-simulation.org/potentials/sg15_oncv/xml/H_ONCV_PBE-1.0.xml")
+      >>> geom.addSpecies( "C", "http://www.quantum-simulation.org/potentials/sg15_oncv/xml/C_ONCV_PBE-1.0.xml")
+      >>> geom.addSpecies( "H", "http://www.quantum-simulation.org/potentials/sg15_oncv/xml/H_ONCV_PBE-1.0.xml")
       >>> geom.downloadPseudopotentials()
      
       .. note:: Pseudopotential files will be downloaded in the current directory. 
@@ -289,4 +289,4 @@ class Geometry(object) :
       #
       from westpy import download 
       for key in self.species.keys() :
-         download( self.species[key]["fname"], self.species[key]["url"])
+         download( self.species[key]["url"], fname=self.species[key]["fname"] )

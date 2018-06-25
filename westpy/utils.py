@@ -2,21 +2,45 @@ from __future__ import print_function
 
 """ Set of utilities."""
 
-def download(fname, url):
-   """Downloads a file from url. 
+def extractFileNamefromUrl(url):
+   """Extracts a file name from url. 
 
-   :param fname: file name
-   :type fname: string
    :param url: url
    :type url: string
+   :returns: file name 
+   :rtype: string
 
    :Example:
 
    >>> from westpy import * 
-   >>> download("CH4.xyz","http://www.west-code.org/database/gw100/xyz/CH4.xyz")
+   >>> extractFileNamefromUrl("http://www.west-code.org/database/gw100/xyz/CH4.xyz")
+   """
+   #
+   fname = None 
+   my_url = url[:-1] if url.endswith('/') else url
+   if my_url.find('/'):
+      fname = my_url.rsplit('/', 1)[1]
+   return fname 
+    
+
+def download(url,fname=None):
+   """Downloads a file from url. 
+
+   :param url: url
+   :type url: string
+   :param fname: file name, optional 
+   :type fname: string
+
+   :Example:
+
+   >>> from westpy import * 
+   >>> download("http://www.west-code.org/database/gw100/xyz/CH4.xyz")
 
    .. note:: The file will be downloaded in the current directory. 
    """
+   #
+   if fname is None :
+      fname = extractFileNamefromUrl(url)
    #
    from requests import get
    # open in binary mode
