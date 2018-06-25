@@ -3,7 +3,7 @@
 Credits
 =======
 
-Marco Govoni (Argonne National Laboratory)
+Marco Govoni (Argonne National Laboratory and University of Chicago)
 
 Acknowledgements 
 ----------------
