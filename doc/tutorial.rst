@@ -10,6 +10,6 @@ Contents:
 .. toctree::
    :maxdepth: 1
 
-   westpy_100.ipynb
-   westpy_101.ipynb
-   westpy_200.ipynb
+   tutorials/westpy_100.ipynb
+   tutorials/westpy_101.ipynb
+   tutorials/westpy_200.ipynb
