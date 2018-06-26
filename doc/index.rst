@@ -2,12 +2,12 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to westpy's documentation!
+Welcome to WESTpy's documentation!
 ==================================
 
 .. .. important::
 
-    This is documentation for the **westpy** *package*, which is part of the WEST_ framework.
+    This is documentation for the **WESTpy** *package*, which is part of the WEST_ framework.
 
 .. _WEST: http://www.west-code.org
 
@@ -27,13 +27,13 @@ Contents
 .. glossary::
 
     :ref:`overview`
-      An illustration of **westpy**.
+      An illustration of **WESTpy**.
 
     :ref:`installation`
-      Instructions on how to install the **westpy** package.
+      Instructions on how to install the **WESTpy** package.
 
     :ref:`Tutorial`
-      Compact demonstration of usage of **westpy** for pre- and post-processing WEST calculations.
+      Compact demonstration of usage of **WESTpy** for pre- and post-processing WEST calculations.
 
     :ref:`manual`
       The complete reference.
@@ -43,7 +43,7 @@ Contents
 
 .. note::
 
-   To get help using the **westpy** package, send an email to `mgovoni@anl.gov <mailto:mgovoni@anl.gov>`_.
+   To get help using the **WESTpy** package, send an email to `mgovoni@anl.gov <mailto:mgovoni@anl.gov>`_.
 
-The **westpy** package is hosted on `GitLab <http://greatfire.uchicago.edu/west-public/westpy>`_, mirrored to `GitHub <https://github.com/west-code-development/westpy>`_, and licensed under the open-source GPLv3 license.
+The **WESTpy** package is hosted on `GitLab <http://greatfire.uchicago.edu/west-public/westpy>`_, mirrored to `GitHub <https://github.com/west-code-development/westpy>`_, and licensed under the open-source GPLv3 license.
 

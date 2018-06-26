@@ -3,7 +3,7 @@
 Manual
 ======
 
-The complete **westpy** manual.
+The complete **WESTpy** reference is reported below.
 
 
 Units

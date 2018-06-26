@@ -4,7 +4,7 @@
 Installation
 ============
 
-The recommendend installation method for **westpy** is via python install. 
+The recommendend installation method for **WESTpy** is via python install. 
 The software is tested for python version 3.x and has the following dependencies: 
 
    - ``numpy``
@@ -13,11 +13,12 @@ The software is tested for python version 3.x and has the following dependencies
    - ``datetime``
    - ``requests``
    - ``mendeleev`` 
+   - ``signac`` 
 
 Source Code Installation
 ========================
 
-To install **westpy** you need to execute:  
+To install **WESTpy** you need to execute:  
 
 .. code:: bash
 
