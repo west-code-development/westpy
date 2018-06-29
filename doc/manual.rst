@@ -46,18 +46,18 @@ Ground State
     :undoc-members:
     :show-inheritance:
 
-Electronic Structure
---------------------
-
-.. automodule:: westpy.electronicStructure
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 Data Container
 --------------
 
 .. automodule:: westpy.dataContainer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+Electronic Structure
+--------------------
+
+.. automodule:: westpy.electronicStructure
     :members:
     :undoc-members:
     :show-inheritance:
