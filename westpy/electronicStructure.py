@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-class ElectronicStructure(object) :
+class ElectronicStructure() :
    """Class for representing an electronic structure calculation.
    
    :Example:
@@ -11,51 +11,19 @@ class ElectronicStructure(object) :
    """
    #
    def __init__(self) :
-      self.info = {}
-      self.data = []
+      from westpy import DataContainer
+      self.dc = DataContainer()
+      self.dc.upsertKey("k","k-point")
+      self.dc.upsertKey("s","spin")
+      self.dc.upsertKey("b","band")
    #
-   def loadFromJsonFile(self,fname) : 
-      """Loads an electronic structure from file (Json format).
-   
-      :param fname: file name
-      :type fname: string
-   
-      :Example:
-
-      >>> from westpy import *
-      >>> es = ElectronicStructure()
-      >>> es.loadFromJsonFile("es.json") 
-      """
-      from westpy import readJsonFile
-      data = readJsonFile(fname)
-      self.info = data["info"]
-      self.data = data["data"]
-   #
-   def dumpToJsonFile(self,fname) : 
-      """Dumps an electronic structure to file (Json format).
-   
-      :param fname: file name
-      :type fname: string
-   
-      :Example:
-
-      >>> from westpy import *
-      >>> es = ElectronicStructure()
-      >>> es.dumpToJsonFile("es.json") 
-      """
-      from westpy import writeJsonFile
-      data = {}
-      data["info"] = self.info
-      data["data"] = self.data
-      writeJsonFile(fname,data)
-   #
-   def addKey(self,key,value) : 
-      """Sets key-value in metadata.
-   
+   def addKey(self,key,description) : 
+      """Describes metadata key.
+    
       :param key: key 
       :type key: string
-      :param value: value 
-      :type value: string
+      :param description: description
+      :type description: * (hashable object)
    
       :Example:
 
@@ -63,9 +31,7 @@ class ElectronicStructure(object) :
       >>> es = ElectronicStructure()
       >>> es.addKey("eks","Kohn-Sham") 
       """
-      if "keys" not in self.info.keys() : 
-         self.info["keys"] = {}
-      self.info["keys"][key] = value
+      self.dc.upsertKey( key, description ) 
    #
    def removeKey(self,key) : 
       """Removes key from metadata.
@@ -77,15 +43,10 @@ class ElectronicStructure(object) :
 
       >>> from westpy import *
       >>> es = ElectronicStructure()
+      >>> es.addKey("eks","Kohn-Sham") 
       >>> es.removeKey("eks") 
       """
-      if "keys" in self.info.keys() : 
-         if key in self.info["keys"] : 
-            self.info["keys"].pop(key,None)
-         else : 
-            print("key not recognized")
-      else : 
-         print("No keys")
+      self.dc.removeKey( key ) 
    #
    #
    def showKeys(self) : 
@@ -96,110 +57,28 @@ class ElectronicStructure(object) :
       >>> from westpy import *
       >>> es = ElectronicStructure()
       >>> es.showKeys() 
-      """
-      if "keys" in self.info.keys() : 
-         for key in self.info["keys"] : 
-            print( key, self.info["keys"][key]) 
-      else : 
-         print("No keys") 
+      """  
+      l = self.dc.checkKeys(printSummary=True)
    #
-   def addKpoint(self,kpoint,coord) : 
-      """Adds kpoint info to metadata.
-   
-      :param kpoint: k-point integer label
-      :type kpoint: int
-      :param coord: crystal coordinates of the k-point
-      :type coord: 3-dim list of int
-   
-      :Example:
-
-      >>> from westpy import *
-      >>> es = ElectronicStructure()
-      >>> es.addKpoint(1,[0.,0.,0.]) 
-      """
-      if "k" not in self.info.keys() : 
-         self.info["k"] = {}
-      self.info["k"][kpoint] = [float(coord[0]), float(coord[1]), float(coord[2])]
-   #
-   def __addSpins(self,spins) : 
-      """Adds spin labels to metadata.
-   
-      :param spin: list of spin integer label
-      :type spin: list of int
-   
-      :Example:
-
-      >>> from westpy import *
-      >>> es = ElectronicStructure()
-      >>> es.addSpins([1,2])
-      """
-      if "s" not in self.info.keys() : 
-         self.info["s"] = []
-      for spin in spins : 
-         self.info["s"].append(spin)
-   #
-   def __addBands(self,bands) : 
-      """Adds band label to metadata.
-   
-      :param band: list of band integer label
-      :type band: list of int
-   
-      :Example:
-
-      >>> from westpy import *
-      >>> es = ElectronicStructure()
-      >>> es.addBands([1,2,3])
-      """
-      if "b" not in self.info.keys() : 
-         self.info["b"] = []
-      for band in bands : 
-         self.info["b"].append(band)
    #
    def addDataPoint(self,ksb,key,what) : 
       """Adds datapoint to data.
    
-      :param ksb: triplet of k-point, spin, band (integer labels)
+      :param ksb: triplet of integers: k-point, spin, band (integer labels)
       :type ksb: 3-dim int
       :param key: key
       :type key: string 
       :param what: content attached to key 
-      :type what: *
+      :type what: * (hashable object)
    
       :Example:
 
       >>> from westpy import *
       >>> es = ElectronicStructure()
       >>> es.addKey("eks","Kohn-Sham energy in eV")
-      >>> es.addKpoint(1,[0.,0.,0.])
       >>> es.addDataPoint([1,1,1],"eks",-4.6789)
       """
-      lk = False
-      lkey = False
-      if "k" in self.info.keys() :
-         lk = ( ksb[0] in self.info["k"] )
-      else : 
-         print("No k")
-      if "keys" in self.info.keys() : 
-         lkey = ( key in self.info["keys"] ) 
-      else : 
-         print("No keys")
-      if( lk and lkey ) :
-         lfound = False 
-         for x in self.data :
-            if x["ksb"] == ksb : 
-               x[key] = what
-               lfound = True
-               break 
-         if not lfound : 
-            d = {}
-            d["ksb"] = ksb 
-            d[key] = what
-            self.data.append(d) 
-      else : 
-         if not lk : 
-            print(ksb[0], "not in k, add it first") 
-         if not lkey : 
-            print(key, "not in keys, add it first") 
+      self.dc.upsertPoint( { "k" : ksb[0],  "s" : ksb[1],  "b" : ksb[2] }, { key : what } ) 
      
    #
    def plotDOS(self,k=1,s=1,energyKeys=["eks"],sigma=0.1,weight=1.,energyRange=[-20.,0.,0.01],fname="dos.png") : 
@@ -225,12 +104,11 @@ class ElectronicStructure(object) :
       >>> from westpy import *
       >>> es = ElectronicStructure()
       >>> es.addKey("eks","Kohn-Sham energy in eV")
-      >>> es.addKpoint(1,[0.,0.,0.])
       >>> es.addDataPoint([1,1,1],"eks",-4.6789)
       >>> es.plotDOS(k=1,s=1,energyKeys=["eks"],energyRange=[-5.,-3,0.01]) 
       """
       #
-      if(all(x in self.info["keys"] for x in energyKeys)) :  
+      if(all(x in self.dc.info.keys() for x in energyKeys)) :  
          #
          import numpy as np
          import scipy as sp
@@ -248,18 +126,18 @@ class ElectronicStructure(object) :
             #
             dosAxis[energyKey] = np.zeros ( (npte) )
             #
-            for dataPoint in self.data :
+            for dataPoint in self.dc.coll :
                #
-               if energyKey in dataPoint.keys() and dataPoint["ksb"][0] == k and dataPoint["ksb"][1] == s : 
-                  mu = dataPoint[energyKey] 
+               if energyKey in dataPoint["d"].keys() and dataPoint["i"]["k"] == k and dataPoint["i"]["s"] == s : 
+                  mu = dataPoint["d"][energyKey] 
                   emin.append( mu )
                   emax.append( mu )
                   if isinstance(sigma, str) : 
-                     si = dataPoint[sigma]
+                     si = dataPoint["d"][sigma]
                   else : 
                      si = sigma 
                   if isinstance(weight, str) : 
-                     we = dataPoint[weight]
+                     we = dataPoint["d"][weight]
                   else : 
                      we = weight 
                   #
@@ -289,5 +167,5 @@ class ElectronicStructure(object) :
          fig.clear()
       else: 
          for energyKey in energyKeys : 
-            if energyKey not in self.info["keys"] : 
+            if energyKey not in self.dc.info.keys() : 
                print("Unrecognized energyKey:", energyKey)

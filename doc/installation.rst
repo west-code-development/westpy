@@ -15,6 +15,9 @@ The software is tested for python version 3.x and has the following dependencies
    - ``mendeleev`` 
    - ``signac`` 
 
+The dependencies will all be installed automatically, following instructions reported below.  
+
+
 Source Code Installation
 ========================
 

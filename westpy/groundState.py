@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-class GroundState(object) :
+class GroundState() :
    """Class for representing a ground state calculation with DFT.
 
    :param geom: geometry (cell, atoms, species)
@@ -145,7 +145,7 @@ class GroundState(object) :
             #
             file.write("&ELECTRONS\n")
             file.write("diago_full_acc = .TRUE.\n")
-            file.write("conv_tol       = 1.d-8\n")
+            file.write("conv_thr       = 1.d-8\n")
             file.write("/\n")
             #
             file.write("ATOMIC_SPECIES\n")
@@ -203,7 +203,7 @@ class GroundState(object) :
             for atom in self.geom.atoms : 
                if( atom.symbol not in sp ) :
                   sp.append(atom.symbol)
-                  file.write("species " + self.geom.species[atom.symbol]["name"] + " " +  self.geom.species[atom.symbol]["fname"] + "\n")
+                  file.write("species " + self.geom.species[atom.symbol]["name"] + " " +  self.geom.species[atom.symbol]["url"] + "\n")
             # atom
             i = 0
             for atom in self.geom.atoms :

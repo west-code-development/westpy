@@ -53,3 +53,11 @@ Electronic Structure
     :members:
     :undoc-members:
     :show-inheritance:
+
+Data Container
+--------------
+
+.. automodule:: westpy.dataContainer
+    :members:
+    :undoc-members:
+    :show-inheritance:
