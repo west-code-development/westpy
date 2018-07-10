@@ -126,6 +126,27 @@ def readJsonFile(fname):
       print("File read : ", fname )
    return data  
 
+def convertYaml2Json(fyml,fjson):
+   """Converts the file from YAML to JSON. 
+
+   :param fyml: Name of YAML file 
+   :type fyml: string
+   :param fjson: Name of JSON file 
+   :type fjson: string
+
+   :Example:
+
+   >>> from westpy import * 
+   >>> convertYaml2Json("file.yml","file.json") 
+
+   .. note:: The file fjon will be created, fyml will not be overwritten. 
+   """
+   #
+   import yaml, json 
+   from westpy import writeJsonFile
+   #
+   data = yaml.load(open(fyml))
+   writeJsonFile(fjson,data)
 
 def listLinesWithKeyfromOnlineText(url,key):
    """List lines from text file located at url, with key.

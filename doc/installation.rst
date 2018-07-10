@@ -10,6 +10,7 @@ The software is tested for python version 3.x and has the following dependencies
    - ``numpy``
    - ``scipy``
    - ``matplotlib``
+   - ``pyyaml``
    - ``datetime``
    - ``requests``
    - ``mendeleev`` 
