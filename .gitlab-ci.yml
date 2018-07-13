@@ -10,12 +10,9 @@ west_build:
  image: ubuntu:latest
  before_script:
    - apt-get update > /dev/null
-   - apt-get install -qq git tzdata > /dev/null 
-   - apt-get install -qq wget python3-sphinx
+   - apt-get install -qq wget python3 >/dev/null
  script:
    - git clone -b $CI_COMMIT_REF_NAME $CI_REPOSITORY_URL westpy
    - cd westpy
    - git describe
    - make
-   - cd doc 
-   - make html
