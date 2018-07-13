@@ -1,0 +1,21 @@
+variables:
+ GIT_STRATEGY: none
+
+stages:
+ - build
+
+west_build:
+ tags: [rcc,docker,node-01]
+ stage: build
+ image: ubuntu:latest
+ before_script:
+   - apt-get update > /dev/null
+   - apt-get install -qq git > /dev/null 
+   - apt-get install -qq build-essential wget python python-sphinx > /dev/null
+ script:
+   - git clone -b $CI_COMMIT_REF_NAME $CI_REPOSITORY_URL westpy
+   - cd westpy
+   - git describe
+   - make
+   - cd doc 
+   - make doc
