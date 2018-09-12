@@ -7,6 +7,7 @@ from westpy.geometry import *
 from westpy.groundState import * 
 from westpy.dataContainer import * 
 from westpy.electronicStructure import * 
+from westpy.Connection import *
 
 __version__ = '3.1.0'
 
