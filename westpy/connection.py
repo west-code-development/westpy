@@ -73,7 +73,7 @@ class Connection(object):
             print('The Executor is not responding.',e)		 
         return json.loads(response.text) 
     
-    def run(self,executable=None,inputFile=None,outputFile=None,number_of_cores=2) :
+    def run(self,executable=None,inputFile=None,outputFile=None,downloadUrl=[],number_of_cores=2) :
         """runs the executable using rest api remotely.
         
         :param executable: name of executable
@@ -82,6 +82,8 @@ class Connection(object):
         :type inputFile: string
         :param outputFile: name of output file
         :type outputFile: string
+        :param downloadUrl: URLs to be downloaded
+        :type downloadUrl: list of string
         :param number_of_cores: number of cores
         :type number_of_cores: int
         
@@ -89,14 +91,13 @@ class Connection(object):
         
         >>> from westpy import *
         >>> connection = Connection("email@domain.com")
-        >>> connection.run( "pw", "pw.in", "pw.out", 3 )
+        >>> connection.run( "pw", "pw.in", "pw.out", ["http://www.quantum-simulation.org/potentials/sg15_oncv/upf/C_ONCV_PBE-1.0.upf"] , 3 )
         >>> connection.stop()
         
         """
         #
         import json
         #
-        download_urls = []
         output_dict = {}   
         if executable and ("pw" in str(executable).lower() or "wstat" in str(executable).lower() or "wfreq" in str(executable).lower()) :
            # set inputs
@@ -104,10 +105,8 @@ class Connection(object):
               inputFile = str(executable)+".in"
            if outputFile is None:
               outputFile = str(executable)+".out"		 
-           for key in self.geom.species.keys() :
-              download_urls.append(self.geom.species[key]["url"])
            try:
-              output = self.__runExecutable(executable,inputFile,download_urls,number_of_cores)
+              output = self.__runExecutable(executable,inputFile,downloadUrl,number_of_cores)
               output_json = json.loads(output)
               if "Error" in output_json:
                  print("Execution failed with the following error \n",output_json['Error'])
