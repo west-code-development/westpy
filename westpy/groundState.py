@@ -37,7 +37,6 @@ class GroundState() :
       self.kmesh = "gamma"
       self.isolated = False
       self.spin = {}
-      self.inputFile = "" 
    #
    def setNempty(self,nempty) : 
       """Sets the number of empty bands. 
@@ -179,7 +178,6 @@ class GroundState() :
             #
             print("")
             print("Generated file: ", fname )
-            self.inputFile = fname
             # 
       else : 
          print("Cannot generate input for QuantumEspresso, pseudo are not upf.") 
