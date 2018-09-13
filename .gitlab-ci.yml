@@ -12,11 +12,13 @@ westpy_build:
  before_script:
    - echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
    - apt-get update > /dev/null
+   - apt-get install -qq build-essential > /dev/null
+   - apt-get install -qq apt-utils > /dev/null
    - apt-get install -qq git >/dev/null
    - apt-get install -qq wget git > /dev/null
    - cd /opt
    - export PY_VERSION="3.5.4"
-   - wget https://www.python.org/ftp/python/$PY_VERSION/Python-$PY_VERSION.tgz
+   - wget --quiet https://www.python.org/ftp/python/$PY_VERSION/Python-$PY_VERSION.tgz
    - tar -xzf Python-$PY_VERSION.tgz
    - cd Python-$PY_VERSION 
    - export PY_DIR="/opt/python"
@@ -25,7 +27,7 @@ westpy_build:
    - make install
    - ln -s $PY_DIR/bin/python3.5 $PY_DIR/bin/python
    - export PATH=$PY_DIR/bin:$PATH
-   - wget https://bootstrap.pypa.io/get-pip.py
+   - wget --quiet https://bootstrap.pypa.io/get-pip.py
    - python get-pip.py
    - which python
    - which pip
