@@ -62,7 +62,7 @@ westpy_doc_build:
    - apt-get install -qq pandoc > /dev/null
    - cd /opt
    - export PY_VERSION="3.5.4"
-   - wget –quiet https://www.python.org/ftp/python/$PY_VERSION/Python-$PY_VERSION.tgz
+   - wget https://www.python.org/ftp/python/$PY_VERSION/Python-$PY_VERSION.tgz
    - tar -xzf Python-$PY_VERSION.tgz
    - cd Python-$PY_VERSION 
    - export PY_DIR="/opt/python"
