@@ -18,12 +18,13 @@ class Session(object):
         self.restAPIinit = "http://imedevel.uchicago.edu:8000/getSessionId"
         self.restAPIrun  = "http://imedevel.uchicago.edu:8000/runWestCode"
         self.restAPIstop = "http://imedevel.uchicago.edu:8000/stopSession"
-        self.maxTime = 1800 # seconds
+        self.maxSessionTime = 1800 # seconds
+        self.maxWaitTime = 1800 # seconds
         self.maxNumberOfCores = 4
         self.allowedExecutables = ["pw","wstat","wfreq"]
         # -------------------------------
         #
-        data = {'emailId': self.emailId ,'sessionTime':str(self.maxTime)} 
+        data = {'emailId': self.emailId ,'sessionTime':str(self.maxSessionTime)} 
         #
         import requests
         import json
@@ -153,7 +154,7 @@ class Session(object):
            error = "Could not find "+ input_file + ". \n Generate input file "+ input_file +" and try again."	  
            print(error)
            return None
-        body = {'urls':download_urls,'file':file_content,'cmd_timeout':'600','script_type':str(executable),'no_of_cores':str(number_of_cores)}  
+        body = {'urls':download_urls,'file':file_content,'cmd_timeout':str(self.maxWaitTime),'script_type':str(executable),'no_of_cores':str(number_of_cores)}  
         jsondata = json.dumps(body)
         jsondataasbytes = jsondata.encode('utf-8')   # needs to be bytes
         headers = {'Content-Type':'application/json; charset=utf-8','emailId':self.emailId,'token':self.token}
