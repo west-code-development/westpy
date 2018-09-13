@@ -2,8 +2,8 @@ variables:
  GIT_STRATEGY: none
 
 stages:
- - build
  - doc
+ - build
 
 westpy_build:
  tags: [rcc,docker,node-01]
@@ -12,7 +12,18 @@ westpy_build:
  before_script:
    - apt-get update > /dev/null
    - apt-get install -qq git >/dev/null
-   - apt-get install -qq build-essential wget python-pip python-dev > /dev/null
+   - cd /opt
+   - export PY_VERSION="3.5.4"
+   - wget https://www.python.org/ftp/python/$PY_VERSION/Python-$PY_VERSION.tgz
+   - tar -xzvf Python-$PY_VERSION.tgz
+   - cd Python-$PY_VERSION 
+   - export PY_DIR="/opt/python"
+   - ./configure --prefix $PY_DIR
+   - make 
+   - make install
+   - ln -s $PY_DIR/bin/python3.5 $PY_DIR/bin/python
+   - export PATH=$PY_DIR/bin:$PATH
+   - which pip 
  script:
    - git clone -b $CI_COMMIT_REF_NAME $CI_REPOSITORY_URL westpy
    - cd westpy
@@ -49,6 +60,10 @@ westpy_doc_build:
    - make install
    - ln -s $PY_DIR/bin/python3.5 $PY_DIR/bin/python
    - export PATH=$PY_DIR/bin:$PATH
+   - which pip 
+   - wget https://bootstrap.pypa.io/get-pip.py
+   - python get-pip.py
+   - which python
    - which pip 
    - pip install nbsphinx
    - pip install sphinx_rtd_theme
