@@ -15,10 +15,11 @@ class Session(object):
         #
         # --- CONFIGURABLE PARAMETERS --- 
         self.serverName = "imedevel.uchicago.edu"
-        self.restAPIinit = "http://imedevel.uchicago.edu:8000/getSessionId"
-        self.restAPIrun  = "http://imedevel.uchicago.edu:8000/runWestCode"
-        self.restAPIstop = "http://imedevel.uchicago.edu:8000/stopSession"
-        self.maxSessionTime = 1800 # seconds
+        self.restAPIinit = "http://imedevel.uchicago.edu:8000/init"
+        self.restAPIrun  = "http://imedevel.uchicago.edu:8000/run"
+        self.restAPIstop = "http://imedevel.uchicago.edu:8000/stop"
+        self.restAPIstatus = "http://imedevel.uchicago.edu:8000/status"
+        self.maxSessionTime = 3600 # seconds
         self.maxWaitTime = 1800 # seconds
         self.maxNumberOfCores = 4
         self.allowedExecutables = ["pw","wstat","wfreq"]
@@ -80,7 +81,28 @@ class Session(object):
         except Exception as e:
             print('The server is not responding.',e)		 
         return json.loads(response.text) 
-    
+
+    def status(self):
+        """Returns whether the session is active and time left. 
+        
+        :Example:
+        
+        >>> from westpy import *
+        >>> session = Session("email@domain.com")
+        >>> session.status()
+        
+        """
+        
+        import requests
+        import json
+        #
+        headers = {'Content-Type':'application/json; charset=utf-8','emailId':self.emailId,'token':self.token}
+        try:
+            response = requests.get(self.restAPIstatus, headers=headers, timeout=None)
+        except Exception as e:
+            print('The server is not responding.',e)		 
+        return json.loads(response.text) 
+		
     def run(self,executable=None,inputFile=None,outputFile=None,downloadUrl=[],number_of_cores=2) :
         """Runs the executable on the remote server.
         
