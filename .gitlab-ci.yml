@@ -18,6 +18,10 @@ westpy_build:
    - apt-get -qq install zlib1g-dev > /dev/null
    - apt-get -qq install libssl-dev > /dev/null
    - cd /opt
+   - export LANGUAGE=en_US.UTF-8
+   - export LC_ALL=en_US.UTF-8
+   - export LANG=en_US.UTF-8
+   - export LC_TYPE=en_US.UTF-8
    - export PY_VERSION="3.5.4"
    - wget https://www.python.org/ftp/python/$PY_VERSION/Python-$PY_VERSION.tgz
    - tar -xzf Python-$PY_VERSION.tgz
