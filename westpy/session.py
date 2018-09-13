@@ -54,6 +54,7 @@ class Session(object):
         >>> from westpy import *
         >>> session = Session("email@domain.com")
         >>> token = session.getToken()
+        >>> print(token)
         
         """
         if self.token :
@@ -89,7 +90,8 @@ class Session(object):
         
         >>> from westpy import *
         >>> session = Session("email@domain.com")
-        >>> session.status()
+        >>> status = session.status()
+        >>> print(status)
         
         """
         
