@@ -23,7 +23,11 @@ westpy_build:
    - make install
    - ln -s $PY_DIR/bin/python3.5 $PY_DIR/bin/python
    - export PATH=$PY_DIR/bin:$PATH
-   - which pip 
+   - wget https://bootstrap.pypa.io/get-pip.py
+   - python get-pip.py
+   - which python
+   - which pip
+   - pip freeze 
  script:
    - git clone -b $CI_COMMIT_REF_NAME $CI_REPOSITORY_URL westpy
    - cd westpy
@@ -60,7 +64,6 @@ westpy_doc_build:
    - make install
    - ln -s $PY_DIR/bin/python3.5 $PY_DIR/bin/python
    - export PATH=$PY_DIR/bin:$PATH
-   - which pip 
    - wget https://bootstrap.pypa.io/get-pip.py
    - python get-pip.py
    - which python
