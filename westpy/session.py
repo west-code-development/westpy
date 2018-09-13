@@ -1,22 +1,29 @@
 from __future__ import print_function
 
-class Connection(object):
-    """Class for setting up the Connection to the Rest API Server.
+class Session(object):
+    """Class for setting up a session, connected to a remove server via rest APIs.
     
     :Example:
     
     >>> from westpy import *
-    >>> connection = Connection("email@domain.com")
+    >>> session = Session("email@domain.com")
     
     """
     def __init__(self,emailId) :
-        self.output = {}
+        self.token = None
         self.emailId = str(emailId)
+        #
+        # --- CONFIGURABLE PARAMETERS --- 
+        self.serverName = "imedevel.uchicago.edu"
         self.restAPIinit = "http://imedevel.uchicago.edu:8000/getSessionId"
         self.restAPIrun  = "http://imedevel.uchicago.edu:8000/runWestCode"
         self.restAPIstop = "http://imedevel.uchicago.edu:8000/stopSession"
+        self.maxTime = 1800 # seconds
+        self.maxNumberOfCores = 4
+        self.allowedExecutables = ["pw","wstat","wfreq"]
+        # -------------------------------
         #
-        data = {'emailId': self.emailId ,'sessionTime':str(600)}
+        data = {'emailId': self.emailId ,'sessionTime':str(self.maxTime)} 
         #
         import requests
         import json
@@ -26,55 +33,55 @@ class Connection(object):
             output = requests.post(self.restAPIinit, data=json.dumps(data))
             response = json.loads(output.text)
         except Exception as e:
-            print('The Executor is not responding.',e)
+            print('The server is not responding.',e)
         if response:
             if "Error" in response:
-                print("Execution failed with the following error \n",response['Error'])
+                print("Server failed with the following error \n",response['Error'])
                 return None
             else:
                 print("Check the inbox/spam folder of your email and click on the link to activate the session")
-                self.output = response
+                self.token = response["token"]
         else:
-            print('The Executor is not responding.')
+            print('The server is not responding.')
     
-    def status(self):
-        """returns the token to setup the connection.
+    def getToken(self):
+        """Returns the token of the session.
         
         :Example:
         
         >>> from westpy import *
-        >>> connection = Connection("email@domain.com")
-        >>> status = connection.status()
+        >>> session = Session("email@domain.com")
+        >>> token = session.getToken()
         
         """
-        if self.output:
-            return self.output
+        if self.token :
+            return self.token
         else:
             raise ValueError("Cannot find output.")
     
     def stop(self):
-        """stops the executable using the token
+        """Stops the session and clears the remote workspace. 
         
         :Example:
         
         >>> from westpy import *
-        >>> connection = Connection("email@domain.com")
-        >>> connection.stop()
+        >>> session = Session("email@domain.com")
+        >>> session.stop()
         
         """
         
         import requests
         import json
         #
-        headers = {'Content-Type':'application/json; charset=utf-8','emailId':self.output['emailId'],'token':self.output['token']}
+        headers = {'Content-Type':'application/json; charset=utf-8','emailId':self.emailId,'token':self.token}
         try:
             response = requests.get(self.restAPIstop, headers=headers, timeout=None)
         except Exception as e:
-            print('The Executor is not responding.',e)		 
+            print('The server is not responding.',e)		 
         return json.loads(response.text) 
     
     def run(self,executable=None,inputFile=None,outputFile=None,downloadUrl=[],number_of_cores=2) :
-        """runs the executable using rest api remotely.
+        """Runs the executable on the remote server.
         
         :param executable: name of executable
         :type executable: string
@@ -90,16 +97,18 @@ class Connection(object):
         :Example:
         
         >>> from westpy import *
-        >>> connection = Connection("email@domain.com")
-        >>> connection.run( "pw", "pw.in", "pw.out", ["http://www.quantum-simulation.org/potentials/sg15_oncv/upf/C_ONCV_PBE-1.0.upf"] , 3 )
-        >>> connection.stop()
+        >>> session = Session("email@domain.com")
+        >>> session.run( "pw", "pw.in", "pw.out", ["http://www.quantum-simulation.org/potentials/sg15_oncv/upf/C_ONCV_PBE-1.0.upf"] , 2 )
+        >>> session.stop()
         
         """
         #
         import json
         #
-        output_dict = {}   
-        if executable and ("pw" in str(executable).lower() or "wstat" in str(executable).lower() or "wfreq" in str(executable).lower()) :
+        assert( number_of_cores <= self.maxNumberOfCores )
+        #
+        output_dict = {}
+        if executable in self.allowedExecutables : 
            # set inputs
            if inputFile is None:
               inputFile = str(executable)+".in"
@@ -109,17 +118,13 @@ class Connection(object):
               output = self.__runExecutable(executable,inputFile,downloadUrl,number_of_cores)
               output_json = json.loads(output)
               if "Error" in output_json:
-                 print("Execution failed with the following error \n",output_json['Error'])
+                 print("Server failed with the following error \n",output_json['Error'])
                  return None			   
               elif "JOB DONE." not in str(output_json['output']).strip():
                  print("MPI execution failed with the following error:  \n"+str(output))
                  return None
               output_data = str(output_json['output']).strip()
-              # jasonify output
-              if "pw" in executable:
-                  output_dict = json.loads(output_json['output_dict'])
-              else:
-                  output_dict = output_json['output_dict']
+              output_dict = json.loads(output_json['output_dict'])
               # write the output file
               with open(outputFile, "w") as file :
                  file.write(str(output_data))
@@ -127,7 +132,7 @@ class Connection(object):
               print("Session Expired! Invalid Request sent, Please recreate session and recheck your input. \n"+ e)		 
               return None          
         else:
-           raise ValueError("Invalid Executable name") 
+           raise ValueError("Invalid executable name") 
         #
         print("Generated ",outputFile)
         return output_dict
@@ -138,8 +143,6 @@ class Connection(object):
         #
         import requests
         import json
-        # get connection output
-        session_values = self.status()
         # suck in the input file
         try:
            file_content = ""	     
@@ -153,12 +156,13 @@ class Connection(object):
         body = {'urls':download_urls,'file':file_content,'cmd_timeout':'600','script_type':str(executable),'no_of_cores':str(number_of_cores)}  
         jsondata = json.dumps(body)
         jsondataasbytes = jsondata.encode('utf-8')   # needs to be bytes
-        headers = {'Content-Type':'application/json; charset=utf-8','emailId':session_values['emailId'],'token':session_values['token']}
+        headers = {'Content-Type':'application/json; charset=utf-8','emailId':self.emailId,'token':self.token}
         response = ""
+        print("Requested to run executable", executable, "on server", self.serverName)
         try:
            response = requests.post(self.restAPIrun, data = jsondataasbytes, headers=headers, timeout=None)
            return response.text
         except Exception as e:
-           print('The Executor is not responding.',e)	
+           print('The server is not responding.',e)	
            return None
         return None
