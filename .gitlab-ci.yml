@@ -20,7 +20,7 @@ westpy_build:
    - apt-get -qq install libssl-dev > /dev/null
    - cd /opt
    - export PY_VERSION="3.5.4"
-   - wget --quiet https://www.python.org/ftp/python/$PY_VERSION/Python-$PY_VERSION.tgz
+   - wget https://www.python.org/ftp/python/$PY_VERSION/Python-$PY_VERSION.tgz
    - tar -xzf Python-$PY_VERSION.tgz
    - cd Python-$PY_VERSION 
    - export PY_DIR="/opt/python"
@@ -29,7 +29,7 @@ westpy_build:
    - make install
    - ln -s $PY_DIR/bin/python3.5 $PY_DIR/bin/python
    - export PATH=$PY_DIR/bin:$PATH
-   - wget --quiet https://bootstrap.pypa.io/get-pip.py
+   - wget https://bootstrap.pypa.io/get-pip.py
    - python get-pip.py
    - which python
    - which pip
@@ -71,7 +71,7 @@ westpy_doc_build:
    - make install
    - ln -s $PY_DIR/bin/python3.5 $PY_DIR/bin/python
    - export PATH=$PY_DIR/bin:$PATH
-   - wget –quiet https://bootstrap.pypa.io/get-pip.py
+   - wget https://bootstrap.pypa.io/get-pip.py
    - python get-pip.py
    - which python
    - which pip 
