@@ -2,8 +2,8 @@ variables:
  GIT_STRATEGY: none
 
 stages:
- - build
  - doc
+ - build
 
 westpy_build:
  tags: [rcc,docker,node-01]
