@@ -40,6 +40,7 @@ westpy_build:
    - echo $LC_ALL
  script:
    - git clone -b $CI_COMMIT_REF_NAME $CI_REPOSITORY_URL westpy
+   - export LC_ALL=en_US.UTF-8
    - cd westpy
    - git describe
    - make
