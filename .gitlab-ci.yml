@@ -14,7 +14,7 @@ westpy_build:
    - apt-get install -qq build-essential > /dev/null
    - apt-get install -qq apt-utils > /dev/null
    - apt-get install -qq pkg-config > /dev/null
-   - apt-get -qq install libpng12-dev > /dev/null
+   - apt-get install -qq libpng-dev > /dev/null
    - apt-get install -qq pandoc > /dev/null
    - apt-get install -qq libfreetype6-dev > /dev/null
    - apt-get install -qq git >/dev/null
