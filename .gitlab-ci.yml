@@ -11,6 +11,7 @@ westpy_build:
  image: ubuntu:latest
  before_script:
    - apt-get update > /dev/null
+   - apt-get install -qq dialog apt-utils -y > /dev/null
    - apt-get install -qq build-essential > /dev/null
    - apt-get install -qq apt-utils > /dev/null
    - apt-get install -qq pkg-config > /dev/null
