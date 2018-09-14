@@ -23,26 +23,19 @@ westpy_build:
    - apt-get install -qq wget git > /dev/null
    - apt-get -qq install zlib1g-dev > /dev/null
    - apt-get -qq install libssl-dev > /dev/null
-   - cd /opt
-   - export PY_VERSION="3.5.6"
-   - wget https://www.python.org/ftp/python/$PY_VERSION/Python-$PY_VERSION.tgz
-   - tar -xzf Python-$PY_VERSION.tgz
-   - cd Python-$PY_VERSION 
    - export PY_DIR="/opt/python"
-   - ./configure --prefix $PY_DIR
-   - make 
-   - make install
-   - ln -s $PY_DIR/bin/python3.5 $PY_DIR/bin/python
+   - mkdir -p $PY_DIR
+   - cd $PY_DIR
+   - wget https://repo.continuum.io/archive/Anaconda3-5.2.0-Linux-x86_64.sh
+   - /bin/bash $PY_DIR/Anaconda3-5.2.0-Linux-x86_64.sh -b -p $PY_DIR
    - export PATH=$PY_DIR/bin:$PATH
-   - wget https://bootstrap.pypa.io/get-pip.py
-   - python get-pip.py
+   - conda upgrade conda
+   - conda upgrade scipy numpy matplotlib scikit-learn
+   - conda update --prefix $PY_DIR anaconda
+   - conda install -c r r
    - which python
    - which pip
    - pip freeze 
-   - export LANGUAGE=en_US.UTF-8
-   - export LC_ALL=en_US.UTF-8
-   - export LANG=en_US.UTF-8
-   - export LC_TYPE=en_US.UTF-8
    - echo $LC_ALL
  script:
    - git clone -b $CI_COMMIT_REF_NAME $CI_REPOSITORY_URL westpy
