@@ -10,6 +10,7 @@ westpy_build:
  stage: build
  image: ubuntu:latest
  before_script:
+   - echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
    - apt-get update > /dev/null
    - apt-get install -qq dialog apt-utils -y > /dev/null
    - apt-get install -qq build-essential > /dev/null
