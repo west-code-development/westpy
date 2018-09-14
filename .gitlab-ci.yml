@@ -30,14 +30,9 @@ westpy_build:
    - conda upgrade conda
    - conda upgrade scipy numpy matplotlib scikit-learn
    - conda update --prefix $PY_DIR anaconda
-   - conda install -c r r
    - which python
-   - which pip
-   - pip freeze 
-   - echo $LC_ALL
  script:
    - git clone -b $CI_COMMIT_REF_NAME $CI_REPOSITORY_URL westpy
-   - export LC_ALL=en_US.UTF-8
    - cd westpy
    - git describe
    - make
