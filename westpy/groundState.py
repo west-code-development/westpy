@@ -1,4 +1,7 @@
 from __future__ import print_function
+import requests
+import json
+from ast import literal_eval
 
 class GroundState() :
    """Class for representing a ground state calculation with DFT.
@@ -33,7 +36,7 @@ class GroundState() :
       self.nempty = 0
       self.kmesh = "gamma"
       self.isolated = False
-      self.spin = {} 
+      self.spin = {}
    #
    def setNempty(self,nempty) : 
       """Sets the number of empty bands. 
@@ -258,4 +261,4 @@ class GroundState() :
       
       .. note:: You can use this method to add either upf or xml pseudopotentials. However it is forbidded to mix them.  
       """
-      self.geom.addSpecies(symbol,url) 
+      self.geom.addSpecies(symbol,url)
