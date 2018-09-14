@@ -23,7 +23,6 @@ westpy_build:
    - apt-get -qq install zlib1g-dev > /dev/null
    - apt-get -qq install libssl-dev > /dev/null
    - export PY_DIR="/opt/anaconda"
-   - mkdir -p $PY_DIR
    - cd /opt
    - wget https://repo.continuum.io/archive/Anaconda3-5.2.0-Linux-x86_64.sh
    - /bin/bash /opt/Anaconda3-5.2.0-Linux-x86_64.sh -b -p $PY_DIR
