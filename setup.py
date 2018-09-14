@@ -14,6 +14,7 @@ setup(name='westpy',
           'matplotlib',
           'pyyaml',
           'datetime',
+          'mendeleev',
           'requests', 
           'signac'
       ],
