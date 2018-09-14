@@ -18,10 +18,7 @@ westpy_build:
    - apt-get install -qq pkg-config > /dev/null
    - apt-get install -qq libpng-dev > /dev/null
    - apt-get install -qq pandoc > /dev/null
-   - apt-get install -qq libfreetype6-dev > /dev/null
    - apt-get install -qq wget git > /dev/null
-   - apt-get -qq install zlib1g-dev > /dev/null
-   - apt-get -qq install libssl-dev > /dev/null
    - export PY_DIR="/opt/anaconda"
    - cd /opt
    - wget https://repo.continuum.io/archive/Anaconda3-5.2.0-Linux-x86_64.sh
@@ -69,9 +66,8 @@ westpy_doc_build:
    - ln -s $PY_DIR/bin/python3.5 $PY_DIR/bin/python
    - export PATH=$PY_DIR/bin:$PATH
    - wget https://bootstrap.pypa.io/get-pip.py
-   - python get-pip.py
    - which python
-   - which pip 
+   - python get-pip.py
    - pip install nbsphinx
    - pip install sphinx_rtd_theme
    - pip install ipython
