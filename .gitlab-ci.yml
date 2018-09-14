@@ -12,22 +12,21 @@ westpy_build:
  before_script:
    - echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
    - apt-get update > /dev/null
+   - apt-get install -qq apt-utils > /dev/null
    - apt-get install -qq dialog apt-utils -y > /dev/null
    - apt-get install -qq build-essential > /dev/null
-   - apt-get install -qq apt-utils > /dev/null
    - apt-get install -qq pkg-config > /dev/null
    - apt-get install -qq libpng-dev > /dev/null
    - apt-get install -qq pandoc > /dev/null
    - apt-get install -qq libfreetype6-dev > /dev/null
-   - apt-get install -qq git >/dev/null
    - apt-get install -qq wget git > /dev/null
    - apt-get -qq install zlib1g-dev > /dev/null
    - apt-get -qq install libssl-dev > /dev/null
-   - export PY_DIR="/opt/python"
+   - export PY_DIR="/opt/anaconda"
    - mkdir -p $PY_DIR
-   - cd $PY_DIR
+   - cd /opt
    - wget https://repo.continuum.io/archive/Anaconda3-5.2.0-Linux-x86_64.sh
-   - /bin/bash $PY_DIR/Anaconda3-5.2.0-Linux-x86_64.sh -b -p $PY_DIR
+   - /bin/bash /opt/Anaconda3-5.2.0-Linux-x86_64.sh -b -p $PY_DIR
    - export PATH=$PY_DIR/bin:$PATH
    - conda upgrade conda
    - conda upgrade scipy numpy matplotlib scikit-learn
