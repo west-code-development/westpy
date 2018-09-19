@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='westpy',
-      version='3.1.0',
+      version='3.1.1',
       packages=['westpy'],
       description='Python analysis tools for WEST',
       url='https://github.com/west-code-development/westpy.git',
