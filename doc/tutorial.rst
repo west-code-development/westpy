@@ -13,3 +13,4 @@ Contents:
    tutorials/westpy_100.ipynb
    tutorials/westpy_101.ipynb
    tutorials/westpy_200.ipynb
+   tutorials/westpy_300.ipynb

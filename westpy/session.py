@@ -6,7 +6,7 @@ class Session(object):
     :Example:
     
     >>> from westpy import *
-    >>> session = Session("email@domain.com")
+    >>> session = Session("your.email@domain.edu")
     
     """
     def __init__(self,emailId) :
@@ -52,7 +52,7 @@ class Session(object):
         :Example:
         
         >>> from westpy import *
-        >>> session = Session("email@domain.com")
+        >>> session = Session("your.email@domain.edu")
         >>> token = session.getToken()
         >>> print(token)
         
@@ -68,7 +68,7 @@ class Session(object):
         :Example:
         
         >>> from westpy import *
-        >>> session = Session("email@domain.com")
+        >>> session = Session("your.email@domain.edu")
         >>> session.stop()
         
         """
@@ -89,9 +89,8 @@ class Session(object):
         :Example:
         
         >>> from westpy import *
-        >>> session = Session("email@domain.com")
-        >>> status = session.status()
-        >>> print(status)
+        >>> session = Session("your.email@domain.edu")
+        >>> session.status()
         
         """
         
@@ -122,7 +121,7 @@ class Session(object):
         :Example:
         
         >>> from westpy import *
-        >>> session = Session("email@domain.com")
+        >>> session = Session("your.email@domain.edu")
         >>> session.run( "pw", "pw.in", "pw.out", ["http://www.quantum-simulation.org/potentials/sg15_oncv/upf/C_ONCV_PBE-1.0.upf"] , 2 )
         >>> session.stop()
         

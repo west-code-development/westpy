@@ -61,3 +61,11 @@ Electronic Structure
     :members:
     :undoc-members:
     :show-inheritance:
+
+Session
+-------
+
+.. automodule:: westpy.session
+    :members:
+    :undoc-members:
+    :show-inheritance:
