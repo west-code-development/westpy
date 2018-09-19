@@ -154,7 +154,7 @@ class Session(object):
               with open(outputFile, "w") as file :
                  file.write(str(output_data))
            except Exception as e:
-              print("Session Expired! Invalid Request sent, Please recreate session and recheck your input. \n"+ e)		 
+              print("Session Expired! Invalid Request sent, Please recreate session and recheck your input. \n"+ str(e))		 
               return None          
         else:
            raise ValueError("Invalid executable name") 
