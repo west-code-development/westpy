@@ -149,7 +149,10 @@ class Session(object):
                  print("MPI execution failed with the following error:  \n"+str(output))
                  return None
               output_data = str(output_json['output']).strip()
-              output_dict = json.loads(output_json['output_dict'])
+              if "pw" in executable:
+                 output_dict = json.loads(output_json['output_dict'])
+              else:
+                 output_dict = output_json['output_dict']
               # write the output file
               with open(outputFile, "w") as file :
                  file.write(str(output_data))
