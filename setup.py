@@ -1,9 +1,15 @@
 from setuptools import setup
+from setuptools import find_packages
+
+with open("README.md", "r") as fh:
+    long_description = fh.read()
 
 setup(name='westpy',
       version='3.1.1',
-      packages=['westpy'],
+      packages=find_packages(),
       description='Python analysis tools for WEST',
+      long_description=long_description,
+      long_description_content_type="text/markdown",
       url='https://github.com/west-code-development/westpy.git',
       author='Marco Govoni',
       author_email='mgovoni@anl.gov',
@@ -17,6 +23,7 @@ setup(name='westpy',
           'requests', 
           'mendeleev',
           'signac',
+          'setuptools',
           'urllib3', 
           'prompt-toolkit<2.0.0',
           'sphinx', 
