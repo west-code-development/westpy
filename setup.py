@@ -17,7 +17,10 @@ setup(name='westpy',
           'requests', 
           'mendeleev',
           'signac',
-          'urllib3'
+          'urllib3', 
+          'prompt-toolkit<2.0.0',
+          'sphinx', 
+          'sphinx_rtd_theme'
       ],
       python_requires='>=2.7, >=3.0, !=3.0.*, !=3.1.*, !=3.2.*, <4',
       zip_safe=True)
