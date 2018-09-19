@@ -15,7 +15,7 @@ setup(name='westpy',
           'pyyaml',
           'datetime',
           'requests', 
-          'mendeleev', 
+          'mendeleev',
           'signac',
           'urllib3'
       ],
