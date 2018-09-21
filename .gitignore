@@ -21,3 +21,5 @@ pip-log.txt
 .*.swp
 
 .DS_Store
+
+doc/_build
