@@ -321,10 +321,10 @@ def write_cube(data, meta, fname):
     
     params:
         data: volumetric data consisting real values
-        meta: dict containing metadata with following keys
-            atoms: list of atoms in the form (mass, [position])
-            org: origin
-            xvec,yvec,zvec: lattice vector basis
+        meta: dict containing metadata with following keys: 
+              - atoms: list of atoms in the form (mass, [position])
+              - org: origin
+              - xvec,yvec,zvec: lattice vector basis
         fname: filename of cubefile (existing files overwritten)
     
     returns: None
@@ -357,9 +357,9 @@ def write_imcube(data, meta, rfname, ifname=""):
     params: 
         data: volumetric data consisting complex values
         meta: dict containing metadata with following keys
-            atoms: list of atoms in the form (mass, [position])
-            org: origin
-            xvec,yvec,zvec: lattice vector basis
+              - atoms: list of atoms in the form (mass, [position])
+              - org: origin
+              - xvec,yvec,zvec: lattice vector basis
         rfname: filename of cube file containing real part
         ifname: optional, filename of cube file containing imag part
         
