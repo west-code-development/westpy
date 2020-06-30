@@ -150,18 +150,46 @@ class Geometry(object) :
       self.atoms.append( Atom(symbol, position, units) )
       self.isSet["atoms"] = True
    #
-   def __addAtomsFromXYZLines(self, lines ) : 
+   def addFracCoordAtom(self, symbol, frac_coord):
+      """adds a single atom by fractional coords
+      :param symbol: chemical symbol
+      :type symbol: string
+      :param position: position
+      :type position: 3-dim tuple
+
+      :Example:
+
+      >>> from westpy import *
+      >>> geom = Geometry()
+      >>> geom.addFracCoordAtom( "Si", (0,1/3.0,2/3.0) )
+      """
+      if not self.isSet["cell"]:
+         print('Set cell first!')
+         return
+      import numpy as np
+      from westpy import Atom, Bohr
+      M = np.matrix([self.cell['a1'], self.cell['a2'], self.cell['a3']]).tolist()
+      self.atoms.append(Atom(symbol, tuple(np.array(frac_coord)@M), units=Bohr))
+      self.isSet["atoms"] = True
+
+
+   def __addAtomsFromXYZLines(self, lines, decode=True ) :
       """Adds atoms from XYZ lines.
    
       :param lines: lines read from XYZ file (only one image)
       :type lines: list of string
+      :param decode:
+      :type bool:
       """
       #
       from westpy import Angstrom 
       natoms = int(lines[0])
       for line in lines[2:2+natoms] : 
          symbol, x, y, z = line.split()[:4]
-         self.addAtom( symbol.decode("utf-8"), (float(x), float(y), float(z)), units=Angstrom )
+         if decode:
+            self.addAtom( symbol.decode("utf-8"), (float(x), float(y), float(z)), units=Angstrom )
+         else:
+            self.addAtom( symbol, (float(x), float(y), float(z)), units=Angstrom )
    #
    def addAtomsFromXYZFile(self, fname ) : 
       """Adds atoms from XYZ file (only one image).
@@ -178,7 +206,7 @@ class Geometry(object) :
       # 
       with open(fname,'r') as file: 
          lines = file.readlines()
-      self.__addAtomsFromXYZLines(lines) 
+      self.__addAtomsFromXYZLines(lines,  decode=False)
    #
    def addAtomsFromOnlineXYZ(self, url ) : 
       """Adds atoms from XYZ file (only one image) located at url.
@@ -196,7 +224,7 @@ class Geometry(object) :
       import urllib.request
       with urllib.request.urlopen(url) as response :
          lines = response.readlines()
-      self.__addAtomsFromXYZLines(lines)
+      self.__addAtomsFromXYZLines(lines,  decode=True)
    #
    def getNumberOfAtoms(self) : 
       """Returns number of atoms.
@@ -294,3 +322,63 @@ class Geometry(object) :
       from westpy import download 
       for key in self.species.keys() :
          download( self.species[key]["url"], fname=self.species[key]["fname"] )
+
+   def view(self,  style='stick',width=800,height=800, ix=1, iy=1, iz=1, debug=False):
+      """Display simulation box geom in Angstrom.
+      ix, iy, iz is the perodic display to system
+      style can be line, stick, sphere.
+
+      :param style:
+      :param width:
+      :param height:
+      :param ix:
+      :param iy:
+      :param iz:
+      :param debug:
+      :return:
+      """
+      import py3Dmol
+      import numpy as np
+      from westpy.units import Angstrom
+      BOHR2A = 1.0 / Angstrom
+      a1 = self.cell["a1"] * BOHR2A
+      a2 = self.cell["a2"] * BOHR2A
+      a3 = self.cell["a3"] * BOHR2A
+      nat = self.getNumberOfAtoms()
+      times = ix * iy * iz
+      if times > 1:
+         nat *= times
+      #generate xyz data
+      xyz = str(nat) + '\n\n'
+      for atom in self.atoms:
+         if times:
+            for i in range(ix):
+               for j in range(iy):
+                  for k in range(iz):
+                     xyz += atom.symbol + " " + " ".join(
+                        map(str, atom.position * BOHR2A + i * a1 + j * a2 + k * a3)) + '\n'
+      #creat viewer
+      xyzview = py3Dmol.view(width=width, height=height)
+      xyzview.addModel(xyz, 'xyz')
+      if debug:
+         print(xyz)
+      xyzview.setStyle({style: {}})
+      #draw the box
+      a0 = np.array([0.0, 0.0, 0.0])
+      from_ = [a0, a1 + a2, a1 + a3, a2 + a3]
+      to_ = [[a1, a2, a3], [a1, a2, a1 + a2 + a3], [a1, a3, a1 + a2 + a3], [a2, a3, a1 + a2 + a3]]
+      for frm, li_to in zip(from_, to_):
+         x0, y0, z0 = frm
+         for to in li_to:
+            x1, y1, z1 = to
+            xyzview.addLine(
+               {'color': 'blue', 'start': {'x': x0, 'y': y0, 'z': z0}, 'end': {'x': x1, 'y': y1, 'z': z1}});
+      #show
+      xyzview.zoomTo()
+      xyzview.show()
+
+
+
+
+
+
