@@ -27,7 +27,8 @@ setup(name='westpy',
           'urllib3', 
           'prompt-toolkit',
           'sphinx', 
-          'sphinx_rtd_theme'
+          'sphinx_rtd_theme',
+          'py3Dmol'
       ],
       python_requires='>=2.7, >=3.0, !=3.0.*, !=3.1.*, !=3.2.*, <4',
       zip_safe=True)
