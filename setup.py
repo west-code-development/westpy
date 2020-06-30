@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(name='westpy',
-      version='4.1.0',
+      version='4.2.0',
       packages=find_packages(),
       description='Python analysis tools for WEST',
       long_description=long_description,
