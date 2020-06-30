@@ -150,6 +150,29 @@ class Geometry(object) :
       self.atoms.append( Atom(symbol, position, units) )
       self.isSet["atoms"] = True
    #
+   def addFracCoordAtom(self, symbol, frac_coord):
+      """adds a single atom by fractional coords
+      :param symbol: chemical symbol
+      :type symbol: string
+      :param position: position
+      :type position: 3-dim tuple
+
+      :Example:
+
+      >>> from westpy import *
+      >>> geom = Geometry()
+      >>> geom.addFracCoordAtom( "Si", (0,1/3.0,2/3.0) )
+      """
+      if not self.isSet["cell"]:
+         print('Set cell first!')
+         return
+      import numpy as np
+      from westpy import Atom, Bohr
+      M = np.matrix([self.cell['a1'], self.cell['a2'], self.cell['a3']]).tolist()
+      self.atoms.append(Atom(symbol, tuple(np.array(frac_coord)@M), units=Bohr))
+      self.isSet["atoms"] = True
+
+
    def __addAtomsFromXYZLines(self, lines, decode=True ) :
       """Adds atoms from XYZ lines.
    
