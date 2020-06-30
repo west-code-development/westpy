@@ -1,4 +1,3 @@
-from __future__ import print_function
 
 class Geometry(object) :
    """Class for representing a set of atoms in a periodic cell.
@@ -121,9 +120,9 @@ class Geometry(object) :
       """
       import numpy as np
       # 
-      self.cell["a1"] = np.array(a1, float) * units 
-      self.cell["a2"] = np.array(a2, float) * units 
-      self.cell["a3"] = np.array(a3, float) * units 
+      self.cell["a1"] = np.array(a1, dtype="f8") * units 
+      self.cell["a2"] = np.array(a2, dtype="f8") * units 
+      self.cell["a3"] = np.array(a3, dtype="f8") * units 
       self.cell["volume"] = np.dot(self.cell["a1"], np.cross(self.cell["a2"], self.cell["a3"]))
       self.cell["b1"] = 2.0 * np.pi * np.cross(self.cell["a2"], self.cell["a3"]) / self.cell["volume"]
       self.cell["b2"] = 2.0 * np.pi * np.cross(self.cell["a3"], self.cell["a1"]) / self.cell["volume"]
@@ -168,8 +167,7 @@ class Geometry(object) :
          return
       import numpy as np
       from westpy import Atom, Bohr
-      M = np.matrix([self.cell['a1'], self.cell['a2'], self.cell['a3']]).tolist()
-      self.atoms.append(Atom(symbol, tuple(np.array(frac_coord)@M), units=Bohr))
+      self.atoms.append(Atom(symbol, tuple(frac_coord[0]*self.cell['a1']+frac_coord[1]*self.cell['a2']+frac_coord[2]*self.cell['a3']), units=Bohr))
       self.isSet["atoms"] = True
 
 
@@ -364,7 +362,7 @@ class Geometry(object) :
          print(xyz)
       xyzview.setStyle({style: {}})
       #draw the box
-      a0 = np.array([0.0, 0.0, 0.0])
+      a0 = np.array([0.0, 0.0, 0.0],dtype="f8")
       from_ = [a0, a1 + a2, a1 + a3, a2 + a3]
       to_ = [[a1, a2, a3], [a1, a2, a1 + a2 + a3], [a1, a3, a1 + a2 + a3], [a2, a3, a1 + a2 + a3]]
       for frm, li_to in zip(from_, to_):
@@ -376,9 +374,4 @@ class Geometry(object) :
       #show
       xyzview.zoomTo()
       xyzview.show()
-
-
-
-
-
 

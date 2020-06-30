@@ -1,4 +1,3 @@
-from __future__ import print_function
 
 """Westpy uses Hartree atomic units."""
 

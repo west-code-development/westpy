@@ -7,4 +7,4 @@ clean:
 	rm -rf westpy.egg-info
 	rm -rf dist
 	rm -rf build
-	rm files.txt 
+	rm files.txt
