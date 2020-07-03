@@ -20,6 +20,8 @@ pip-log.txt
 
 .*.swp
 
+*.xyz
+
 .DS_Store
 
 doc/_build
