@@ -56,7 +56,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'westpy'
-copyright = u'2019, Marco Govoni'
+copyright = u'2020, Marco Govoni'
 author = u'Marco Govoni'
 
 # The version info for the project you're documenting, acts as replacement for
