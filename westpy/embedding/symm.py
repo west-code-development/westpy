@@ -142,7 +142,7 @@ class PointGroup:
     self.ctable = ctable
 
   def compute_rep_on_orbitals(self,
-                              orbitals: VData,
+                              orbitals: Sequence[VData],
                               orthogonalize: bool = False) -> Tuple[PointGroupRep, List[str]]:
     """ Compute representation matrix on the Hilbert space spanned by a set of orbitals.
 
