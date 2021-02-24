@@ -423,7 +423,7 @@ class CGWResults:
                 f"{self.path}/west.wfreq.save/{h}.dat", dtype=float
             ).reshape(self.nspin, self.nproj, self.nproj))
 
-        if self.h1e_treatment == 'R' or 'self.nproj_sigma' in locals().keys():
+        if self.h1e_treatment in ('R','T') or 'self.nproj_sigma' in locals().keys():
             # for vertex in ('n'):
             #     self.parse_sigma(vertex)
             for vertex in ('v','c','n'):
@@ -553,7 +553,7 @@ class CGWResults:
 
     def print_sigma(self, basis: List[int] = None, xc = True):
 
-        assert self.h1e_treatment == 'R'
+        assert self.h1e_treatment in ('R','T')
         assert self.nspin == 1
         
         if basis == None:
@@ -611,7 +611,7 @@ class CGWResults:
 
     def print_spectral(self, basis: List[int] = None):
 
-        assert self.h1e_treatment == 'R'
+        assert self.h1e_treatment in ('R','T')
         assert self.nspin == 1
         
         if basis == None:
@@ -670,7 +670,7 @@ class CGWResults:
 
     def debug(self, basis: List[int] = None):
 
-        assert self.h1e_treatment == 'R' and self.projector_type == 'K'
+        assert self.h1e_treatment in ('R','T') and self.projector_type == 'K'
         assert self.nspin == 1
 
         if basis == None:
@@ -750,7 +750,7 @@ class CGWResults:
 
     def print_hopping(self, basis: List[int] = None, npdep_to_use: int = None):
 
-        assert self.h1e_treatment == 'R'
+        assert self.h1e_treatment in ('R','T')
         assert self.nspin == 1
         if basis == None:
             basis = self.ks_projectors_sigma
