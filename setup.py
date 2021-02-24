@@ -25,7 +25,7 @@ setup(name='westpy',
           'signac',
           'setuptools',
           'urllib3', 
-          'prompt-toolkit<2.0.0',
+          'prompt-toolkit',
           'sphinx', 
           'sphinx_rtd_theme'
       ],
