@@ -7,12 +7,11 @@ import pandas as pd
 import json
 import copy
 from lxml import etree
-from sunyata.parsers.text import parse_one_value, find_index
-from sunyata.structure.volumetric import VData
-from sunyata.aux.units import rydberg_to_hartree, ev_to_hartree, hartree_to_ev
-from sunyata.heff.heff import Heff
-from sunyata.heff.symm import PointGroup, PointGroupRep
-from sunyata.parsers.west import WstatOutput
+from westpy.embedding.misc import parse_one_value, find_index
+from westpy.embedding.misc import VData, rydberg_to_hartree, ev_to_hartree, hartree_to_ev
+from westpy.embedding.heff import Heff
+from westpy.embedding.symm import PointGroup, PointGroupRep
+from westpy.embedding.west_output import WstatOutput
 
 
 class CGWResults:
@@ -442,14 +441,15 @@ class CGWResults:
 
         checklist_cgw = [f"sigmax_{vertex}_a",f"sigmax_{vertex}_e",f"sigmax_{vertex}_f"]
         for h in checklist_cgw:
+            # tmp = np.diag(np.einsum("ii->i", np.fromfile(
+            #     f"{self.path}/west.wfreq.save/{h}.dat", dtype=float
+            # ).reshape(self.nproj_sigma, self.nproj_sigma))).reshape(self.nspin, self.nproj_sigma, self.nproj_sigma)
             tmp = np.fromfile(
                 f"{self.path}/west.wfreq.save/{h}.dat", dtype=float
-            ).reshape(self.nspin, self.nproj_sigma)
-            tmp1 = np.zeros((self.nspin, self.nproj_sigma, self.nproj_sigma))
-            for ispin in range(self.nspin):
-                for iproj in range(self.nproj_sigma):
-                    tmp1[ispin,iproj,iproj] = tmp[ispin,iproj]
-            setattr(self, h, tmp1)
+            ).reshape(self.nspin, self.nproj_sigma, self.nproj_sigma)
+            print(tmp)
+            setattr(self, h, tmp)
+            
 
         checklist_cgw = [f"qp_energy_{vertex}"]
         for h in checklist_cgw:
