@@ -447,7 +447,7 @@ class CGWResults:
             tmp = np.fromfile(
                 f"{self.path}/west.wfreq.save/{h}.dat", dtype=float
             ).reshape(self.nspin, self.nproj_sigma, self.nproj_sigma)
-            print(tmp)
+            # print(tmp)
             setattr(self, h, tmp)
             
 
