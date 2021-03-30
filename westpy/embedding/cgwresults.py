@@ -534,8 +534,9 @@ class CGWResults:
             assert self.nspin == 1
             legend = [f'$\Sigma^E$-{iproj}' for iproj in list(self.ks_projectors_sigma)]
             for iproj in range(self.nproj_sigma):
-                x = data[0,iproj,iproj,0,:]
-                res = data[0,iproj,iproj,1,:] + getattr(self,'sigmax_'+vertex+'_e')[0,iproj,iproj]
+                x = copy.deepcopy(data[0,iproj,iproj,0,:])
+                res = copy.deepcopy(data[0,iproj,iproj,1,:])
+                # res = copy.deepcopy(data[0,iproj,iproj,1,:]) + getattr(self,'sigmax_'+vertex+'_e')[0,iproj,iproj]
                 plt.plot(x * hartree_to_ev,res * hartree_to_ev)
                 #
             #     legend.append(f'$\Sigma^F$-{orbital[iproj]}')
@@ -548,20 +549,20 @@ class CGWResults:
             plt.savefig(f'{self.xc}-re.png',bbox_inches='tight')
             plt.show()
 
-            for iproj in range(self.nproj_sigma):
-                x = data[0,iproj,iproj,0,:]
-                res = data[0,iproj,iproj,2,:]
-                plt.plot(x * hartree_to_ev,res * hartree_to_ev)
-                #
-            #     legend.append(f'$\Sigma^F$-{orbital[iproj]}')
-            #     legend.append(f'$\Sigma^A$-{orbital[iproj]}')
+            # for iproj in range(self.nproj_sigma):
+            #     x = copy.deepcopy(data[0,iproj,iproj,0,:])
+            #     res = copy.deepcopy(data[0,iproj,iproj,2,:])
+            #     plt.plot(x * hartree_to_ev,res * hartree_to_ev)
+            #     #
+            # #     legend.append(f'$\Sigma^F$-{orbital[iproj]}')
+            # #     legend.append(f'$\Sigma^A$-{orbital[iproj]}')
 
-            plt.title(f'{self.xc.upper()}-Im$\Sigma$')
-            plt.xlabel('$\omega$ (eV)')
-            plt.ylabel('E (eV)')
-            plt.legend(legend)
-            plt.savefig(f'{self.xc}-im.png',bbox_inches='tight')
-            plt.show()
+            # plt.title(f'{self.xc.upper()}-Im$\Sigma$')
+            # plt.xlabel('$\omega$ (eV)')
+            # plt.ylabel('E (eV)')
+            # plt.legend(legend)
+            # plt.savefig(f'{self.xc}-im.png',bbox_inches='tight')
+            # plt.show()
 
         basis_ = []
         for i in self.ks_projectors_sigma:
@@ -1014,7 +1015,11 @@ class CGWResults:
 
         return np.arctan( c * (b-a) / (c*c+a*b) )
 
-    def print_sigma(self, basis: List[int] = None, xc = True):
+    def print_sigma(self, 
+                    basis: List[int] = None, 
+                    xc = True, 
+                    im = False,
+                    vertex: str = 'n'):
 
         assert self.h1e_treatment in ('R','T')
         assert self.nspin == 1
@@ -1031,11 +1036,11 @@ class CGWResults:
 
             legend = [f'$\Sigma^{space.upper()}$-{basis[i]}' for space in spaces]
             for space in spaces:
-                data = getattr(self,'sigmac_n_'+space)
-                x = data[0,basis_[i],basis_[i],0,:]
-                res = data[0,basis_[i],basis_[i],1,:]
+                data = getattr(self,f'sigmac_{vertex}_'+space)
+                x = copy.deepcopy(data[0,basis_[i],basis_[i],0,:])
+                res = copy.deepcopy(data[0,basis_[i],basis_[i],1,:])
                 if xc:
-                    res += getattr(self,'sigmax_n_'+space)[0,basis_[i],basis_[i]]
+                    res += getattr(self,f'sigmax_{vertex}_'+space)[0,basis_[i],basis_[i]]
                 plt.plot(x * hartree_to_ev,res * hartree_to_ev)
                 #
             #     legend.append(f'$\Sigma^F$-{orbital[iproj]}')
@@ -1051,24 +1056,25 @@ class CGWResults:
             plt.savefig(f'{self.xc}-re-{basis[i]}.png',bbox_inches='tight')
             plt.show()
 
-            for space in spaces:
-                data = getattr(self,'sigmac_n_'+space)
-                x = data[0,basis_[i],basis_[i],0,:]
-                res = data[0,basis_[i],basis_[i],2,:]                    
-                plt.plot(x * hartree_to_ev,res * hartree_to_ev)
-                #
-            #     legend.append(f'$\Sigma^F$-{orbital[iproj]}')
-            #     legend.append(f'$\Sigma^A$-{orbital[iproj]}')
+            if im == True:
+                for space in spaces:
+                    data = getattr(self,f'sigmac_{vertex}_'+space)
+                    x = copy.deepcopy(data[0,basis_[i],basis_[i],0,:])
+                    res = copy.deepcopy(data[0,basis_[i],basis_[i],2,:])                    
+                    plt.plot(x * hartree_to_ev,res * hartree_to_ev)
+                    #
+                #     legend.append(f'$\Sigma^F$-{orbital[iproj]}')
+                #     legend.append(f'$\Sigma^A$-{orbital[iproj]}')
 
-            if xc:
-                plt.title(f'{self.xc.upper()}-Im$\Sigma$') 
-            else:   
-                plt.title(f'{self.xc.upper()}-Im$\Sigma$ (correlation part)')
-            plt.xlabel('$\omega$ (eV)')
-            plt.ylabel('E (eV)')
-            plt.legend(legend)
-            plt.savefig(f'{self.xc}-im-{basis[i]}.png',bbox_inches='tight')
-            plt.show()
+                if xc:
+                    plt.title(f'{self.xc.upper()}-Im$\Sigma$') 
+                else:   
+                    plt.title(f'{self.xc.upper()}-Im$\Sigma$ (correlation part)')
+                plt.xlabel('$\omega$ (eV)')
+                plt.ylabel('E (eV)')
+                plt.legend(legend)
+                plt.savefig(f'{self.xc}-im-{basis[i]}.png',bbox_inches='tight')
+                plt.show()
         
         return
 
