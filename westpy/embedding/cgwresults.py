@@ -81,7 +81,7 @@ class CGWResults:
             self.nbndstart, self.nbndend = self.ks_projectors[0], self.ks_projectors[1]
             # print(self.ks_projectors)
             self.nproj += len(self.ks_projectors)
-            if 'self.nproj_sigma' in locals().keys():
+            if hasattr(self, 'nproj_sigma'):
                 self.npair_sigma, self.pijmap_sigma, self.ijpmap_sigma = self.make_index_map(self.nproj_sigma)
             else: 
                 self.npair_sigma, self.pijmap_sigma, self.ijpmap_sigma = self.make_index_map(self.nproj)
@@ -462,7 +462,7 @@ class CGWResults:
                 f"{self.path}/west.wfreq.save/{h}.dat", dtype=float
             ).reshape(self.nspin, self.nproj, self.nproj))
 
-        if self.h1e_treatment in ('R','T') or 'self.nproj_sigma' in locals().keys():
+        if self.h1e_treatment in ('R','T') or hasattr(self, 'nproj_sigma'):
             for vertex in ('n'):
                 self.parse_sigma(vertex)
             # for vertex in ('v','c','n'):
@@ -535,8 +535,8 @@ class CGWResults:
             legend = [f'$\Sigma^E$-{iproj}' for iproj in list(self.ks_projectors_sigma)]
             for iproj in range(self.nproj_sigma):
                 x = copy.deepcopy(data[0,iproj,iproj,0,:])
-                res = copy.deepcopy(data[0,iproj,iproj,1,:])
-                # res = copy.deepcopy(data[0,iproj,iproj,1,:]) + getattr(self,'sigmax_'+vertex+'_e')[0,iproj,iproj]
+                # res = copy.deepcopy(data[0,iproj,iproj,1,:])
+                res = copy.deepcopy(data[0,iproj,iproj,1,:]) + getattr(self,'sigmax_'+vertex+'_e')[0,iproj,iproj]
                 plt.plot(x * hartree_to_ev,res * hartree_to_ev)
                 #
             #     legend.append(f'$\Sigma^F$-{orbital[iproj]}')
@@ -625,6 +625,14 @@ class CGWResults:
                     for i in basis:
                         basis_ += np.argwhere(self.ks_projectors == i)[0].tolist()
                     basis_ = np.array(basis_)
+            if self.cgw_calculation in ('G','S','Q') and self.projector_type == 'K':
+                basis__sigma = []
+                for i in basis:
+                    basis__sigma += np.argwhere(self.ks_projectors_sigma == i)[0].tolist()
+                basis__sigma = np.array(basis__sigma)
+            else:
+                basis__sigma = basis_
+
         if self.projector_type in ('B','R','M'):
             local_basis_ = np.array(range(len(self.local_projectors)))
             if 'basis_' in dir():
@@ -641,40 +649,43 @@ class CGWResults:
 
         index = []
         for p, (i, j) in enumerate(pijmap):
-            iproj, jproj = basis_[[i, j]]
+            iproj, jproj = basis__sigma[[i, j]]
             p1 = self.ijpmap_sigma[iproj,jproj]
             index.append(p1)
 
         # print(self.npair,self.nproj)
-
-        if f"d_head_ifr_{vertex}_{g_type}" not in locals().keys():
+        # if not hasattr(self, f"d_head_ifr_{vertex}_{g_type}"):
             # braket_pair_eff[ispin, p, :] = self.braket[ispin, iproj, jproj, :npdep_to_use]
 
-            checklist_cgw = [f"d_head_ifr_{vertex}_{g_type}",f"z_head_rfr_{vertex}_{g_type}",f"d_body1_ifr_{vertex}_{g_type}",
-                f"z_body_rfr_{vertex}_{g_type}",f"d_diago_{vertex}_{g_type}"]
-            size_cgw = [(self.n_imfreq),(self.n_refreq),(self.nbnd,self.n_imfreq,self.npair_sigma,1),
-                (self.nbnd,self.n_refreq,self.npair_sigma,1),(self.n_lanczos,self.npdep,self.npair_sigma,1)]
+        checklist_cgw = [f"d_head_ifr",f"z_head_rfr",f"d_body1_ifr",
+            f"z_body_rfr",f"d_diago"]
+        size_cgw = [(self.n_imfreq),(self.n_refreq),(self.nbnd,self.n_imfreq,self.npair_sigma,1),
+            (self.nbnd,self.n_refreq,self.npair_sigma,1),(self.n_lanczos,self.npdep,self.npair_sigma,1)]
 
-            for i, h in enumerate(checklist_cgw):
-                if h[0] == 'z':
-                    tmp = np.fromfile(
-                        f"{self.path}/west.wfreq.save/{h}.dat", dtype=complex
-                    ).reshape(size_cgw[i],order='F')
-                else:
-                    tmp = np.fromfile(
-                        f"{self.path}/west.wfreq.save/{h}.dat", dtype=float
-                    ).reshape(size_cgw[i],order='F')
-                if i > 1:
-                    tmp = tmp[:,:,index,:]
-                if i == 4:
-                    tmp = tmp[:,:npdep_to_use,:,:]
-                setattr(self, h, tmp)
-            
+        ### use the collect_gw data from g_type = 'f' only
+        for i, h in enumerate(checklist_cgw):
+            if i == 4 and g_type == 'a':
+                continue
+            if h[0] == 'z':
+                tmp = np.fromfile(
+                    f"{self.path}/west.wfreq.save/{h}_{vertex}_f.dat", dtype=complex
+                ).reshape(size_cgw[i],order='F')
+            else:
+                tmp = np.fromfile(
+                    f"{self.path}/west.wfreq.save/{h}_{vertex}_f.dat", dtype=float
+                ).reshape(size_cgw[i],order='F')
+            if i > 1:
+                tmp = tmp[:,:,index,:]
+            if i == 4:
+                tmp = tmp[:,:npdep_to_use,:,:]
+            setattr(self, h+f"_{vertex}_{g_type}", tmp)
+        
+        # print(index,npair)
+        if g_type != 'a':
             setattr(self, f"d_body2_ifr_{vertex}_{g_type}", np.zeros((self.n_lanczos,npdep_to_use,self.n_imfreq,npair,1)))
-            
             for ifreq in range(self.n_imfreq):
                 getattr(self, f"d_body2_ifr_{vertex}_{g_type}")[:,:,ifreq,:,:] = np.fromfile(
-                    f"{self.path}/west.wfreq.save/d_body2_ifr_{vertex}_{g_type}_{ifreq+1:05d}.dat", dtype=float
+                    f"{self.path}/west.wfreq.save/d_body2_ifr_{vertex}_f_{ifreq+1:05d}.dat", dtype=float
                 ).reshape((self.n_lanczos,self.npdep,1,self.npair_sigma,1),order='F')[:,:,:,index,:][:,:npdep_to_use,0,:,:]
 
         # braket_pair_eff = np.zeros([self.nspin, npair, npdep_to_use])
@@ -691,7 +702,7 @@ class CGWResults:
         ### Exchange
         Vc = self.Vc[:,:,basis_,:,:,:][:,:,:,basis_,:,:][:,:,:,:,basis_,:][:,:,:,:,:,basis_]
         occ = self.occ[:,basis_] * 0.5 # nspin == 1 here
-        sigmax_f = getattr(self,f"sigmax_{vertex}_f")[:,basis_,:][:,:,basis_]
+        sigmax_f = getattr(self,f"sigmax_{vertex}_f")[:,basis__sigma,:][:,:,basis__sigma]
         # this requires vertex == 'n'
         sigmax_a = - np.einsum('ssijjl,sj->sil',Vc,occ,optimize=True)
         sigmax_e = sigmax_f - sigmax_a 
@@ -722,14 +733,13 @@ class CGWResults:
             else:
                 self.imfreq_list_integrate[1,ifreq] = ( self.imfreq_list[ifreq] + self.imfreq_list[ifreq+1] ) * 0.5
         
-        energy = getattr(self,f"qp_energy_{vertex}")[0,basis_,:][:,basis_] / rydberg_to_hartree
-
+        energy = getattr(self,f"qp_energy_{vertex}")[0,basis__sigma,:][:,basis__sigma] / rydberg_to_hartree
         # print(energy * hartree_to_ev / 2)
 
         sigmac = self.solve_sigmac(basis=basis,energy=energy,vertex=vertex,g_type=g_type,l_diagonal=False,\
             npdep_to_use=npdep_to_use) * rydberg_to_hartree
 
-        return sigmax_e.reshape((1,nproj,nproj)), np.real(sigmac).reshape((1,nproj,nproj))
+        return locals()[f"sigmax_{g_type}"].reshape((1,nproj,nproj)), np.real(sigmac).reshape((1,nproj,nproj))
         # return [sigmax_f,sigmax_e,sigmax_a]
 
     def solve_sigmac(self,
@@ -761,6 +771,13 @@ class CGWResults:
                     for i in basis:
                         basis_ += np.argwhere(self.ks_projectors == i)[0].tolist()
                     basis_ = np.array(basis_)
+            if self.cgw_calculation in ('G','S','Q') and self.projector_type == 'K':
+                basis__sigma = []
+                for i in basis:
+                    basis__sigma += np.argwhere(self.ks_projectors_sigma == i)[0].tolist()
+                basis__sigma = np.array(basis__sigma)
+            else:
+                basis__sigma = basis_
         if self.projector_type in ('B','R','M'):
             local_basis_ = np.array(range(len(self.local_projectors)))
             if 'basis_' in dir():
@@ -815,6 +832,12 @@ class CGWResults:
 
                 for ifreq in range(self.n_imfreq):
                     for im in range(self.nbnd):
+                        if g_type == 'a':
+                            if im + 1 not in basis:
+                                continue
+                        elif g_type == 'e':
+                            if im + 1 in basis:
+                                continue
                         enrg = self.et[im] - energy[iproj,iproj]
                         if jproj == iproj:
                             partial_b += getattr(self,f"d_body1_ifr_{vertex}_{g_type}")[im,ifreq,p1,0] \
@@ -826,7 +849,8 @@ class CGWResults:
 
                         # if im == 0 and ifreq == 0 and p1 == 0 and iproj == 0:
                         #     print(self.et[im],energy[iproj,iproj],ifreq,enrg,getattr(self,f"d_body1_ifr_{vertex}_{g_type}")[im,ifreq,p1,0], self.integrate_imfreq(ifreq,enrg))
-                # print(partial_b)
+                        # if iproj == jproj and iproj == 3:
+                        #     print(partial_b, im, ifreq, self.et[im],energy[iproj,iproj],ifreq,enrg,getattr(self,f"d_body1_ifr_{vertex}_{g_type}")[im,ifreq,p1,0], self.integrate_imfreq(ifreq,enrg))
 
                 if g_type in ('e','f'):
                     for ifreq in range(self.n_imfreq):
@@ -842,7 +866,8 @@ class CGWResults:
                                         * 0.5 * ( self.integrate_imfreq(ifreq,enrg) + self.integrate_imfreq(ifreq,enrg1) )
                                 # if ifreq == 0 and il == 0 and ip == 0 and p1 == 0 and iproj == 0 and jproj == 0:
                                 #     print(ifreq,enrg,getattr(self,f"d_diago_{vertex}_{g_type}")[il,ip,p1,0],energy[iproj,iproj],getattr(self,f"d_body2_ifr_{vertex}_{g_type}")[il,ip,ifreq,p1,0],self.integrate_imfreq(ifreq,enrg))
-                # print(iproj, jproj, partial_h, partial_b)
+                # if iproj == jproj and iproj == nproj-1:
+                #     print(iproj, jproj, partial_h, partial_b)
 
                 sigmac[jproj,iproj] += ( partial_b/self.omega/np.pi + partial_h*self.div/np.pi )  
 
@@ -944,6 +969,8 @@ class CGWResults:
                             continue
                     
                     if self.l_frac_occ:
+                        # if self.occ_numbers[im] < 1.0:
+                        #     print(im+1,self.occ_numbers[im],nbndval1,nbndval)
                         if im + 1 > nbndval1 and im + 1 <= nbndval:
                             peso = self.occ_numbers[im]
                         else:
@@ -988,12 +1015,16 @@ class CGWResults:
                                     residues_h += 0.5 * (1-peso) * segno * getattr(self,f"z_head_rfr_{vertex}_{g_type}")[ifreq]
                                 residues_b += 0.5 * (1-peso) * segno * getattr(self,f"z_body_rfr_{vertex}_{g_type}")[im,ifreq,p1,0]
 
+                # if iproj == jproj and iproj == nproj-1:
+                #     print(iproj, jproj, residues_h, residues_b)
+
                 sigmac[jproj,iproj] += ( residues_b/self.omega + residues_h*self.div )  
 
-        for iproj in range(nproj):
-            for jproj in range(nproj):
-                if jproj > iproj:
-                    sigmac[jproj,iproj] = sigmac[iproj,jproj]
+        if not l_diagonal:
+            for iproj in range(nproj):
+                for jproj in range(nproj):
+                    if jproj > iproj:
+                        sigmac[jproj,iproj] = sigmac[iproj,jproj]
 
         return sigmac
 
