@@ -30,5 +30,5 @@ setup(name='westpy',
           'sphinx_rtd_theme',
           'py3Dmol'
       ],
-      python_requires='>=2.7, >=3.0, !=3.0.*, !=3.1.*, !=3.2.*, <4',
+      python_requires='>=3.6, <4',
       zip_safe=True)
