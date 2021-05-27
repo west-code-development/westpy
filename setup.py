@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(name='westpy',
-      version='4.2.0',
+      version='4.3.0',
       packages=find_packages(),
       description='Python analysis tools for WEST',
       long_description=long_description,
@@ -30,5 +30,5 @@ setup(name='westpy',
           'sphinx_rtd_theme',
           'py3Dmol'
       ],
-      python_requires='>=2.7, >=3.0, !=3.0.*, !=3.1.*, !=3.2.*, <4',
+      python_requires='>=3.6, <4',
       zip_safe=True)
