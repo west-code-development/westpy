@@ -7,7 +7,7 @@ from westpy.dataContainer import *
 from westpy.electronicStructure import * 
 from westpy.session import *
 
-__version__ = '4.2.0'
+__version__ = '4.3.0'
 
 def header() :
    """Prints welcome header."""
