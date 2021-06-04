@@ -1862,6 +1862,7 @@ class CGWResults:
                     chi0a_fortran: bool = False,
                     dc: str = "hf",
                     nspin: int = 1,
+                    nelec: Tuple = None,
                     symmetrize: Dict[str, bool] = {},
                     run_fci_inplace: bool = False,
                     nroots: int = 10,
@@ -1881,6 +1882,7 @@ class CGWResults:
             npdep_to_use: # of PDEP basis to use.
             dc: scheme for computing double counting.
             nspin: # of spin channels.
+            nelec: # of electrons in each spin-channel
             symmetrize: arguments for symmetrization function of Heff.
             run_fci_inplace: if True, run FCI calculations and return pd.DataFrame that summarize
                              FCI results, otherwise return a dict of Heff.
@@ -2028,9 +2030,9 @@ class CGWResults:
             self.write(f"npdep_to_use: {npdep_to_use}")
             self.write("===============================================================")
 
-            nel = np.sum(self.occ[:,basis_])
-            # self.write(nel,int(round(nel))//2,int(round(nel))//2)
-            nelec = (int(round(nel))//2, int(round(nel))//2)
+            if nelec == None:
+                nel = np.sum(self.occ[:,basis_])
+                nelec = (int(round(nel))//2, int(round(nel))//2)
 
             for W, heff in heffs.items():
                 data = {
