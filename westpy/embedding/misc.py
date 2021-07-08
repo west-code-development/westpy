@@ -2,7 +2,7 @@ import re
 import numpy as np
 from six import string_types
 from copy import deepcopy
-
+from pyscf.fci import cistring
 
 ev_to_hartree = 3.67494E-02
 ev_to_rydberg = 7.34989E-02
@@ -11,6 +11,28 @@ rydberg_to_hartree = 5.00000E-01
 angstrom_to_bohr = 1.88973E+00
 bohr_to_angstrom = 5.29177E-01
 
+def visualize_correlated_state(evcs, norb, nelec, cutoff=10**(-3))
+"""Visualizes the Slater determinants that contribute to a given many-body
+   states
+
+   :param evcs: FCI eigenstate provided py PYSCF
+   :param norb: number of orbitals that form the active space
+   :param nelec: a two-entry list containing the number of spin-up and spin-down
+   electrons in the active space
+   :return: string representing the many-body state
+"""
+    # constrcut N-particle Fock space
+    determinants = cistring.make_strings(range(norb), nelec[0]) 
+    string_fock = ['|'+format(i, '0'+str(norb)+'b')+'>' for i in determinants]
+
+    # string for many-body state
+    string = ''
+    for i in range(evcs.shape[0]):
+        for j in range(evcs.shape[1]):
+            if np.abs(evcs[i,j]) >= cutoff:
+                string = string + format(evcs[i,j],'+4.3f')+''+string_fock[i]+string_fock[j]
+
+    return string
 
 def find_indices(string, content, start=0, case_sensitive=True):
   """Find indices (line #s) of given string that appeared in content
