@@ -51,6 +51,7 @@ class CGWResults:
             self.size = self.comm.size
             self.rank = self.comm.rank
         except:
+            self.comm = None
             self.parallel = False
             self.size = 1
             self.rank = 0
@@ -699,19 +700,36 @@ class CGWResults:
             if i == 4:
                 if g_type == 'a' or not self.l_enable_lanczos:
                     continue
-            if h[0] == 'z':
-                tmp = np.fromfile(
-                    f"{self.path}/west.wfreq.save/{h}_{vertex}_f.dat", dtype=complex
-                ).reshape(size_cgw[i],order='F')
-            else:
+            if i == 0:
                 tmp = np.fromfile(
                     f"{self.path}/west.wfreq.save/{h}_{vertex}_f.dat", dtype=float
                 ).reshape(size_cgw[i],order='F')
-            if i > 1:
-                tmp = tmp[:,:,index,:]
-            if i == 4:
-                tmp = tmp[:,:npdep_to_use,:,:]
-            setattr(self, h+f"_{vertex}_{g_type}", tmp)
+            elif i == 1:
+                tmp = np.fromfile(
+                    f"{self.path}/west.wfreq.save/{h}_{vertex}_f.dat", dtype=complex
+                ).reshape(size_cgw[i],order='F')
+            elif i == 2:
+                setattr(self, f"d_body1_ifr_{vertex}_{g_type}", np.zeros((self.aband.nloc,self.n_imfreq,npair,1)))
+                for im in range(self.aband.nloc):
+                    glob_im = self.aband.l2g(im)
+                    tmp = np.fromfile(
+                        f"{self.path}/west.wfreq.save/{h}_{vertex}_f.dat", dtype=float
+                    ).reshape(size_cgw[i],order='F')[glob_im,:,:,:][:,index,:]
+                    getattr(self, f"d_body1_ifr_{vertex}_{g_type}")[im,:,:,:] = tmp
+            elif i == 3:
+                setattr(self, f"z_body_rfr_{vertex}_{g_type}", np.zeros((self.aband.nloc,self.n_refreq,npair,1),dtype=complex))
+                for im in range(self.aband.nloc):
+                    glob_im = self.aband.l2g(im)
+                    tmp = np.fromfile(
+                        f"{self.path}/west.wfreq.save/{h}_{vertex}_f.dat", dtype=complex
+                    ).reshape(size_cgw[i],order='F')[glob_im,:,:,:][:,index,:]
+                    getattr(self, f"z_body_rfr_{vertex}_{g_type}")[im,:,:,:] = tmp
+            elif i == 4:
+                tmp = np.fromfile(
+                    f"{self.path}/west.wfreq.save/{h}_{vertex}_f.dat", dtype=float
+                ).reshape(size_cgw[i],order='F')
+                tmp = tmp[:,:npdep_to_use,:,:][:,:,index,:]
+                setattr(self, h+f"_{vertex}_{g_type}", tmp)
         
         # self.write(index,npair)
         if g_type != 'a' and self.l_enable_lanczos:
@@ -882,11 +900,11 @@ class CGWResults:
                                 continue
                         enrg = self.et[glob_im] - energy[iproj,iproj]
                         if jproj == iproj:
-                            partial_b += getattr(self,f"d_body1_ifr_{vertex}_{g_type}")[glob_im,ifreq,p1,0] \
+                            partial_b += getattr(self,f"d_body1_ifr_{vertex}_{g_type}")[im,ifreq,p1,0] \
                                 * self.integrate_imfreq(ifreq,enrg)
                         else:
                             enrg1 = self.et[glob_im] - energy[jproj,jproj]
-                            partial_b += getattr(self,f"d_body1_ifr_{vertex}_{g_type}")[glob_im,ifreq,p1,0] \
+                            partial_b += getattr(self,f"d_body1_ifr_{vertex}_{g_type}")[im,ifreq,p1,0] \
                                 * 0.5 * ( self.integrate_imfreq(ifreq,enrg) + self.integrate_imfreq(ifreq,enrg1) )
 
                         # if im == 0 and ifreq == 0 and p1 == 0 and iproj == 0:
@@ -988,7 +1006,7 @@ class CGWResults:
                                 continue
                             if ib == ib1 and glob_im == ib:
                                 residues_h += 0.5 * peso * segno * getattr(self,f"z_head_rfr_{vertex}_{g_type}")[ifreq]
-                            residues_b += 0.5 * peso * segno * getattr(self,f"z_body_rfr_{vertex}_{g_type}")[glob_im,ifreq,p1,0]
+                            residues_b += 0.5 * peso * segno * getattr(self,f"z_body_rfr_{vertex}_{g_type}")[im,ifreq,p1,0]
                             # self.write(ifreq,getattr(self,f"z_head_rfr_{vertex}_{g_type}")[ifreq],getattr(self,f"z_body_rfr_{vertex}_{g_type}")[im,ifreq,p1,0])
                     
                     if self.l_frac_occ:
@@ -1006,7 +1024,7 @@ class CGWResults:
                                     continue
                                 if ib == ib1 and glob_im == ib:
                                     residues_h += 0.5 * (1-peso) * segno * getattr(self,f"z_head_rfr_{vertex}_{g_type}")[ifreq]
-                                residues_b += 0.5 * (1-peso) * segno * getattr(self,f"z_body_rfr_{vertex}_{g_type}")[glob_im,ifreq,p1,0]
+                                residues_b += 0.5 * (1-peso) * segno * getattr(self,f"z_body_rfr_{vertex}_{g_type}")[im,ifreq,p1,0]
 
                 for im in range(self.aband.nloc):
                     glob_im = self.aband.l2g(im)
@@ -1045,7 +1063,7 @@ class CGWResults:
                                 continue
                             if ib == ib1 and glob_im == ib:
                                 residues_h += 0.5 * peso * segno * getattr(self,f"z_head_rfr_{vertex}_{g_type}")[ifreq]
-                            residues_b += 0.5 * peso * segno * getattr(self,f"z_body_rfr_{vertex}_{g_type}")[glob_im,ifreq,p1,0]
+                            residues_b += 0.5 * peso * segno * getattr(self,f"z_body_rfr_{vertex}_{g_type}")[im,ifreq,p1,0]
                     
                     if self.l_frac_occ:
                         this_is_a_pole = False
@@ -1062,7 +1080,7 @@ class CGWResults:
                                     continue
                                 if ib == ib1 and glob_im == ib:
                                     residues_h += 0.5 * (1-peso) * segno * getattr(self,f"z_head_rfr_{vertex}_{g_type}")[ifreq]
-                                residues_b += 0.5 * (1-peso) * segno * getattr(self,f"z_body_rfr_{vertex}_{g_type}")[glob_im,ifreq,p1,0]
+                                residues_b += 0.5 * (1-peso) * segno * getattr(self,f"z_body_rfr_{vertex}_{g_type}")[im,ifreq,p1,0]
 
                 # if iproj == jproj and iproj == nproj-1:
                 #     self.write(iproj, jproj, residues_h, residues_b)
