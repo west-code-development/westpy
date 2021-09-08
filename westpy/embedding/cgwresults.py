@@ -7,7 +7,7 @@ import pandas as pd
 import json
 import copy
 from lxml import etree
-from westpy.embedding.misc import parse_one_value, find_index
+from westpy.embedding.misc import find_indices, parse_one_value, find_index
 from westpy.embedding.misc import VData, rydberg_to_hartree, ev_to_hartree, hartree_to_ev
 from westpy.embedding.heff import Heff
 from westpy.embedding.symm import PointGroup, PointGroupRep
@@ -109,6 +109,22 @@ class CGWResults:
         wfoutput = open(f"{self.path}/wfreq.out").readlines()
         i = find_index("Divergence =", wfoutput)
         self.div = parse_one_value(float, wfoutput[i])
+        i = find_index("n_spectralf", wfoutput)
+        self.n_spectralf = parse_one_value(int, wfoutput[i])
+        i = find_index("n_imfreq", wfoutput)
+        self.n_imfreq = parse_one_value(int, wfoutput[i])
+        i = find_index("n_refreq", wfoutput)
+        self.n_refreq = parse_one_value(int, wfoutput[i])
+        i = find_index("n_lanczos", wfoutput)
+        self.n_lanczos = parse_one_value(int, wfoutput[i])
+        i = find_index("nbnd", wfoutput)
+        self.nbnd = parse_one_value(int, wfoutput[i])
+        i = find_index("ecut_imfreq", wfoutput)
+        self.ecut_imfreq = parse_one_value(float, wfoutput[i])
+        i = find_index("ecut_refreq", wfoutput)
+        self.ecut_refreq = parse_one_value(float, wfoutput[i])
+        i = find_index("nelec", wfoutput)
+        self.nelec = parse_one_value(float, wfoutput[i])
         #
         i = find_index("PBE0", wfoutput)
         if i != None:
@@ -122,6 +138,10 @@ class CGWResults:
         else:
             self.occ = np.zeros([self.nspin, self.nproj])
             self.egvs = np.zeros([self.nspin, self.nproj])
+            self.et = np.zeros([self.nspin, self.nbnd])
+            self.occ_numbers = np.zeros([self.nspin, self.nbnd])
+            self.nbnd_occ_one = np.zeros([self.nspin])
+            self.nbnd_occ_nonzero = np.zeros([self.nspin])
             if occ is None:
                 # read occupation from pw xml file
                 for ispin in range(self.nspin):
@@ -141,39 +161,32 @@ class CGWResults:
                     self.occ[ispin, :] = occ[self.ks_projectors - 1]
                     # for use in solve_sigmac
                     if self.h1e_treatment in ('R','T'):
-                        assert self.nspin == 1
+                        # assert self.nspin == 1
                         #
-                        i = find_index("n_spectralf", wfoutput)
-                        self.n_spectralf = parse_one_value(int, wfoutput[i])
-                        i = find_index("n_imfreq", wfoutput)
-                        self.n_imfreq = parse_one_value(int, wfoutput[i])
-                        i = find_index("n_refreq", wfoutput)
-                        self.n_refreq = parse_one_value(int, wfoutput[i])
-                        i = find_index("n_lanczos", wfoutput)
-                        self.n_lanczos = parse_one_value(int, wfoutput[i])
-                        i = find_index("nbnd", wfoutput)
-                        self.nbnd = parse_one_value(int, wfoutput[i])
-                        i = find_index("ecut_imfreq", wfoutput)
-                        self.ecut_imfreq = parse_one_value(float, wfoutput[i])
-                        i = find_index("ecut_refreq", wfoutput)
-                        self.ecut_refreq = parse_one_value(float, wfoutput[i])
-                        #
-                        self.et = egvs / rydberg_to_hartree
-                        self.occ_numbers = occ / 2
+                        self.et[ispin, :] = egvs / rydberg_to_hartree
+                        if self.nspin == 1:
+                            self.occ_numbers[ispin, :] = occ / 2
+                        elif self.nspin == 2:
+                            self.occ_numbers[ispin, :] = occ
                         # self.write(self.occ_numbers)
                         #
                         t = find_index("Warning: fractional occupation case!", wfoutput)
                         if t != None:
                             self.l_frac_occ = True
-                            i = find_index("nbnd_occ_one", wfoutput)
-                            self.nbnd_occ_one = parse_one_value(int, wfoutput[i+1])
-                            i = find_index("nbnd_occ_nonzero", wfoutput)
-                            self.nbnd_occ_nonzero = parse_one_value(int, wfoutput[i+1])
-                        else:
+                            i_list = find_indices("nbnd_occ_one", wfoutput)
+                            self.nbnd_occ_one[ispin] = parse_one_value(int, wfoutput[i_list[ispin]+1])
+                            i_list = find_indices("nbnd_occ_nonzero", wfoutput)
+                            self.nbnd_occ_nonzero[ispin] = parse_one_value(int, wfoutput[i_list[ispin]+1])
+                        else: 
                             self.l_frac_occ = False
-                            i = find_index("nelec", wfoutput)
-                            self.nbnd_occ_one = int( parse_one_value(int, wfoutput[i]) / 2 )
-                            self.nbnd_occ_nonzero = self.nbnd_occ_one
+                            if self.nspin == 1:
+                                self.nbnd_occ_one[ispin] = int( self.nelec / 2 )
+                            elif self.nspin == 2:
+                                i = find_index("nelup", wfoutput)
+                                self.nbnd_occ_one[0] = parse_one_value(int, wfoutput[i])
+                                i = find_index("neldw", wfoutput)
+                                self.nbnd_occ_one[1] = parse_one_value(int, wfoutput[i])
+                            self.nbnd_occ_nonzero[ispin] = self.nbnd_occ_one[ispin]               
                         # self.write(self.nbnd_occ_one, self.nbnd_occ_nonzero)
                         # self.ecut_refreq = parse_one_value(float, wfoutput[i])
             else:
@@ -318,9 +331,9 @@ class CGWResults:
             e0: self.write KS eigenvalues shifted by e0 (in Hartree).
         """
         for ispin in range(self.nspin):
-            self.write(f"band#  ev  occ (spin {ispin})")
-            for i, (ev, occ) in enumerate(zip(self.egvs[ispin], self.occ[ispin])):
-                self.write(f"{i + self.nbndstart}, {ev * hartree_to_ev - e0:.2f}, {occ:.2f}")
+            self.write(f"band#  ev (KS)  ev (GW)  occ (spin {ispin})")
+            for i, (ev, ev1, occ) in enumerate(zip(self.egvs[ispin], np.einsum("ii->i", self.qp_energy_n[ispin,:,:], optimize=True), self.occ[ispin])):
+                self.write(f"{i + self.nbndstart}, {ev * hartree_to_ev - e0:.2f}, {ev1 * hartree_to_ev - e0:.2f}, {occ:.2f}")
 
     def compute_chi0a(self, basis: List[int] = None, npdep_to_use: int = None) -> np.ndarray:
         """ Compute chi0^a (chi0 projected into active space).
@@ -501,16 +514,22 @@ class CGWResults:
                 ).reshape(self.nspin, self.nproj_sigma, self.nproj_sigma)
                 # self.write(tmp)
             elif self.h1e_treatment == 'T':
-                tmp = np.diag(np.fromfile(
+                tmp1 = np.fromfile(
                     f"{self.path}/west.wfreq.save/{h}.dat", dtype=float
-                )).reshape(self.nspin, self.nproj_sigma, self.nproj_sigma)
+                ).reshape(self.nspin, self.nproj_sigma)
+                tmp = np.zeros([self.nspin, self.nproj_sigma, self.nproj_sigma], dtype=float)
+                for ispin in range(self.nspin):
+                    tmp[ispin, ...] = np.diag(tmp1[ispin, ...])
             setattr(self, h, tmp)
             
         checklist_cgw = [f"qp_energy_{vertex}"]
         for h in checklist_cgw:
-            tmp = np.diag(np.fromfile(
+            tmp1 = np.fromfile(
                     f"{self.path}/west.wfreq.save/{h}.dat", dtype=float
-                )).reshape(self.nspin, self.nproj_sigma, self.nproj_sigma)
+            ).reshape(self.nspin, self.nproj_sigma)
+            tmp = np.zeros([self.nspin, self.nproj_sigma, self.nproj_sigma], dtype=float)
+            for ispin in range(self.nspin):
+                tmp[ispin, ...] = np.diag(tmp1[ispin, ...]) 
             setattr(self, h, tmp)
 
         checklist_cgw = [f"sigmac_eigen_{vertex}_a",f"sigmac_eigen_{vertex}_e",f"sigmac_eigen_{vertex}_f"]
@@ -521,9 +540,12 @@ class CGWResults:
                 ).reshape(self.nspin, self.nproj_sigma, self.nproj_sigma)
                 # self.write(tmp)
             elif self.h1e_treatment == 'T':
-                tmp = np.diag(np.fromfile(
+                tmp1 = np.fromfile(
                     f"{self.path}/west.wfreq.save/{h}.dat", dtype=float
-                )).reshape(self.nspin, self.nproj_sigma, self.nproj_sigma)
+                ).reshape(self.nspin, self.nproj_sigma)
+                tmp = np.zeros([self.nspin, self.nproj_sigma, self.nproj_sigma], dtype=float)
+                for ispin in range(self.nspin):
+                    tmp[ispin, ...] = np.diag(tmp1[ispin, ...])
             setattr(self, h, tmp)
 
         checklist_cgw = [f"sigmac_{vertex}_a",f"sigmac_{vertex}_e",f"sigmac_{vertex}_f"]
@@ -545,38 +567,38 @@ class CGWResults:
 
         if vertex == 'n':
             data = getattr(self,'sigmac_'+vertex+'_e') 
-            assert self.nspin == 1
-            legend = [f'$\Sigma^E$-{iproj}' for iproj in list(self.ks_projectors_sigma)]
-            for iproj in range(self.nproj_sigma):
-                x = copy.deepcopy(data[0,iproj,iproj,0,:])
-                # res = copy.deepcopy(data[0,iproj,iproj,1,:])
-                res = copy.deepcopy(data[0,iproj,iproj,1,:]) + getattr(self,'sigmax_'+vertex+'_e')[0,iproj,iproj]
-                plt.plot(x * hartree_to_ev,res * hartree_to_ev)
-                #
-            #     legend.append(f'$\Sigma^F$-{orbital[iproj]}')
-            #     legend.append(f'$\Sigma^A$-{orbital[iproj]}')
+            for ispin in range(self.nspin):
+                legend = [f'$\Sigma^E$-{iproj}' for iproj in list(self.ks_projectors_sigma)]
+                for iproj in range(self.nproj_sigma):
+                    x = copy.deepcopy(data[ispin,iproj,iproj,0,:])
+                    # res = copy.deepcopy(data[0,iproj,iproj,1,:])
+                    res = copy.deepcopy(data[ispin,iproj,iproj,1,:]) + getattr(self,'sigmax_'+vertex+'_e')[ispin,iproj,iproj]
+                    plt.plot(x * hartree_to_ev,res * hartree_to_ev)
+                    #
+                #     legend.append(f'$\Sigma^F$-{orbital[iproj]}')
+                #     legend.append(f'$\Sigma^A$-{orbital[iproj]}')
 
-            plt.title(f'{self.xc.upper()}-Re$\Sigma$')
-            plt.xlabel('$\omega$ (eV)')
-            plt.ylabel('E (eV)')
-            plt.legend(legend)
-            plt.savefig(f'{self.xc}-re.png',bbox_inches='tight')
-            plt.show()
+                plt.title(f'{self.xc.upper()}-Re$\Sigma$-Spin{ispin}')
+                plt.xlabel('$\omega$ (eV)')
+                plt.ylabel('E (eV)')
+                plt.legend(legend)
+                plt.savefig(f'{self.xc}-re-spin{ispin}.png',bbox_inches='tight')
+                plt.show()
 
-            # for iproj in range(self.nproj_sigma):
-            #     x = copy.deepcopy(data[0,iproj,iproj,0,:])
-            #     res = copy.deepcopy(data[0,iproj,iproj,2,:])
-            #     plt.plot(x * hartree_to_ev,res * hartree_to_ev)
-            #     #
-            # #     legend.append(f'$\Sigma^F$-{orbital[iproj]}')
-            # #     legend.append(f'$\Sigma^A$-{orbital[iproj]}')
+                # for iproj in range(self.nproj_sigma):
+                #     x = copy.deepcopy(data[0,iproj,iproj,0,:])
+                #     res = copy.deepcopy(data[0,iproj,iproj,2,:])
+                #     plt.plot(x * hartree_to_ev,res * hartree_to_ev)
+                #     #
+                # #     legend.append(f'$\Sigma^F$-{orbital[iproj]}')
+                # #     legend.append(f'$\Sigma^A$-{orbital[iproj]}')
 
-            # plt.title(f'{self.xc.upper()}-Im$\Sigma$')
-            # plt.xlabel('$\omega$ (eV)')
-            # plt.ylabel('E (eV)')
-            # plt.legend(legend)
-            # plt.savefig(f'{self.xc}-im.png',bbox_inches='tight')
-            # plt.show()
+                # plt.title(f'{self.xc.upper()}-Im$\Sigma$')
+                # plt.xlabel('$\omega$ (eV)')
+                # plt.ylabel('E (eV)')
+                # plt.legend(legend)
+                # plt.savefig(f'{self.xc}-im.png',bbox_inches='tight')
+                # plt.show()
 
         basis_ = []
         for i in self.ks_projectors_sigma:
@@ -603,14 +625,15 @@ class CGWResults:
         # self.write(self.qp_energy_n[0,:,:][:,:]* hartree_to_ev)
 
         # self.write(basis_)
-        self.write( ( self.hks[0,basis_,:][:,basis_] - self.vxc[0,basis_,:][:,basis_] - self.vxx[0,basis_,:][:,basis_]\
-                + self.sigmac_eigen_n_f[0,:,:] \
-                + self.sigmax_n_f[0,:,:] - self.qp_energy_n[0,:,:] ) * hartree_to_ev )
-        self.write("max|E - ($\epsilon$ + $\Sigma$ - $V_{{xc}}$)| = {:.3f} eV".format(
-                np.max(np.einsum("ii->i", np.abs(self.hks[0,basis_,:][:,basis_] - self.vxc[0,basis_,:][:,basis_]\
-                - self.vxx[0,basis_,:][:,basis_] + self.sigmac_eigen_n_f[0,:,:] \
-                + self.sigmax_n_f[0,:,:] - self.qp_energy_n[0,:,:]) * hartree_to_ev, optimize=True) )
-            ))
+        for ispin in range(self.nspin):
+            self.write( ( self.hks[ispin,basis_,:][:,basis_] - self.vxc[ispin,basis_,:][:,basis_] - self.vxx[ispin,basis_,:][:,basis_]\
+                    + self.sigmac_eigen_n_f[ispin,:,:] \
+                    + self.sigmax_n_f[ispin,:,:] - self.qp_energy_n[ispin,:,:] ) * hartree_to_ev )
+            self.write("max|E - ($\epsilon$ + $\Sigma$ - $V_{{xc}}$)| = {:.3f} eV".format(
+                    np.max(np.einsum("ii->i", np.abs(self.hks[ispin,basis_,:][:,basis_] - self.vxc[ispin,basis_,:][:,basis_]\
+                    - self.vxx[ispin,basis_,:][:,basis_] + self.sigmac_eigen_n_f[ispin,:,:] \
+                    + self.sigmax_n_f[ispin,:,:] - self.qp_energy_n[ispin,:,:]) * hartree_to_ev, optimize=True) )
+                ))
 
         return
 
@@ -624,7 +647,7 @@ class CGWResults:
 
         assert vertex == 'n' # assert rpa now
         assert self.h1e_treatment in ('R','T')
-        assert self.nspin == 1
+        # assert self.nspin == 1
 
         if self.projector_type in ('K','M'):
             if self.range == True:
@@ -692,8 +715,8 @@ class CGWResults:
 
         checklist_cgw = [f"d_head_ifr",f"z_head_rfr",f"d_body1_ifr",
             f"z_body_rfr",f"d_diago"]
-        size_cgw = [(self.n_imfreq),(self.n_refreq),(self.nbnd,self.n_imfreq,self.npair_sigma,1),
-            (self.nbnd,self.n_refreq,self.npair_sigma,1),(self.n_lanczos,self.npdep,self.npair_sigma,1)]
+        size_cgw = [(self.n_imfreq),(self.n_refreq),(self.nbnd,self.n_imfreq,self.npair_sigma,self.nspin),
+            (self.nbnd,self.n_refreq,self.npair_sigma,self.nspin),(self.n_lanczos,self.npdep,self.npair_sigma,self.nspin)]
 
         ### use the collect_gw data from g_type = 'f' only
         for i, h in enumerate(checklist_cgw):
@@ -709,7 +732,7 @@ class CGWResults:
                     f"{self.path}/west.wfreq.save/{h}_{vertex}_f.dat", dtype=complex
                 ).reshape(size_cgw[i],order='F')
             elif i == 2:
-                setattr(self, f"d_body1_ifr_{vertex}_{g_type}", np.zeros((self.aband.nloc,self.n_imfreq,npair,1)))
+                setattr(self, f"d_body1_ifr_{vertex}_{g_type}", np.zeros((self.aband.nloc,self.n_imfreq,npair,self.nspin)))
                 for im in range(self.aband.nloc):
                     glob_im = self.aband.l2g(im)
                     tmp = np.fromfile(
@@ -717,7 +740,7 @@ class CGWResults:
                     ).reshape(size_cgw[i],order='F')[glob_im,:,:,:][:,index,:]
                     getattr(self, f"d_body1_ifr_{vertex}_{g_type}")[im,:,:,:] = tmp
             elif i == 3:
-                setattr(self, f"z_body_rfr_{vertex}_{g_type}", np.zeros((self.aband.nloc,self.n_refreq,npair,1),dtype=complex))
+                setattr(self, f"z_body_rfr_{vertex}_{g_type}", np.zeros((self.aband.nloc,self.n_refreq,npair,self.nspin),dtype=complex))
                 for im in range(self.aband.nloc):
                     glob_im = self.aband.l2g(im)
                     tmp = np.fromfile(
@@ -733,13 +756,13 @@ class CGWResults:
         
         # self.write(index,npair)
         if g_type != 'a' and self.l_enable_lanczos:
-            setattr(self, f"d_body2_ifr_{vertex}_{g_type}", np.zeros((self.n_lanczos,self.pert.nloc,self.n_imfreq,npair,1)))
+            setattr(self, f"d_body2_ifr_{vertex}_{g_type}", np.zeros((self.n_lanczos,self.pert.nloc,self.n_imfreq,npair,self.nspin)))
             for ifreq in range(self.n_imfreq):
                 for ip in range(self.pert.nloc):
                     glob_ip = self.pert.l2g(ip)
                     tmp = np.fromfile(
                         f"{self.path}/west.wfreq.save/d_body2_ifr_{vertex}_f_{ifreq+1:05d}.dat", dtype=float
-                    ).reshape((self.n_lanczos,self.npdep,1,self.npair_sigma,1),order='F')[:,:,:,index,:][:,:,0,:,:][:,glob_ip,:,:]
+                    ).reshape((self.n_lanczos,self.npdep,1,self.npair_sigma,self.nspin),order='F')[:,:,:,index,:][:,:,0,:,:][:,glob_ip,:,:]
                     getattr(self, f"d_body2_ifr_{vertex}_{g_type}")[:,ip,ifreq,:,:] = tmp
 
         # braket_pair_eff = np.zeros([self.nspin, npair, npdep_to_use])
@@ -795,7 +818,7 @@ class CGWResults:
         except:
             pass
         
-        return locals()[f"sigmax_{g_type}"].reshape((1,nproj,nproj)), np.real(sigmac).reshape((1,nproj,nproj))
+        return locals()[f"sigmax_{g_type}"].reshape((self.nspin,nproj,nproj)), np.real(sigmac).reshape((self.nspin,nproj,nproj))
         # return [sigmax_f,sigmax_e,sigmax_a]
 
     def solve_sigmac(self,
@@ -807,11 +830,11 @@ class CGWResults:
                     npdep_to_use: int = None):
         
         assert energy.all() != None
-        assert len(energy.shape) == 2 and energy.shape[0] == energy.shape[1] 
+        assert len(energy.shape) == 3 and energy.shape[1] == energy.shape[2] 
         assert g_type in ('f','e','a')
         assert vertex == 'n' # assert rpa now
         assert self.h1e_treatment in ('R','T')
-        assert self.nspin == 1
+        # assert self.nspin == 1
 
         if self.projector_type in ('K','M'):
             if self.range == True:
@@ -847,7 +870,7 @@ class CGWResults:
         nproj = len(basis_)
         # egvs = self.egvs[basis_,0]
         npair, pijmap, ijpmap = self.make_index_map(nproj)
-        assert energy.shape[0] == nproj
+        assert energy.shape[1] == nproj
 
         # index = []
         # for p, (i, j) in enumerate(pijmap):
@@ -858,38 +881,120 @@ class CGWResults:
         if self.parallel:
             from mpi4py import MPI
 
-        sigmac = np.zeros((nproj,nproj),dtype=complex)
+        sigmac = np.zeros((self.nspin,nproj,nproj),dtype=complex)
 
-        ## The part with imaginary integration
-        for iproj in range(nproj):
-            ib = basis[iproj] - 1
-            for jproj in range(nproj):
-                ib1 = basis[jproj] - 1
-                if l_diagonal:
-                    if jproj != iproj:
-                        continue
-                else:
-                    if jproj > iproj:
-                        continue
-                
-                p1 = ijpmap[jproj,iproj]
-                
-                partial_h = 0
+        for ispin in range(self.nspin):
+            ## The part with imaginary integration
+            for iproj in range(nproj):
+                ib = basis[iproj] - 1
+                for jproj in range(nproj):
+                    ib1 = basis[jproj] - 1
+                    if l_diagonal:
+                        if jproj != iproj:
+                            continue
+                    else:
+                        if jproj > iproj:
+                            continue
+                    
+                    p1 = ijpmap[jproj,iproj]
+                    
+                    partial_h = 0
 
-                if g_type in ('a','f'):
+                    if g_type in ('a','f'):
+                        for ifreq in range(self.n_imfreq):
+                            enrg = self.et[ispin,ib] - energy[ispin,iproj,iproj]
+                            if jproj == iproj:
+                                # self.write(getattr(self,f"d_head_ifr_{vertex}_{g_type}")[ifreq],self.integrate_imfreq(ifreq,enrg))
+                                partial_h += getattr(self,f"d_head_ifr_{vertex}_{g_type}")[ifreq] \
+                                    * self.integrate_imfreq(ifreq,enrg)
+                                # if ifreq == 0 and iproj == 0:
+                                #     self.write(ib,self.et[ib],energy[ispin,iproj,iproj],enrg,getattr(self,f"d_head_ifr_{vertex}_{g_type}")[ifreq],self.integrate_imfreq(ifreq,enrg))
+                    # self.write(partial_h)
+
+                    partial_b = 0
+
                     for ifreq in range(self.n_imfreq):
-                        enrg = self.et[ib] - energy[iproj,iproj]
-                        if jproj == iproj:
-                            # self.write(getattr(self,f"d_head_ifr_{vertex}_{g_type}")[ifreq],self.integrate_imfreq(ifreq,enrg))
-                            partial_h += getattr(self,f"d_head_ifr_{vertex}_{g_type}")[ifreq] \
-                                * self.integrate_imfreq(ifreq,enrg)
-                            # if ifreq == 0 and iproj == 0:
-                            #     self.write(ib,self.et[ib],energy[iproj,iproj],enrg,getattr(self,f"d_head_ifr_{vertex}_{g_type}")[ifreq],self.integrate_imfreq(ifreq,enrg))
-                # self.write(partial_h)
+                        for im in range(self.aband.nloc):
+                            glob_im = self.aband.l2g(im)
+                            if g_type == 'a':
+                                if glob_im + 1 not in basis:
+                                    continue
+                            elif g_type == 'e':
+                                if glob_im + 1 in basis:
+                                    continue
+                            enrg = self.et[ispin,glob_im] - energy[ispin,iproj,iproj]
+                            if jproj == iproj:
+                                partial_b += getattr(self,f"d_body1_ifr_{vertex}_{g_type}")[im,ifreq,p1,ispin] \
+                                    * self.integrate_imfreq(ifreq,enrg)
+                            else:
+                                enrg1 = self.et[ispin,glob_im] - energy[ispin,jproj,jproj]
+                                if getattr(self,f"d_body1_ifr_{vertex}_{g_type}")[im,ifreq,p1,ispin] == None or self.integrate_imfreq(ifreq,enrg) == None or self.integrate_imfreq(ifreq,enrg1) == None:
+                                    self.write(im,ifreq,p1,glob_im,iproj,jproj)
+                                partial_b += getattr(self,f"d_body1_ifr_{vertex}_{g_type}")[im,ifreq,p1,ispin] \
+                                    * 0.5 * ( self.integrate_imfreq(ifreq,enrg) + self.integrate_imfreq(ifreq,enrg1) )
 
-                partial_b = 0
+                            # if im == 0 and ifreq == 0 and p1 == 0 and iproj == 0:
+                            #     self.write(self.et[im],energy[ispin,iproj,iproj],ifreq,enrg,getattr(self,f"d_body1_ifr_{vertex}_{g_type}")[im,ifreq,p1,0], self.integrate_imfreq(ifreq,enrg))
+                            # if iproj == jproj and iproj == 3:
+                            #     self.write(partial_b, im, ifreq, self.et[im],energy[ispin,iproj,iproj],ifreq,enrg,getattr(self,f"d_body1_ifr_{vertex}_{g_type}")[im,ifreq,p1,0], self.integrate_imfreq(ifreq,enrg))
 
-                for ifreq in range(self.n_imfreq):
+                    if g_type in ('e','f') and self.l_enable_lanczos:
+                        for ifreq in range(self.n_imfreq):
+                            for ip in range(self.pert.nloc):
+                                glob_ip = self.pert.l2g(ip)
+                                for il in range(self.n_lanczos):
+                                    enrg = getattr(self,f"d_diago_{vertex}_{g_type}")[il,glob_ip,p1,ispin] - energy[ispin,iproj,iproj]
+                                    if jproj == iproj:
+                                        partial_b += getattr(self,f"d_body2_ifr_{vertex}_{g_type}")[il,ip,ifreq,p1,ispin] \
+                                            * self.integrate_imfreq(ifreq,enrg)
+                                    else:
+                                        enrg1 = getattr(self,f"d_diago_{vertex}_{g_type}")[il,glob_ip,p1,ispin] - energy[ispin,jproj,jproj]
+                                        partial_b += getattr(self,f"d_body2_ifr_{vertex}_{g_type}")[il,ip,ifreq,p1,ispin] \
+                                            * 0.5 * ( self.integrate_imfreq(ifreq,enrg) + self.integrate_imfreq(ifreq,enrg1) )
+                                    # if ifreq == 0 and il == 0 and ip == 0 and p1 == 0 and iproj == 0 and jproj == 0:
+                                    #     self.write(ifreq,enrg,getattr(self,f"d_diago_{vertex}_{g_type}")[il,ip,p1,0],energy[ispin,iproj,iproj],getattr(self,f"d_body2_ifr_{vertex}_{g_type}")[il,ip,ifreq,p1,0],self.integrate_imfreq(ifreq,enrg))
+                    # if iproj == jproj and iproj == nproj-1:
+                    #     self.write(iproj, jproj, partial_h, partial_b)
+
+                    ## mp_sum
+                    if self.parallel:
+                        partial_b = self.comm.allreduce(partial_b, op=MPI.SUM)
+
+                    sigmac[ispin,jproj,iproj] += ( partial_b/self.omega/np.pi + partial_h*self.div/np.pi )  
+
+        # self.write(sigmac)
+
+        for ispin in range(self.nspin):
+            ## The part with poles
+            if self.l_frac_occ:
+                nbndval = self.nbnd_occ_nonzero
+                nbndval1 = self.nbnd_occ_one
+            else:
+                nbndval = self.nbnd_occ_nonzero
+            # self.write(nbndval)
+            for iproj in range(nproj):
+                ib = basis[iproj] - 1
+                for jproj in range(nproj):
+                    ib1 = basis[jproj] - 1
+                    if l_diagonal:
+                        if jproj != iproj:
+                            continue
+                    else:
+                        if jproj > iproj:
+                            continue
+                    
+                    p1 = ijpmap[jproj,iproj]
+
+                    enrg = energy[ispin,iproj,iproj]
+                    enrg1 = energy[ispin,jproj,jproj]
+
+                    # if iproj == 0 and jproj == 0:
+                    #     self.write(enrg,enrg1)
+
+                    residues_b = 0.0
+                    residues_h = 0.0
+
+                    # self.write(self.nbnd)
                     for im in range(self.aband.nloc):
                         glob_im = self.aband.l2g(im)
                         if g_type == 'a':
@@ -898,205 +1003,128 @@ class CGWResults:
                         elif g_type == 'e':
                             if glob_im + 1 in basis:
                                 continue
-                        enrg = self.et[glob_im] - energy[iproj,iproj]
-                        if jproj == iproj:
-                            partial_b += getattr(self,f"d_body1_ifr_{vertex}_{g_type}")[im,ifreq,p1,0] \
-                                * self.integrate_imfreq(ifreq,enrg)
-                        else:
-                            enrg1 = self.et[glob_im] - energy[jproj,jproj]
-                            partial_b += getattr(self,f"d_body1_ifr_{vertex}_{g_type}")[im,ifreq,p1,0] \
-                                * 0.5 * ( self.integrate_imfreq(ifreq,enrg) + self.integrate_imfreq(ifreq,enrg1) )
-
-                        # if im == 0 and ifreq == 0 and p1 == 0 and iproj == 0:
-                        #     self.write(self.et[im],energy[iproj,iproj],ifreq,enrg,getattr(self,f"d_body1_ifr_{vertex}_{g_type}")[im,ifreq,p1,0], self.integrate_imfreq(ifreq,enrg))
-                        # if iproj == jproj and iproj == 3:
-                        #     self.write(partial_b, im, ifreq, self.et[im],energy[iproj,iproj],ifreq,enrg,getattr(self,f"d_body1_ifr_{vertex}_{g_type}")[im,ifreq,p1,0], self.integrate_imfreq(ifreq,enrg))
-
-                if g_type in ('e','f') and self.l_enable_lanczos:
-                    for ifreq in range(self.n_imfreq):
-                        for ip in range(self.pert.nloc):
-                            glob_ip = self.pert.l2g(ip)
-                            for il in range(self.n_lanczos):
-                                enrg = getattr(self,f"d_diago_{vertex}_{g_type}")[il,glob_ip,p1,0] - energy[iproj,iproj]
-                                if jproj == iproj:
-                                    partial_b += getattr(self,f"d_body2_ifr_{vertex}_{g_type}")[il,ip,ifreq,p1,0] \
-                                        * self.integrate_imfreq(ifreq,enrg)
-                                else:
-                                    enrg1 = getattr(self,f"d_diago_{vertex}_{g_type}")[il,glob_ip,p1,0] - energy[jproj,jproj]
-                                    partial_b += getattr(self,f"d_body2_ifr_{vertex}_{g_type}")[il,ip,ifreq,p1,0] \
-                                        * 0.5 * ( self.integrate_imfreq(ifreq,enrg) + self.integrate_imfreq(ifreq,enrg1) )
-                                # if ifreq == 0 and il == 0 and ip == 0 and p1 == 0 and iproj == 0 and jproj == 0:
-                                #     self.write(ifreq,enrg,getattr(self,f"d_diago_{vertex}_{g_type}")[il,ip,p1,0],energy[iproj,iproj],getattr(self,f"d_body2_ifr_{vertex}_{g_type}")[il,ip,ifreq,p1,0],self.integrate_imfreq(ifreq,enrg))
-                # if iproj == jproj and iproj == nproj-1:
-                #     self.write(iproj, jproj, partial_h, partial_b)
-
-                ## mp_sum
-                if self.parallel:
-                    partial_b = self.comm.allreduce(partial_b, op=MPI.SUM)
-
-                sigmac[jproj,iproj] += ( partial_b/self.omega/np.pi + partial_h*self.div/np.pi )  
-
-        # self.write(sigmac)
-
-        ## The part with poles
-        if self.l_frac_occ:
-            nbndval = self.nbnd_occ_nonzero
-            nbndval1 = self.nbnd_occ_one
-        else:
-            nbndval = self.nbnd_occ_nonzero
-        # self.write(nbndval)
-        for iproj in range(nproj):
-            ib = basis[iproj] - 1
-            for jproj in range(nproj):
-                ib1 = basis[jproj] - 1
-                if l_diagonal:
-                    if jproj != iproj:
-                        continue
-                else:
-                    if jproj > iproj:
-                        continue
-                
-                p1 = ijpmap[jproj,iproj]
-
-                enrg = energy[iproj,iproj]
-                enrg1 = energy[jproj,jproj]
-
-                # if iproj == 0 and jproj == 0:
-                #     self.write(enrg,enrg1)
-
-                residues_b = 0.0
-                residues_h = 0.0
-
-                # self.write(self.nbnd)
-                for im in range(self.aband.nloc):
-                    glob_im = self.aband.l2g(im)
-                    if g_type == 'a':
-                        if glob_im + 1 not in basis:
-                            continue
-                    elif g_type == 'e':
-                        if glob_im + 1 in basis:
-                            continue
-                    
-                    if self.l_frac_occ:
-                        if glob_im + 1 > nbndval1 and glob_im + 1 <= nbndval:
-                            peso = self.occ_numbers[glob_im]
+                        
+                        if self.l_frac_occ:
+                            if glob_im + 1 > nbndval1 and glob_im + 1 <= nbndval:
+                                peso = self.occ_numbers[ispin,glob_im]
+                            else:
+                                peso = 1.0
                         else:
                             peso = 1.0
-                    else:
-                        peso = 1.0
-                    
-                    this_is_a_pole = False
-                    if glob_im + 1 <= nbndval:
-                        segno = - 1.0
-                        # if iproj == 0 and jproj == 0:
-                        #     self.write(self.et[im] - enrg > 0.00001)
-                        if self.et[glob_im] - enrg > 0.00001:
-                            this_is_a_pole = True
-                    else:
-                        segno = 1.0
-                        if self.et[glob_im] - enrg < -0.00001:
-                            this_is_a_pole = True
-                    
-                    if this_is_a_pole:
-                        jfreq = self.retrieve_freq( self.et[glob_im] - enrg )            
-                        # if iproj == 0 and jproj == 0 and p1 == 0:
-                        #     self.write(im,jfreq,getattr(self,f"z_head_rfr_{vertex}_{g_type}")[jfreq-1],getattr(self,f"z_body_rfr_{vertex}_{g_type}")[im,jfreq-1,p1,0])
-                        for ifreq in range(self.n_imfreq):
-                            if ifreq != jfreq:
-                                continue
-                            if ib == ib1 and glob_im == ib:
-                                residues_h += 0.5 * peso * segno * getattr(self,f"z_head_rfr_{vertex}_{g_type}")[ifreq]
-                            residues_b += 0.5 * peso * segno * getattr(self,f"z_body_rfr_{vertex}_{g_type}")[im,ifreq,p1,0]
-                            # self.write(ifreq,getattr(self,f"z_head_rfr_{vertex}_{g_type}")[ifreq],getattr(self,f"z_body_rfr_{vertex}_{g_type}")[im,ifreq,p1,0])
-                    
-                    if self.l_frac_occ:
+                        
                         this_is_a_pole = False
-                        if glob_im + 1 > nbndval1 and glob_im + 1 <= nbndval:
+                        if glob_im + 1 <= nbndval:
+                            segno = - 1.0
+                            # if iproj == 0 and jproj == 0:
+                            #     self.write(self.et[im] - enrg > 0.00001)
+                            if self.et[ispin,glob_im] - enrg > 0.00001:
+                                this_is_a_pole = True
+                        else:
                             segno = 1.0
-                            if self.et[glob_im] - enrg < -0.00001:
+                            if self.et[ispin,glob_im] - enrg < -0.00001:
                                 this_is_a_pole = True
                         
                         if this_is_a_pole:
-                            jfreq = self.retrieve_freq( self.et[glob_im] - enrg )
-                        
-                            for ifreq in range(self.n_refreq):
+                            jfreq = self.retrieve_freq( self.et[ispin,glob_im] - enrg )            
+                            # if iproj == 0 and jproj == 0 and p1 == 0:
+                            #     self.write(im,jfreq,getattr(self,f"z_head_rfr_{vertex}_{g_type}")[jfreq-1],getattr(self,f"z_body_rfr_{vertex}_{g_type}")[im,jfreq-1,p1,0])
+                            for ifreq in range(self.n_imfreq):
                                 if ifreq != jfreq:
                                     continue
                                 if ib == ib1 and glob_im == ib:
-                                    residues_h += 0.5 * (1-peso) * segno * getattr(self,f"z_head_rfr_{vertex}_{g_type}")[ifreq]
-                                residues_b += 0.5 * (1-peso) * segno * getattr(self,f"z_body_rfr_{vertex}_{g_type}")[im,ifreq,p1,0]
+                                    residues_h += 0.5 * peso * segno * getattr(self,f"z_head_rfr_{vertex}_{g_type}")[ifreq]
+                                residues_b += 0.5 * peso * segno * getattr(self,f"z_body_rfr_{vertex}_{g_type}")[im,ifreq,p1,ispin]
+                                # self.write(ifreq,getattr(self,f"z_head_rfr_{vertex}_{g_type}")[ifreq],getattr(self,f"z_body_rfr_{vertex}_{g_type}")[im,ifreq,p1,0])
+                        
+                        if self.l_frac_occ:
+                            this_is_a_pole = False
+                            if glob_im + 1 > nbndval1 and glob_im + 1 <= nbndval:
+                                segno = 1.0
+                                if self.et[ispin,glob_im] - enrg < -0.00001:
+                                    this_is_a_pole = True
+                            
+                            if this_is_a_pole:
+                                jfreq = self.retrieve_freq( self.et[ispin,glob_im] - enrg )
+                            
+                                for ifreq in range(self.n_refreq):
+                                    if ifreq != jfreq:
+                                        continue
+                                    if ib == ib1 and glob_im == ib:
+                                        residues_h += 0.5 * (1-peso) * segno * getattr(self,f"z_head_rfr_{vertex}_{g_type}")[ifreq]
+                                    residues_b += 0.5 * (1-peso) * segno * getattr(self,f"z_body_rfr_{vertex}_{g_type}")[im,ifreq,p1,ispin]
 
-                for im in range(self.aband.nloc):
-                    glob_im = self.aband.l2g(im)
-                    if g_type == 'a':
-                        if glob_im + 1 not in basis:
-                            continue
-                    elif g_type == 'e':
-                        if glob_im + 1 in basis:
-                            continue
-                    
-                    if self.l_frac_occ:
-                        # if self.occ_numbers[im] < 1.0:
-                        #     self.write(im+1,self.occ_numbers[im],nbndval1,nbndval)
-                        if glob_im + 1 > nbndval1 and glob_im + 1 <= nbndval:
-                            peso = self.occ_numbers[glob_im]
+                    for im in range(self.aband.nloc):
+                        glob_im = self.aband.l2g(im)
+                        if g_type == 'a':
+                            if glob_im + 1 not in basis:
+                                continue
+                        elif g_type == 'e':
+                            if glob_im + 1 in basis:
+                                continue
+                        
+                        if self.l_frac_occ:
+                            # if self.occ_numbers[im] < 1.0:
+                            #     self.write(im+1,self.occ_numbers[im],nbndval1,nbndval)
+                            if glob_im + 1 > nbndval1 and glob_im + 1 <= nbndval:
+                                peso = self.occ_numbers[ispin,glob_im]
+                            else:
+                                peso = 1.0
                         else:
                             peso = 1.0
-                    else:
-                        peso = 1.0
-                    
-                    this_is_a_pole = False
-                    if glob_im + 1 <= nbndval:
-                        segno = - 1.0
-                        if self.et[glob_im] - enrg1 > 0.00001:
-                            this_is_a_pole = True
-                    else:
-                        segno = 1.0
-                        if self.et[glob_im] - enrg1 < -0.00001:
-                            this_is_a_pole = True
-                    
-                    if this_is_a_pole:
-                        jfreq = self.retrieve_freq( self.et[glob_im] - enrg1 )
                         
-                        for ifreq in range(self.n_refreq):
-                            if ifreq != jfreq:
-                                continue
-                            if ib == ib1 and glob_im == ib:
-                                residues_h += 0.5 * peso * segno * getattr(self,f"z_head_rfr_{vertex}_{g_type}")[ifreq]
-                            residues_b += 0.5 * peso * segno * getattr(self,f"z_body_rfr_{vertex}_{g_type}")[im,ifreq,p1,0]
-                    
-                    if self.l_frac_occ:
                         this_is_a_pole = False
-                        if glob_im + 1 > nbndval1 and glob_im + 1 <= nbndval:
+                        if glob_im + 1 <= nbndval:
+                            segno = - 1.0
+                            if self.et[ispin,glob_im] - enrg1 > 0.00001:
+                                this_is_a_pole = True
+                        else:
                             segno = 1.0
-                            if self.et[glob_im] - enrg1 < -0.00001:
+                            if self.et[ispin,glob_im] - enrg1 < -0.00001:
                                 this_is_a_pole = True
                         
                         if this_is_a_pole:
-                            jfreq = self.retrieve_freq( self.et[glob_im] - enrg1 )
+                            jfreq = self.retrieve_freq( self.et[ispin,glob_im] - enrg1 )
                             
                             for ifreq in range(self.n_refreq):
                                 if ifreq != jfreq:
                                     continue
                                 if ib == ib1 and glob_im == ib:
-                                    residues_h += 0.5 * (1-peso) * segno * getattr(self,f"z_head_rfr_{vertex}_{g_type}")[ifreq]
-                                residues_b += 0.5 * (1-peso) * segno * getattr(self,f"z_body_rfr_{vertex}_{g_type}")[im,ifreq,p1,0]
+                                    residues_h += 0.5 * peso * segno * getattr(self,f"z_head_rfr_{vertex}_{g_type}")[ifreq]
+                                residues_b += 0.5 * peso * segno * getattr(self,f"z_body_rfr_{vertex}_{g_type}")[im,ifreq,p1,ispin]
+                        
+                        if self.l_frac_occ:
+                            this_is_a_pole = False
+                            if glob_im + 1 > nbndval1 and glob_im + 1 <= nbndval:
+                                segno = 1.0
+                                if self.et[ispin,glob_im] - enrg1 < -0.00001:
+                                    this_is_a_pole = True
+                            
+                            if this_is_a_pole:
+                                jfreq = self.retrieve_freq( self.et[ispin,glob_im] - enrg1 )
+                                
+                                for ifreq in range(self.n_refreq):
+                                    if ifreq != jfreq:
+                                        continue
+                                    if ib == ib1 and glob_im == ib:
+                                        residues_h += 0.5 * (1-peso) * segno * getattr(self,f"z_head_rfr_{vertex}_{g_type}")[ifreq]
+                                    residues_b += 0.5 * (1-peso) * segno * getattr(self,f"z_body_rfr_{vertex}_{g_type}")[im,ifreq,p1,ispin]
 
-                # if iproj == jproj and iproj == nproj-1:
-                #     self.write(iproj, jproj, residues_h, residues_b)
+                    # if iproj == jproj and iproj == nproj-1:
+                    #     self.write(iproj, jproj, residues_h, residues_b)
 
-                ## mp_sum
-                if self.parallel:
-                    residues_h = self.comm.allreduce(residues_h, op=MPI.SUM)
-                    residues_b = self.comm.allreduce(residues_b, op=MPI.SUM)
+                    ## mp_sum
+                    if self.parallel:
+                        residues_h = self.comm.allreduce(residues_h, op=MPI.SUM)
+                        residues_b = self.comm.allreduce(residues_b, op=MPI.SUM)
 
-                sigmac[jproj,iproj] += ( residues_b/self.omega + residues_h*self.div )  
+                    sigmac[ispin,jproj,iproj] += ( residues_b/self.omega + residues_h*self.div )  
 
-        if not l_diagonal:
-            for iproj in range(nproj):
-                for jproj in range(nproj):
-                    if jproj > iproj:
-                        sigmac[jproj,iproj] = sigmac[iproj,jproj]
+        for ispin in range(self.nspin):
+            if not l_diagonal:
+                for iproj in range(nproj):
+                    for jproj in range(nproj):
+                        if jproj > iproj:
+                            sigmac[ispin,jproj,iproj] = sigmac[ispin,iproj,jproj]
 
         return sigmac
 
@@ -1831,30 +1859,30 @@ class CGWResults:
         # self.write(self.occ)
         h1e = self.compute_h1e_from_hks(basis, eri, dc=dc, npdep_to_use=npdep_to_use, sigma=sigma)
 
-        if self.nspin == 2 and nspin == 1:
-            # Rotate spin down orbitals to maximally resemble spin up orbitals
-            # Then symmetrize spin up and spin down matrix elements (i.e. apply time reversal symmetry)
-            # Orthogonal Procrustes problem as defined on Wikipedia:
-            # denote A = psi^{dw}_iG, B = psi^{up}_jG', the rotation matrix for spin down orbitals is
-            # R = argmin_Omega || Omega A - B ||_F subject to Omega^T Omega = I
-            # let M = B A^T, which is exactly the overlap s1e[0, 1], the SVD of M is
-            # M = U Sigma V^T
-            # then R is computed as R = U V^T
+        # if self.nspin == 2 and nspin == 1:
+        #     # Rotate spin down orbitals to maximally resemble spin up orbitals
+        #     # Then symmetrize spin up and spin down matrix elements (i.e. apply time reversal symmetry)
+        #     # Orthogonal Procrustes problem as defined on Wikipedia:
+        #     # denote A = psi^{dw}_iG, B = psi^{up}_jG', the rotation matrix for spin down orbitals is
+        #     # R = argmin_Omega || Omega A - B ||_F subject to Omega^T Omega = I
+        #     # let M = B A^T, which is exactly the overlap s1e[0, 1], the SVD of M is
+        #     # M = U Sigma V^T
+        #     # then R is computed as R = U V^T
 
-            basis_ = np.array(basis) - self.nbndstart
+        #     basis_ = np.array(basis) - self.nbndstart
 
-            S = self.s1e[0, 1][basis_,:][:,basis_]
-            u, s, vt = np.linalg.svd(S)
-            R = u @ vt  # R = < psi^old_i | psi^new_j >
-            h1e_up = h1e[0]
-            h1e_dw = h1e[1]
-            h1e_dw_r = np.einsum("pq,pi,qj->ij", h1e_dw, R, R)  # rotate spin down orbitals
-            eri_up = eri[0, 0]
-            eri_dw = eri[1, 1]
-            # rotate spin down orbitals
-            eri_dw_r = np.einsum("pqrs,pi,qj,rk,sl->ijkl", eri_dw, R, R, R, R, optimize=True)
-            h1e = (h1e_up + h1e_dw_r) / 2
-            eri = (eri_up + eri_dw_r) / 2
+        #     S = self.s1e[0, 1][basis_,:][:,basis_]
+        #     u, s, vt = np.linalg.svd(S)
+        #     R = u @ vt  # R = < psi^old_i | psi^new_j >
+        #     h1e_up = h1e[0]
+        #     h1e_dw = h1e[1]
+        #     h1e_dw_r = np.einsum("pq,pi,qj->ij", h1e_dw, R, R)  # rotate spin down orbitals
+        #     eri_up = eri[0, 0]
+        #     eri_dw = eri[1, 1]
+        #     # rotate spin down orbitals
+        #     eri_dw_r = np.einsum("pqrs,pi,qj,rk,sl->ijkl", eri_dw, R, R, R, R, optimize=True)
+        #     h1e = (h1e_up + h1e_dw_r) / 2
+        #     eri = (eri_up + eri_dw_r) / 2
 
         if point_group_rep is None and self.point_group is not None:
             orbitals = [
