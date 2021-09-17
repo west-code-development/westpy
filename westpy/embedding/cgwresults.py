@@ -100,6 +100,13 @@ class CGWResults:
             else: 
                 self.npair_sigma, self.pijmap_sigma, self.ijpmap_sigma = self.make_index_map(self.nproj)
 
+        try:
+            self.nproj_sigma
+            self.ks_projectors_sigma
+        except:
+            self.nproj_sigma = self.nproj
+            self.ks_projectors_sigma = self.ks_projectors_
+
         # self.write(self.ks_projectors)
         if self.projector_type != 'K':
             self.point_group = None
@@ -138,6 +145,9 @@ class CGWResults:
         else:
             self.occ = np.zeros([self.nspin, self.nproj])
             self.egvs = np.zeros([self.nspin, self.nproj])
+            if hasattr(self, 'nproj_sigma'):
+                self.occ_sigma = np.zeros([self.nspin, self.nproj_sigma])
+                self.egvs_sigma = np.zeros([self.nspin, self.nproj_sigma])
             self.et = np.zeros([self.nspin, self.nbnd])
             self.occ_numbers = np.zeros([self.nspin, self.nbnd])
             self.nbnd_occ_one = np.zeros([self.nspin])
@@ -159,6 +169,9 @@ class CGWResults:
                         occ *= 2
                     self.egvs[ispin, :] = egvs[self.ks_projectors - 1]  # -1 because band index start from 1
                     self.occ[ispin, :] = occ[self.ks_projectors - 1]
+                    if hasattr(self, 'nproj_sigma'):
+                        self.egvs_sigma[ispin,:] = egvs[self.ks_projectors_sigma - 1]
+                        self.occ_sigma[ispin,:] = occ[self.ks_projectors_sigma - 1]
                     # for use in solve_sigmac
                     if self.h1e_treatment in ('R','T'):
                         # assert self.nspin == 1
@@ -212,6 +225,15 @@ class CGWResults:
 
         # 1 electron Hamiltonian elements
         self.parse_h1e()
+
+        if hasattr(self, 'nproj_sigma'):
+            self.qps_sigma = np.zeros((self.nspin,self.nproj_sigma))
+            for ispin in range(self.nspin):
+                self.qps_sigma[ispin,:] = np.einsum("ii->i", self.qp_energy_n[ispin,:,:], optimize=True)
+        else:
+            self.qps = np.zeros((self.nspin,self.nproj))
+            for ispin in range(self.nspin):
+                self.qps[ispin,:] = np.einsum("ii->i", self.qp_energy_n[ispin,:,:], optimize=True)
 
         # Vc
         self.Vc = self.parse_eri("/west.wfreq.save/vc.dat")
@@ -332,8 +354,12 @@ class CGWResults:
         """
         for ispin in range(self.nspin):
             self.write(f"band#  ev (KS)  ev (GW)  occ (spin {ispin})")
-            for i, (ev, ev1, occ) in enumerate(zip(self.egvs[ispin], np.einsum("ii->i", self.qp_energy_n[ispin,:,:], optimize=True), self.occ[ispin])):
-                self.write(f"{i + self.nbndstart}, {ev * hartree_to_ev - e0:.2f}, {ev1 * hartree_to_ev - e0:.2f}, {occ:.2f}")
+            if hasattr(self, 'nproj_sigma'):
+                for i, (ev, ev1, occ) in enumerate(zip(self.egvs_sigma[ispin,:], self.qps_sigma[ispin,:], self.occ_sigma[ispin,:])):
+                    self.write(f"{i + self.nbndstart}, {ev * hartree_to_ev - e0:.2f}, {ev1 * hartree_to_ev - e0:.2f}, {occ:.2f}")
+            else:
+                for i, (ev, ev1, occ) in enumerate(zip(self.egvs[ispin,:], self.qps[ispin,:], self.occ[ispin,:])):
+                    self.write(f"{i + self.nbndstart}, {ev * hartree_to_ev - e0:.2f}, {ev1 * hartree_to_ev - e0:.2f}, {occ:.2f}")
 
     def compute_chi0a(self, basis: List[int] = None, npdep_to_use: int = None) -> np.ndarray:
         """ Compute chi0^a (chi0 projected into active space).
@@ -390,6 +416,16 @@ class CGWResults:
                         continue
 
                     prefactor = 2 * (fi - fj) / (ei - ej)
+                    # print(prefactor,i,j)
+                    # print(ei, ej, fi, fj)
+                    # print('=====================')
+                    # if np.abs(prefactor) > 1000:
+                    # #     print(prefactor * np.einsum(
+                    # #     "m,n->mn", overlap[ispin,i,j,:], overlap[ispin,i,j,:]
+                    # # ))
+                    #     print(np.max(np.abs(prefactor * rydberg_to_hartree / self.omega * np.einsum(
+                    #     "m,n->mn", overlap[ispin,i,j,:], overlap[ispin,i,j,:]
+                    # ))))
                     # self.write(prefactor)
                     # raise
                     chi0a += prefactor * np.einsum(
@@ -499,12 +535,12 @@ class CGWResults:
             #         self.write(f'vertex = {vertex} not found!')
 
     def parse_sigma(self,vertex):
-        try:
-            self.nproj_sigma
-            self.ks_projectors_sigma
-        except:
-            self.nproj_sigma = self.nproj
-            self.ks_projectors_sigma = self.ks_projectors_
+        # try:
+        #     self.nproj_sigma
+        #     self.ks_projectors_sigma
+        # except:
+        #     self.nproj_sigma = self.nproj
+        #     self.ks_projectors_sigma = self.ks_projectors_
 
         checklist_cgw = [f"sigmax_{vertex}_a",f"sigmax_{vertex}_e",f"sigmax_{vertex}_f"]
         for h in checklist_cgw:
@@ -568,6 +604,7 @@ class CGWResults:
         if vertex == 'n':
             data = getattr(self,'sigmac_'+vertex+'_e') 
             for ispin in range(self.nspin):
+                plt.figure()
                 legend = [f'$\Sigma^E$-{iproj}' for iproj in list(self.ks_projectors_sigma)]
                 for iproj in range(self.nproj_sigma):
                     x = copy.deepcopy(data[ispin,iproj,iproj,0,:])
@@ -582,7 +619,7 @@ class CGWResults:
                 plt.xlabel('$\omega$ (eV)')
                 plt.ylabel('E (eV)')
                 plt.legend(legend)
-                plt.savefig(f'{self.xc}-re-spin{ispin}.png',bbox_inches='tight')
+                plt.savefig(f'{self.xc}-re-spin{ispin}.pdf',bbox_inches='tight')
                 plt.show()
 
                 # for iproj in range(self.nproj_sigma):
@@ -597,7 +634,7 @@ class CGWResults:
                 # plt.xlabel('$\omega$ (eV)')
                 # plt.ylabel('E (eV)')
                 # plt.legend(legend)
-                # plt.savefig(f'{self.xc}-im.png',bbox_inches='tight')
+                # plt.savefig(f'{self.xc}-im.pdf',bbox_inches='tight')
                 # plt.show()
 
         basis_ = []
@@ -799,7 +836,7 @@ class CGWResults:
             else:
                 self.imfreq_list_integrate[1,ifreq] = ( self.imfreq_list[ifreq] + self.imfreq_list[ifreq+1] ) * 0.5
         
-        energy = getattr(self,f"qp_energy_{vertex}")[0,basis__sigma,:][:,basis__sigma] / rydberg_to_hartree
+        energy = getattr(self,f"qp_energy_{vertex}")[:,basis__sigma,:][:,:,basis__sigma] / rydberg_to_hartree
         # self.write(energy * hartree_to_ev / 2)
 
         # import time
@@ -1194,7 +1231,7 @@ class CGWResults:
             plt.xlabel('$\omega$ (eV)')
             plt.ylabel('E (eV)')
             plt.legend(legend)
-            plt.savefig(f'{self.xc}-re-{basis[i]}.png',bbox_inches='tight')
+            plt.savefig(f'{self.xc}-re-{basis[i]}.pdf',bbox_inches='tight')
             plt.show()
 
             if im == True:
@@ -1214,7 +1251,7 @@ class CGWResults:
                 plt.xlabel('$\omega$ (eV)')
                 plt.ylabel('E (eV)')
                 plt.legend(legend)
-                plt.savefig(f'{self.xc}-im-{basis[i]}.png',bbox_inches='tight')
+                plt.savefig(f'{self.xc}-im-{basis[i]}.pdf',bbox_inches='tight')
                 plt.show()
         
         return
@@ -1254,7 +1291,7 @@ class CGWResults:
             plt.xlabel('$\omega$ (eV)')
             plt.ylabel('Abs')
             plt.legend(legend)
-            plt.savefig(f'{self.xc}-re-{basis[i]}-A.png',bbox_inches='tight')
+            plt.savefig(f'{self.xc}-re-{basis[i]}-A.pdf',bbox_inches='tight')
             plt.show()
 
             # for space in spaces:
@@ -1273,7 +1310,7 @@ class CGWResults:
             # plt.xlabel('$\omega$ (eV)')
             # plt.ylabel('E (eV)')
             # plt.legend(legend)
-            # plt.savefig(f'{self.xc}-im-{basis[i]}.png',bbox_inches='tight')
+            # plt.savefig(f'{self.xc}-im-{basis[i]}.pdf',bbox_inches='tight')
             # plt.show()
         
         return
@@ -1334,7 +1371,7 @@ class CGWResults:
             plt.xlabel('$\omega$ (eV)')
             plt.ylabel('E (eV)')
             plt.legend(legend)
-            plt.savefig(f'{self.xc}-re-{basis[i]}-debug.png',bbox_inches='tight')
+            plt.savefig(f'{self.xc}-re-{basis[i]}-debug.pdf',bbox_inches='tight')
             plt.show()
 
             # for space in spaces:
@@ -1353,7 +1390,7 @@ class CGWResults:
             # plt.xlabel('$\omega$ (eV)')
             # plt.ylabel('E (eV)')
             # plt.legend(legend)
-            # plt.savefig(f'{self.xc}-im-{basis[i]}.png',bbox_inches='tight')
+            # plt.savefig(f'{self.xc}-im-{basis[i]}.pdf',bbox_inches='tight')
             # plt.show()
         
         return
@@ -1417,7 +1454,7 @@ class CGWResults:
         plt.xlabel('$\omega$ (eV)')
         plt.ylabel('E (eV)')
         plt.legend(legend)
-        plt.savefig(f'{self.xc}-re.png',bbox_inches='tight')
+        plt.savefig(f'{self.xc}-re.pdf',bbox_inches='tight')
         plt.show()
 
         for index in range(len(basis__sigma)):
@@ -1433,7 +1470,7 @@ class CGWResults:
         plt.xlabel('$\omega$ (eV)')
         plt.ylabel('E (eV)')
         plt.legend(legend)
-        plt.savefig(f'{self.xc}-im.png',bbox_inches='tight')
+        plt.savefig(f'{self.xc}-im.pdf',bbox_inches='tight')
         plt.show()
         
         return
