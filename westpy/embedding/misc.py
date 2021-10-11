@@ -356,7 +356,7 @@ class VData:
         if do_normalize:
             self.data /= np.sqrt(self.cell.omega * np.sum(self.data ** 2) / self.nxyz)
 
-class Wavefunction():
+class Wavefunction:
     def __init__(self, file, volume, norm = 'qe', ordering = 'xyz'):
         self.filename = file
         self.file = open(file, 'r').readlines()
