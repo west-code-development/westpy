@@ -444,3 +444,10 @@ class Wavefunction():
             integral_ = np.dot(slice_.flatten(), slice_.flatten())
 
             return integral_
+
+    def ipr(self):
+        # generate absolute square of wavefunction
+        inter = np.array([entry**2 for entry in self.data.flatten()])
+        ipr = np.dot( inter, inter)
+
+        return ipr
