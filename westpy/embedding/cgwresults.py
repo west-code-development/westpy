@@ -1433,10 +1433,6 @@ class CGWResults:
         #     basis_ += np.argwhere(self.ks_projectors_sigma == i)[0].tolist()
         # basis_ = np.array(basis_)
 
-        # self.write(basis__sigma)
-        # self.write(self.sigmac_n_e.shape)
-        # self.write(self.ks_projectors_sigma)
-
         data = getattr(self,'sigmac_n_e')[:,basis__sigma,:,:,:][:,:,basis__sigma,:,:]
         hks = self.hks[:,basis_,:][:,:,basis_]
         assert self.nspin == 1
