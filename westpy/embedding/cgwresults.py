@@ -909,12 +909,6 @@ class CGWResults:
         npair, pijmap, ijpmap = self.make_index_map(nproj)
         assert energy.shape[1] == nproj
 
-        # index = []
-        # for p, (i, j) in enumerate(pijmap):
-        #     iproj, jproj = basis_[[i, j]]
-        #     p1 = self.ijpmap[iproj,jproj]
-        #     index.append(p1)
-
         if self.parallel:
             from mpi4py import MPI
 
