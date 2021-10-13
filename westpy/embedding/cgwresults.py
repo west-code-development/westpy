@@ -965,8 +965,8 @@ class CGWResults:
                                     * self.integrate_imfreq(ifreq,enrg)
                             else:
                                 enrg1 = self.et[ispin,glob_im] - energy[ispin,jproj,jproj]
-                                if getattr(self,f"d_body1_ifr_{vertex}_{g_type}")[im,ifreq,p1,ispin] == None or self.integrate_imfreq(ifreq,enrg) == None or self.integrate_imfreq(ifreq,enrg1) == None:
-                                    self.write(im,ifreq,p1,glob_im,iproj,jproj)
+#                                 if getattr(self,f"d_body1_ifr_{vertex}_{g_type}")[im,ifreq,p1,ispin] == None or self.integrate_imfreq(ifreq,enrg) == None or self.integrate_imfreq(ifreq,enrg1) == None:
+#                                     self.write(im,ifreq,p1,glob_im,iproj,jproj)
                                 partial_b += getattr(self,f"d_body1_ifr_{vertex}_{g_type}")[im,ifreq,p1,ispin] \
                                     * 0.5 * ( self.integrate_imfreq(ifreq,enrg) + self.integrate_imfreq(ifreq,enrg1) )
 
@@ -986,6 +986,7 @@ class CGWResults:
                                             * self.integrate_imfreq(ifreq,enrg)
                                     else:
                                         enrg1 = getattr(self,f"d_diago_{vertex}_{g_type}")[il,glob_ip,p1,ispin] - energy[ispin,jproj,jproj]
+#                                         self.write(enrg1,getattr(self,f"d_body2_ifr_{vertex}_{g_type}")[il,ip,ifreq,p1,ispin],self.integrate_imfreq(ifreq,enrg),self.integrate_imfreq(ifreq,enrg1))
                                         partial_b += getattr(self,f"d_body2_ifr_{vertex}_{g_type}")[il,ip,ifreq,p1,ispin] \
                                             * 0.5 * ( self.integrate_imfreq(ifreq,enrg) + self.integrate_imfreq(ifreq,enrg1) )
                                     # if ifreq == 0 and il == 0 and ip == 0 and p1 == 0 and iproj == 0 and jproj == 0:
@@ -1176,7 +1177,7 @@ class CGWResults:
     def integrate_imfreq(self,ifreq,c):
         
         if np.abs(c) < 0.000001:
-            return
+            return 0.0
 
         a = self.imfreq_list_integrate[0,ifreq]
         b = self.imfreq_list_integrate[1,ifreq]
@@ -1200,7 +1201,7 @@ class CGWResults:
                     vertex: str = 'n'):
 
         assert self.h1e_treatment in ('R','T')
-        assert self.nspin == 1
+        # assert self.nspin == 1
         
         if basis == None:
             basis = self.ks_projectors_sigma
@@ -1213,46 +1214,51 @@ class CGWResults:
             spaces = ('f','e','a')
 
             legend = [f'$\Sigma^{space.upper()}$-{basis[i]}' for space in spaces]
-            for space in spaces:
-                data = getattr(self,f'sigmac_{vertex}_'+space)
-                x = copy.deepcopy(data[0,basis_[i],basis_[i],0,:])
-                res = copy.deepcopy(data[0,basis_[i],basis_[i],1,:])
-                if xc:
-                    res += getattr(self,f'sigmax_{vertex}_'+space)[0,basis_[i],basis_[i]]
-                plt.plot(x * hartree_to_ev,res * hartree_to_ev)
-                #
-            #     legend.append(f'$\Sigma^F$-{orbital[iproj]}')
-            #     legend.append(f'$\Sigma^A$-{orbital[iproj]}')
-            
-            if xc:
-                plt.title(f'{self.xc.upper()}-Re$\Sigma$')
-            else:
-                plt.title(f'{self.xc.upper()}-Re$\Sigma$ (correlation part)')
-            plt.xlabel('$\omega$ (eV)')
-            plt.ylabel('E (eV)')
-            plt.legend(legend)
-            plt.savefig(f'{self.xc}-re-{basis[i]}.pdf',bbox_inches='tight')
-            plt.show()
 
-            if im == True:
+            for ispin in range(self.nspin):
+                plt.figure()
                 for space in spaces:
                     data = getattr(self,f'sigmac_{vertex}_'+space)
-                    x = copy.deepcopy(data[0,basis_[i],basis_[i],0,:])
-                    res = copy.deepcopy(data[0,basis_[i],basis_[i],2,:])                    
+                    x = copy.deepcopy(data[ispin,basis_[i],basis_[i],0,:])
+                    res = copy.deepcopy(data[ispin,basis_[i],basis_[i],1,:])
+                    if xc:
+                        res += getattr(self,f'sigmax_{vertex}_'+space)[ispin,basis_[i],basis_[i]]
                     plt.plot(x * hartree_to_ev,res * hartree_to_ev)
                     #
                 #     legend.append(f'$\Sigma^F$-{orbital[iproj]}')
                 #     legend.append(f'$\Sigma^A$-{orbital[iproj]}')
-
+                
                 if xc:
-                    plt.title(f'{self.xc.upper()}-Im$\Sigma$') 
-                else:   
-                    plt.title(f'{self.xc.upper()}-Im$\Sigma$ (correlation part)')
+                    plt.title(f'{self.xc.upper()}-Re$\Sigma$-Spin{ispin}')
+                else:
+                    plt.title(f'{self.xc.upper()}-Re$\Sigma$ (correlation part)-Spin{ispin}')
                 plt.xlabel('$\omega$ (eV)')
                 plt.ylabel('E (eV)')
                 plt.legend(legend)
-                plt.savefig(f'{self.xc}-im-{basis[i]}.pdf',bbox_inches='tight')
+                plt.savefig(f'{self.xc}-re-{basis[i]}-spin{ispin}.pdf',bbox_inches='tight')
                 plt.show()
+
+            if im == True:
+                for ispin in range(self.nspin):
+                    plt.figure()
+                    for space in spaces:
+                        data = getattr(self,f'sigmac_{vertex}_'+space)
+                        x = copy.deepcopy(data[0,basis_[i],basis_[i],0,:])
+                        res = copy.deepcopy(data[0,basis_[i],basis_[i],2,:])                    
+                        plt.plot(x * hartree_to_ev,res * hartree_to_ev)
+                        #
+                    #     legend.append(f'$\Sigma^F$-{orbital[iproj]}')
+                    #     legend.append(f'$\Sigma^A$-{orbital[iproj]}')
+
+                    if xc:
+                        plt.title(f'{self.xc.upper()}-Im$\Sigma$-Spin{ispin}') 
+                    else:   
+                        plt.title(f'{self.xc.upper()}-Im$\Sigma$ (correlation part)-Spin{ispin}')
+                    plt.xlabel('$\omega$ (eV)')
+                    plt.ylabel('E (eV)')
+                    plt.legend(legend)
+                    plt.savefig(f'{self.xc}-im-{basis[i]}-spin{ispin}.pdf',bbox_inches='tight')
+                    plt.show()
         
         return
 
