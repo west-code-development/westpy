@@ -451,3 +451,29 @@ class Wavefunction():
         ipr = np.dot( inter, inter)
 
         return ipr
+
+    @staticmethod
+    def __get_coord(point, lattice):
+        return lattice.T @ point
+    
+    @staticmethod
+    def __in_box(point, box):
+        output = False
+        if (point[0] > box[0,0]) and (point[0] <= box[0,1]):
+            if (point[1] > box[1,0]) and (point[1] <= box[1,1]):
+                if (point[2] > box[2,0]) and (point[2] <= box[2,1]):
+                    output = True
+
+        return output
+
+    def integrate_box(self, box, lattice):
+        integral = 0.0
+        for ix in range(self.data.shape[0]):
+            for iy in range(self.data.shape[1]):
+                for iz in range(self.data.shape[2]):
+                    point = [float(ix)/float(self.npoints[0]),float(iy)/float(self.npoints[1]),float(iz)/float(self.npoints[2])]
+                    cartesian = __get_coord(point, lattice)
+                    if __in_box(cartesian, box):
+                        integral += self.data[ix, iy, iz]**2
+        
+        return integral
