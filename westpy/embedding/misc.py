@@ -472,8 +472,8 @@ class Wavefunction:
             for iy in range(self.data.shape[1]):
                 for iz in range(self.data.shape[2]):
                     point = [float(ix)/float(self.npoints[0]),float(iy)/float(self.npoints[1]),float(iz)/float(self.npoints[2])]
-                    cartesian = __get_coord(point, lattice)
-                    if __in_box(cartesian, box):
+                    cartesian = self.__get_coord(point, lattice)
+                    if self.__in_box(cartesian, box):
                         integral += self.data[ix, iy, iz]**2
         
         return integral
