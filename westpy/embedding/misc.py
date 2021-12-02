@@ -22,15 +22,17 @@ def visualize_correlated_state(evcs, norb, nelec, cutoff=10**(-3)):
    :return: string representing the many-body state
   """
   # constrcut N-particle Fock space
-  determinants = cistring.make_strings(range(norb), nelec[0]) 
-  string_fock = ['|'+format(i, '0'+str(norb)+'b')+'>' for i in determinants]
-
+  string_fock = []
+  for i in range(2):
+    determinants = cistring.make_strings(range(norb), nelec[i]) 
+    string_fock.append(['|'+format(entry, '0'+str(norb)+'b')+'>' for entry in determinants])
+  
   # string for many-body state
   string = ''
   for i in range(evcs.shape[0]):
     for j in range(evcs.shape[1]):
       if np.abs(evcs[i,j]) >= cutoff:
-        string = string + format(evcs[i,j],'+4.3f')+''+string_fock[i]+string_fock[j]
+        string = string + format(evcs[i,j],'+4.3f')+''+string_fock[0][i]+string_fock[1][j]
 
   return string
 
