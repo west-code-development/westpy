@@ -106,7 +106,7 @@ class PointGroupRotation(PointGroupOperation):
         origin: origin
     """
     rotation = Rotation.from_rotvec(rotvec)
-    RO = block_diag(rotation.as_dcm().T, 1)
+    RO = block_diag(rotation.as_matrix().T, 1)
     super(PointGroupRotation, self).__init__(T=RO, origin=origin)
 
 
