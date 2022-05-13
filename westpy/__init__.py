@@ -6,6 +6,7 @@ from westpy.groundState import *
 from westpy.dataContainer import * 
 from westpy.electronicStructure import * 
 from westpy.session import *
+from westpy.lifetime import *
 
 __version__ = '4.3.0'
 
