@@ -8,19 +8,20 @@ class Units(dict):
         super(Units, self).__init__(*args, **kwargs)
         self.__dict__ = self
 
-def set_units() : 
+def set_units() :
    #
    """Sets Rydberg atomic units.
 
-   Available units are: 
+   Available units are:
       - Bohr
       - Angstrom, Ang
       - Rydberg, Ry
       - Hartree, Ha
       - eV
-   
+      - Joule
+
    .. note:: **westpy** operates in Rydberg atomic units.
-   """   
+   """
    #
    AU = Units()
    #
@@ -45,15 +46,16 @@ def set_units() :
    #sp.m_p         # proton mass
    #sp.m_n         # neutron mass
    #
-   AU['Bohr']      = 1.0 
+   AU['Bohr']      = 1.0
    AU['Angstrom']  = 1e-10 / 4.0 / sp.pi / sp.epsilon_0 / sp.hbar**2 * sp.m_e * sp.e**2
    AU['Ang']        = AU['Angstrom']
    AU['Rydberg']   = 1.0
    AU['Ry']        = AU['Rydberg']
    AU['Hartree']   = 2.0 * AU['Rydberg']
    AU['Ha']        = AU['Hartree']
-   AU['eV']        = sp.e / sp.m_e / sp.e**4 * ( 4.0 * sp.pi * sp.epsilon_0 * sp.hbar )**2 / 2.0  
+   AU['eV']        = sp.e / sp.m_e / sp.e**4 * ( 4.0 * sp.pi * sp.epsilon_0 * sp.hbar )**2 / 2.0
+   AU['Joule']     = 32.0 * sp.pi**2 * sp.epsilon_0**2 * sp.hbar**2 / sp.m_e / sp.e**4
    #
    return AU
 
-globals().update(set_units()) 
+globals().update(set_units())
