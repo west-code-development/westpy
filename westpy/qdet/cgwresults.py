@@ -61,10 +61,10 @@ class CGWResults:
         self.point_group = point_group
 
         # read general info from JSON file
-        __read_wfreq_json(f"{self.path}/west.wfreq.save/wfreq.json")
+        self.__read_wfreq_json(f"{self.path}/west.wfreq.save/wfreq.json")
         
         # read data from wfreq.out
-        __read_wfreq_out(f"{self.path}/wfreq.out")
+        self.__read_wfreq_out(f"{self.path}/wfreq.out")
 
         # read occupation numbers and Kohn-Sham eigenvalues
         self.occ = np.zeros([self.nspin, self.nproj])
@@ -78,7 +78,7 @@ class CGWResults:
         self.nbnd_occ_nonzero = np.zeros([self.nspin])
         # if occupation is not specified, read occupation from QE pwscf.save
         if occ is None:
-            __read_pw_xml(f"{path}/pwscf.save/K00001/")
+            self.__read_pw_xml(f"{path}/pwscf.save/K00001/")
         else:
             self.write("Warning: user-defined occupation!")
             self.occ[...] = occ
@@ -308,8 +308,7 @@ class CGWResults:
                 tmp[ispin, ...] = np.diag(tmp1[ispin, ...]) 
             setattr(self, h, tmp)
 
-        checklist_cgw =
-        [f"sigmac_eigen_n_a",f"sigmac_eigen_n_e",f"sigmac_eigen_n_f"]
+        checklist_cgw = [f"sigmac_eigen_n_a",f"sigmac_eigen_n_e",f"sigmac_eigen_n_f"]
         for h in checklist_cgw:
             tmp = np.fromfile(
                 f"{self.path}/west.wfreq.save/{h}.dat", dtype=float
@@ -717,7 +716,7 @@ class CGWResults:
                 return df
         else:
             return heff
-    def __read_wfreq_json(filename):
+    def __read_wfreq_json(self, filename):
         """The function reads parameters from JSON file and stores them in class
         variables.
         Args:
@@ -754,7 +753,7 @@ class CGWResults:
 
         return
 
-    def __read_wfreq_out(filename):
+    def __read_wfreq_out(self, filename):
         """ Reads parameters from wfreq.out and stores them in class variables.
         Args:
             filename: filename of the wfreq.out file
@@ -787,8 +786,7 @@ class CGWResults:
             self.xc = 'pbe'
 
         return
-
-    def __read_pw_xml(path):
+    def __read_pw_xml(self, path):
         """ Read Kohn-Sham eigenvalues and occupations from Quantum Espresso
         XML files and store it in class variables.
         Args:
