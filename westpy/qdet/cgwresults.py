@@ -72,10 +72,6 @@ class CGWResults:
         if hasattr(self, 'nproj_sigma'):
             self.occ_sigma = np.zeros([self.nspin, self.nproj_sigma])
             self.egvs_sigma = np.zeros([self.nspin, self.nproj_sigma])
-        self.et = np.zeros([self.nspin, self.nbnd])
-        self.occ_numbers = np.zeros([self.nspin, self.nbnd])
-        self.nbnd_occ_one = np.zeros([self.nspin])
-        self.nbnd_occ_nonzero = np.zeros([self.nspin])
         # if occupation is not specified, read occupation from QE pwscf.save
         if occ is None:
             self.__read_pw_xml(f"{path}/pwscf.save/K00001/")
