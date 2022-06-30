@@ -7,11 +7,11 @@ import pandas as pd
 import json
 import copy
 from lxml import etree
-from westpy.embedding.misc import find_indices, parse_one_value, find_index
-from westpy.embedding.misc import VData, rydberg_to_hartree, ev_to_hartree, hartree_to_ev
-from westpy.embedding.heff import Heff
-from westpy.embedding.symm import PointGroup, PointGroupRep
-from westpy.embedding.west_output import WstatOutput
+from westpy.qdet.misc import find_indices, parse_one_value, find_index
+from westpy.qdet.misc import VData, rydberg_to_hartree, ev_to_hartree, hartree_to_ev
+from westpy.qdet.heff import Heff
+from westpy.qdet.symm import PointGroup, PointGroupRep
+from westpy.qdet.west_output import WstatOutput
 
 
 class CGWResults:
@@ -79,6 +79,7 @@ class CGWResults:
             self.ks_projectors = np.arange(self.nbndstart, self.nbndend + 1)
         else:
             self.ks_projectors = np.array(self.js['input']['cgw_control']['ks_projectors'], dtype=int)
+        self.nproj = len(self.ks_projectors)
         try:
             self.nproj_sigma
             self.ks_projectors_sigma
@@ -86,7 +87,7 @@ class CGWResults:
             self.nproj_sigma = self.nproj
             self.ks_projectors_sigma = self.ks_projectors
         # generate basis from Kohn-Sham projectors
-        self.basis = range(len(self.ks_projectors))
+        self.basis = np.array(range(len(self.ks_projectors)))
         # generate pairs of Kohn-Sham indices and mappings
         self.npair, self.pijmap, self.ijpmap = self.make_index_map(self.nproj)
         
@@ -285,7 +286,7 @@ class CGWResults:
         self.write(self.occ)
         if self.projector_type == 'K':
             self.write("max|chi0a - chi0a_ref| = {:.3f}".format(
-                np.max(np.abs(self.compute_chi0a(basis=self.ks_projectors) - self.chi0a_ref))
+                np.max(np.abs(self.compute_chi0a() - self.chi0a_ref))
             ))
         else:
             self.write(f'projector_type: {self.projector_type}')
@@ -357,7 +358,7 @@ class CGWResults:
             elif Ws.split('_')[1] == 'zero':
                 wps = (0, np.zeros([npdep_to_use, npdep_to_use]))
         # partially screened potential
-        elif Ws.split('_')[0] == 'Wr':
+        elif Ws.split('_')[0] == 'Wrp':
             chi0a = self.compute_chi0a()
             # TODO: Why are not just extracting?
             #chi0a = self.extract(self.chi0a_ref, npdep_to_use=npdep_to_use)
@@ -661,8 +662,8 @@ class CGWResults:
         # calculate double-counting term
         if dc == "hf":
             hdc = self.compute_vh_from_eri(eri) + self.compute_vxx_from_eri(eri)
-        elif dc == 'excact':
-            hdc = self.compute_vh_from_eri(self.basis, eri) \
+        elif dc == 'exact':
+            hdc = self.compute_vh_from_eri(eri) \
                 + self.vxc[:, self.basis, :][:, :, self.basis] + self.vxx[:, self.basis, :][:, :, self.basis]\
                 - getattr(self,'sigmax_n_e')[:, self.basis, :][:, :, self.basis]\
                 - getattr(self,'sigmac_eigen_n_e')[:, self.basis, :][:, :, self.basis]
@@ -795,21 +796,19 @@ class CGWResults:
             self.write("Building effective Hamiltonian...")
             if basis_name:
                 self.write(f"basis_name: {basis_name}")
-            self.write(f"nspin: {nspin}, double counting: {dc}")
+            self.write(f"nspin: {self.nspin}, double counting: {dc}")
             if self.projector_type in ('M','B','R'):
                 self.write(f"local_projectors: {self.local_projectors}")
             if self.projector_type in ('K','M'):
-                self.write(f"ks_projectors: {basis}")
-            # self.write(f"ks_projectors: {basis}")
+                self.write(f"ks_projectors: {self.basis}")
             if self.projector_type == 'K':
-                self.write(f"ks_eigenvalues: {self.egvs[:, basis_] * hartree_to_ev}")
-            # self.write(f"ks_occupations: {self.occ[:, basis_]}")
-            self.write(f"occupations: {self.occ[:, basis_]}")
-            self.write(f"npdep_to_use: {npdep_to_use}")
+                self.write(f"ks_eigenvalues: {self.egvs[:, self.basis] * hartree_to_ev}")
+            self.write(f"occupations: {self.occ[:, self.basis]}")
+            self.write(f"npdep_to_use: {self.npdep}")
             self.write("===============================================================")
 
             if nelec == None:
-                nel = np.sum(self.occ[:,basis_])
+                nel = np.sum(self.occ[:,self.basis])
                 nelec = (int(round(nel))//2, int(round(nel))//2)
 
             data = {
@@ -822,7 +821,7 @@ class CGWResults:
             }
 
             self.write("-----------------------------------------------------")
-            self.write("FCI calculation using ERI:", W)
+            self.write("FCI calculation using ERI:", Ws)
 
             fcires = heff.FCI(nelec=nelec, nroots=nroots)
 
