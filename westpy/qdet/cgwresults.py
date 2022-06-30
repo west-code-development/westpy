@@ -60,7 +60,7 @@ class CGWResults:
         self.eps_infty = eps_infty
         self.point_group = point_group
 
-        # general info
+        # read general info from JSON file
         self.js = json.load(open(f"{self.path}/west.wfreq.save/wfreq.json"))
         self.nspin = self.js["system"]["electron"]["nspin"]
         self.npdep = self.js["input"]["wfreq_control"]["n_pdep_eigen_to_use"]
@@ -72,34 +72,14 @@ class CGWResults:
         self.projector_type = self.js["input"]["cgw_control"]["projector_type"]
         self.nproj = 0
         self.range = False
-        if self.projector_type in ('B','R','M'):
-            self.local_projectors = np.array(self.js['input']['cgw_control']['local_projectors'], dtype=int)
-            self.nproj += len(self.local_projectors)
-        if self.projector_type in ('K','M'):
-            self.nbndstart, self.nbndend = np.array(self.js['input']['cgw_control']['ks_projector_range'], dtype=int)
-            self.ks_projectors_ = np.arange(self.nbndstart, self.nbndend + 1)
-            if self.nbndstart != 0:
-                self.range = True
-            else: 
-                self.ks_projectors_ = np.array(self.js['input']['cgw_control']['ks_projectors'], dtype=int)
-            if self.projector_type == 'K' and self.cgw_calculation in ('G','S','Q'):
-                tmp = int(np.sqrt(len(np.fromfile(f"{path}/west.wfreq.save/overlap.dat", dtype=float))/self.nspin/(self.npdep+3)))
-                if tmp != len(self.ks_projectors_):
-                    # self.write(len(overlap_basis),tmp,len(self.ks_projectors_))
-                    assert len(overlap_basis) == tmp and tmp > len(self.ks_projectors_)
-                    self.ks_projectors_sigma = self.ks_projectors_
-                    self.nproj_sigma = len(self.ks_projectors_sigma)
-                    self.ks_projectors_ = np.array(overlap_basis)
-                    # self.write(self.ks_projectors_sigma)
-
-            self.nbndstart, self.nbndend = self.ks_projectors[0], self.ks_projectors[1]
-            # self.write(self.ks_projectors)
-            self.nproj += len(self.ks_projectors)
-            if hasattr(self, 'nproj_sigma'):
-                self.npair_sigma, self.pijmap_sigma, self.ijpmap_sigma = self.make_index_map(self.nproj_sigma)
-            else: 
-                self.npair_sigma, self.pijmap_sigma, self.ijpmap_sigma = self.make_index_map(self.nproj)
-
+        
+        # read data on Kohn-Sham active space
+        self.nbndstart, self.nbndend = np.array(self.js['input']['cgw_control']['ks_projector_range'], dtype=int)
+        self.ks_projectors_ = np.arange(self.nbndstart, self.nbndend + 1)
+        if self.nbndstart != 0:
+            self.range = True
+        else: 
+            self.ks_projectors_ = np.array(self.js['input']['cgw_control']['ks_projectors'], dtype=int)
         try:
             self.nproj_sigma
             self.ks_projectors_sigma
@@ -107,12 +87,10 @@ class CGWResults:
             self.nproj_sigma = self.nproj
             self.ks_projectors_sigma = self.ks_projectors_
 
-        # self.write(self.ks_projectors)
-        if self.projector_type != 'K':
-            self.point_group = None
-
+        # generate pairs of Kohn-Sham indices and mappings
         self.npair, self.pijmap, self.ijpmap = self.make_index_map(self.nproj)
-
+        
+        # read data from wfreq.out
         wfoutput = open(f"{self.path}/wfreq.out").readlines()
         i = find_index("Divergence =", wfoutput)
         self.div = parse_one_value(float, wfoutput[i])
@@ -139,89 +117,76 @@ class CGWResults:
         else:
             self.xc = 'pbe'
 
-        # occupation numbers and eigenvalues
-        if self.projector_type in ('B','R','M'):
-            pass
-        else:
-            self.occ = np.zeros([self.nspin, self.nproj])
-            self.egvs = np.zeros([self.nspin, self.nproj])
-            if hasattr(self, 'nproj_sigma'):
-                self.occ_sigma = np.zeros([self.nspin, self.nproj_sigma])
-                self.egvs_sigma = np.zeros([self.nspin, self.nproj_sigma])
-            self.et = np.zeros([self.nspin, self.nbnd])
-            self.occ_numbers = np.zeros([self.nspin, self.nbnd])
-            self.nbnd_occ_one = np.zeros([self.nspin])
-            self.nbnd_occ_nonzero = np.zeros([self.nspin])
-            if occ is None:
-                # read occupation from pw xml file
-                for ispin in range(self.nspin):
+        # read occupation numbers and Kohn-Sham eigenvalues
+        self.occ = np.zeros([self.nspin, self.nproj])
+        self.egvs = np.zeros([self.nspin, self.nproj])
+        if hasattr(self, 'nproj_sigma'):
+            self.occ_sigma = np.zeros([self.nspin, self.nproj_sigma])
+            self.egvs_sigma = np.zeros([self.nspin, self.nproj_sigma])
+        self.et = np.zeros([self.nspin, self.nbnd])
+        self.occ_numbers = np.zeros([self.nspin, self.nbnd])
+        self.nbnd_occ_one = np.zeros([self.nspin])
+        self.nbnd_occ_nonzero = np.zeros([self.nspin])
+        # if occupation is not specified, read occupation from QE pwscf.save
+        if occ is None:
+            # read occupation from pw xml file
+            for ispin in range(self.nspin):
+                if self.nspin == 1:
+                    xmlroot = etree.parse(f"{path}/pwscf.save/K00001/eigenval.xml")
+                else:
+                    xmlroot = etree.parse(f"{path}/pwscf.save/K00001/eigenval{ispin+1}.xml")
+                egvsleaf = xmlroot.find("./EIGENVALUES")
+                nbnd = int(egvsleaf.attrib["size"])
+                egvs = np.fromstring(egvsleaf.text, sep=" ")
+                occleaf = xmlroot.find("./OCCUPATIONS")
+                occ = np.fromstring(occleaf.text, sep=" ")
+                assert egvs.shape == (nbnd,) and occ.shape == (nbnd,)
+                if self.nspin == 1:
+                    occ *= 2
+                self.egvs[ispin, :] = egvs[self.ks_projectors - 1]  # -1 because band index start from 1
+                self.occ[ispin, :] = occ[self.ks_projectors - 1]
+                if hasattr(self, 'nproj_sigma'):
+                    self.egvs_sigma[ispin,:] = egvs[self.ks_projectors_sigma - 1]
+                    self.occ_sigma[ispin,:] = occ[self.ks_projectors_sigma - 1]
+                # for use in solve_sigmac
+                if self.h1e_treatment in ('R','T'):
+                    # assert self.nspin == 1
+                    #
+                    self.et[ispin, :] = egvs / rydberg_to_hartree
                     if self.nspin == 1:
-                        xmlroot = etree.parse(f"{path}/pwscf.save/K00001/eigenval.xml")
-                    else:
-                        xmlroot = etree.parse(f"{path}/pwscf.save/K00001/eigenval{ispin+1}.xml")
-                    egvsleaf = xmlroot.find("./EIGENVALUES")
-                    nbnd = int(egvsleaf.attrib["size"])
-                    egvs = np.fromstring(egvsleaf.text, sep=" ")
-                    occleaf = xmlroot.find("./OCCUPATIONS")
-                    occ = np.fromstring(occleaf.text, sep=" ")
-                    assert egvs.shape == (nbnd,) and occ.shape == (nbnd,)
-                    if self.nspin == 1:
-                        occ *= 2
-                    self.egvs[ispin, :] = egvs[self.ks_projectors - 1]  # -1 because band index start from 1
-                    self.occ[ispin, :] = occ[self.ks_projectors - 1]
-                    if hasattr(self, 'nproj_sigma'):
-                        self.egvs_sigma[ispin,:] = egvs[self.ks_projectors_sigma - 1]
-                        self.occ_sigma[ispin,:] = occ[self.ks_projectors_sigma - 1]
-                    # for use in solve_sigmac
-                    if self.h1e_treatment in ('R','T'):
-                        # assert self.nspin == 1
-                        #
-                        self.et[ispin, :] = egvs / rydberg_to_hartree
+                        self.occ_numbers[ispin, :] = occ / 2
+                    elif self.nspin == 2:
+                        self.occ_numbers[ispin, :] = occ
+                    # self.write(self.occ_numbers)
+                    #
+                    t = find_index("Warning: fractional occupation case!", wfoutput)
+                    if t != None:
+                        self.l_frac_occ = True
+                        i_list = find_indices("nbnd_occ_one", wfoutput)
+                        self.nbnd_occ_one[ispin] = parse_one_value(int, wfoutput[i_list[ispin]+1])
+                        i_list = find_indices("nbnd_occ_nonzero", wfoutput)
+                        self.nbnd_occ_nonzero[ispin] = parse_one_value(int, wfoutput[i_list[ispin]+1])
+                    else: 
+                        self.l_frac_occ = False
                         if self.nspin == 1:
-                            self.occ_numbers[ispin, :] = occ / 2
+                            self.nbnd_occ_one[ispin] = int( self.nelec / 2 )
                         elif self.nspin == 2:
-                            self.occ_numbers[ispin, :] = occ
-                        # self.write(self.occ_numbers)
-                        #
-                        t = find_index("Warning: fractional occupation case!", wfoutput)
-                        if t != None:
-                            self.l_frac_occ = True
-                            i_list = find_indices("nbnd_occ_one", wfoutput)
-                            self.nbnd_occ_one[ispin] = parse_one_value(int, wfoutput[i_list[ispin]+1])
-                            i_list = find_indices("nbnd_occ_nonzero", wfoutput)
-                            self.nbnd_occ_nonzero[ispin] = parse_one_value(int, wfoutput[i_list[ispin]+1])
-                        else: 
-                            self.l_frac_occ = False
-                            if self.nspin == 1:
-                                self.nbnd_occ_one[ispin] = int( self.nelec / 2 )
-                            elif self.nspin == 2:
-                                i = find_index("nelup", wfoutput)
-                                self.nbnd_occ_one[0] = parse_one_value(int, wfoutput[i])
-                                i = find_index("neldw", wfoutput)
-                                self.nbnd_occ_one[1] = parse_one_value(int, wfoutput[i])
-                            self.nbnd_occ_nonzero[ispin] = self.nbnd_occ_one[ispin]               
-                        # self.write(self.nbnd_occ_one, self.nbnd_occ_nonzero)
-                        # self.ecut_refreq = parse_one_value(float, wfoutput[i])
-            else:
-                self.write("Warning: user-defined occupation!")
-                self.occ[...] = occ
+                            i = find_index("nelup", wfoutput)
+                            self.nbnd_occ_one[0] = parse_one_value(int, wfoutput[i])
+                            i = find_index("neldw", wfoutput)
+                            self.nbnd_occ_one[1] = parse_one_value(int, wfoutput[i])
+                        self.nbnd_occ_nonzero[ispin] = self.nbnd_occ_one[ispin]               
+                    # self.write(self.nbnd_occ_one, self.nbnd_occ_nonzero)
+                    # self.ecut_refreq = parse_one_value(float, wfoutput[i])
+        else:
+            self.write("Warning: user-defined occupation!")
+            self.occ[...] = occ
 
         # 1e density matrix
-        if self.projector_type in ('B','R','M'): 
-            if self.nspin != 1:
-                self.write('Not implemented!')
-            else:
-                self.dm = 2*np.fromfile(f"./west.wfreq.save/rdm.dat", dtype=float).reshape((1, self.nproj, self.nproj),order='F')
-                occ = np.diagonal(self.dm[0,:,:])
-                self.occ = occ.reshape(1,len(occ))
-                # self.write(self.occ)
-                self.nel = int(round(np.sum(self.occ)))
-                # self.write(self.occ,self.nel)
-        else:
-            self.dm = np.zeros([self.nspin, self.nproj, self.nproj])
-            for ispin in range(self.nspin):
-                self.dm[ispin, ...] = np.diag(self.occ[ispin])
-            self.nel = int(np.sum(self.dm))
+        self.dm = np.zeros([self.nspin, self.nproj, self.nproj])
+        for ispin in range(self.nspin):
+            self.dm[ispin, ...] = np.diag(self.occ[ispin])
+        self.nel = int(np.sum(self.dm))
 
         # 1 electron Hamiltonian elements
         self.parse_h1e()
@@ -235,10 +200,10 @@ class CGWResults:
             for ispin in range(self.nspin):
                 self.qps[ispin,:] = np.einsum("ii->i", self.qp_energy_n[ispin,:,:], optimize=True)
 
-        # Vc
+        # read bare Coulomb potential Vc from file
         self.Vc = self.parse_eri("/west.wfreq.save/vc.dat")
 
-        # fxc
+        # read fxc kernel from file or use user-provided matrix
         self.fxc = np.zeros([self.npdep, self.npdep])
         if fxc is None:
             try:
@@ -252,14 +217,14 @@ class CGWResults:
                 self.fxc[...] = fxc
             else:
                 self.parse_fxc(fxc)
+        # identity matrix in (npdep, npdep)-matrix
         self.I = np.eye(self.npdep)
         self.fhxc = self.fxc + self.I
 
         # braket and overlap
-        if self.projector_type == 'K':
-            self.overlap = np.fromfile(f"{path}/west.wfreq.save/overlap.dat", dtype=float).reshape(
-                self.nspin, self.nproj, self.nproj, self.npdep + 3
-            )
+        self.overlap = np.fromfile(f"{path}/west.wfreq.save/overlap.dat", dtype=float).reshape(
+            self.nspin, self.nproj, self.nproj, self.npdep + 3
+        )
         braket = np.fromfile(f"{path}/west.wfreq.save/braket.dat", dtype=complex).reshape(
             self.npdep, self.nspin, self.npair).real
         self.braket_pair = np.einsum("nsi->sin", braket)
@@ -280,14 +245,6 @@ class CGWResults:
         self.p_ref = np.fromfile(
             "{}/west.wfreq.save/p.dat".format(path), dtype=complex
         ).reshape(self.npdep + 3, self.npdep + 3).T
-        # self.pa_ref = np.fromfile(
-        #     "{}/west.wfreq.save/pa.dat".format(path), dtype=complex
-        # ).reshape(self.npdep + 3, self.npdep + 3).T
-        # self.pr_ref = np.fromfile(
-        #     "{}/west.wfreq.save/pr.dat".format(path), dtype=complex
-        # ).reshape(self.npdep + 3, self.npdep + 3).T
-        # chi_ref = np.fromfile("{}/west.wfreq.save/chi.dat".format(path), dtype=complex)
-        # self.chi_ref = (chi_ref[0], chi_ref[1:].reshape([self.npdep, self.npdep]).T)
 
         if verbose:
             self.print_summary()
@@ -331,16 +288,9 @@ class CGWResults:
         
         self.write("occupations:")
         self.write(self.occ)
-        # self.write(f"max|p - p_ref| = {np.max(np.abs(self.p - self.p_ref)):.3f}")
-        # chi_ref = self.solve_dyson_with_identity_kernel(self.p_ref)
-        # self.write("max|dyson(p) - dyson(p_ref)| = {:.3f}, {:.3f}".format(
-        #     np.abs(self.chi[0] - chi_ref[0]), np.max(np.abs(self.chi[1] - chi_ref[1]))
-        # ))
         if self.projector_type == 'K':
-            # self.write(self.ks_projectors)
             self.write("max|chi0a - chi0a_ref| = {:.3f}".format(
                 np.max(np.abs(self.compute_chi0a(basis=self.ks_projectors) - self.chi0a_ref))
-                # np.max(np.abs(self.compute_chi0a(basis=None) - self.chi0a_ref))
             ))
         else:
             self.write(f'projector_type: {self.projector_type}')
