@@ -75,18 +75,18 @@ class CGWResults:
         
         # read data on Kohn-Sham active space
         self.nbndstart, self.nbndend = np.array(self.js['input']['cgw_control']['ks_projector_range'], dtype=int)
-        self.ks_projectors_ = np.arange(self.nbndstart, self.nbndend + 1)
         if self.nbndstart != 0:
-            self.range = True
-        else: 
-            self.ks_projectors_ = np.array(self.js['input']['cgw_control']['ks_projectors'], dtype=int)
+            self.ks_projectors = np.arange(self.nbndstart, self.nbndend + 1)
+        else:
+            self.ks_projectors = np.array(self.js['input']['cgw_control']['ks_projectors'], dtype=int)
         try:
             self.nproj_sigma
             self.ks_projectors_sigma
         except:
             self.nproj_sigma = self.nproj
-            self.ks_projectors_sigma = self.ks_projectors_
-
+            self.ks_projectors_sigma = self.ks_projectors
+        # generate basis from Kohn-Sham projectors
+        self.basis = range(len(self.ks_projectors))
         # generate pairs of Kohn-Sham indices and mappings
         self.npair, self.pijmap, self.ijpmap = self.make_index_map(self.nproj)
         
@@ -266,11 +266,6 @@ class CGWResults:
             self.write("Warning: fxc dimension < npdep, extra elements are set to zero")
         self.fxc[:n, :n] = fxc[:n, :n]
 
-    @property
-    def ks_projectors(self):
-        """ Band indices of KS projectors (orbitals defining the active space). """
-        return self.ks_projectors_
-
     def print_summary(self):
         """ Print a summary after parsing CGW results. """
         self.write("---------------------------------------------------------------")
@@ -296,69 +291,24 @@ class CGWResults:
             self.write(f'projector_type: {self.projector_type}')
         self.write("---------------------------------------------------------------")
 
-    def print_egvs(self, e0: float = 0.0):
-        """ Print KS eigenvalues.
-
-        Args:
-            e0: self.write KS eigenvalues shifted by e0 (in Hartree).
-        """
-        for ispin in range(self.nspin):
-            self.write(f"band#  ev (KS)  ev (GW)  occ (spin {ispin})")
-            if hasattr(self, 'nproj_sigma'):
-                for i, (ev, ev1, occ) in enumerate(zip(self.egvs_sigma[ispin,:], self.qps_sigma[ispin,:], self.occ_sigma[ispin,:])):
-                    self.write(f"{i + self.nbndstart}, {ev * hartree_to_ev - e0:.2f}, {ev1 * hartree_to_ev - e0:.2f}, {occ:.2f}")
-            else:
-                for i, (ev, ev1, occ) in enumerate(zip(self.egvs[ispin,:], self.qps[ispin,:], self.occ[ispin,:])):
-                    self.write(f"{i + self.nbndstart}, {ev * hartree_to_ev - e0:.2f}, {ev1 * hartree_to_ev - e0:.2f}, {occ:.2f}")
-
-    def compute_chi0a(self, basis: List[int] = None, npdep_to_use: int = None) -> np.ndarray:
+    def compute_chi0a(self) -> np.ndarray:
         """ Compute chi0^a (chi0 projected into active space).
-
-        Args:
-            basis: list of band indices for the orbitals defining the active space.
-            npdep_to_use: # of PDEP basis to use.
 
         Returns:
             chi0a defined on PDEP basis.
         """
 
         assert self.projector_type == 'K'
-
-        if self.range == True:
-            if basis is None:
-                basis_ = self.ks_projectors - self.nbndstart
-            else:
-                basis_ = np.array(basis) - self.nbndstart
-        else:
-            if basis is None:
-                basis_ = np.array(range(len(self.ks_projectors)))
-            else:
-                basis_ = []
-                for i in basis:
-                    basis_ += np.argwhere(self.ks_projectors == i)[0].tolist()
-                basis_ = np.array(basis_)
-        # self.write(basis_)
-        # if basis is None:
-        #     basis_ = self.ks_projectors - self.nbndstart
-        # else:
-        #     basis_ = np.array(basis) - self.nbndstart
-
-        if npdep_to_use is None:
-            npdep_to_use = self.npdep
-        overlap = self.overlap[..., list(range(npdep_to_use)) + [-3, -2, -1]]
-
-        # self.write(overlap[:,basis_,:,:][:,:,basis_,:])
+        
+        overlap = self.overlap[..., list(range(self.npdep)) + [-3, -2, -1]]
 
         # Summation over state (SOS) / Adler-Wiser expression
-        chi0a = np.zeros([npdep_to_use + 3, npdep_to_use + 3])
-        # self.write(self.egvs.shape)
-        # self.write(basis_)
+        chi0a = np.zeros([self.npdep + 3, self.npdep + 3])
         for ispin in range(self.nspin):
-            for i in basis_:
-                for j in basis_:
+            for i in self.basis:
+                for j in self.basis:
                     if i >= j:
                         continue
-                    # self.write(self.egvs)
                     ei, ej = self.egvs[ispin, i], self.egvs[ispin, j]
                     fi, fj = self.occ[ispin, i], self.occ[ispin, j]
                     if abs(ei - ej) < self.ev_thr:
@@ -366,18 +316,7 @@ class CGWResults:
                         continue
 
                     prefactor = 2 * (fi - fj) / (ei - ej)
-                    # print(prefactor,i,j)
-                    # print(ei, ej, fi, fj)
-                    # print('=====================')
-                    # if np.abs(prefactor) > 1000:
-                    # #     print(prefactor * np.einsum(
-                    # #     "m,n->mn", overlap[ispin,i,j,:], overlap[ispin,i,j,:]
-                    # # ))
-                    #     print(np.max(np.abs(prefactor * rydberg_to_hartree / self.omega * np.einsum(
-                    #     "m,n->mn", overlap[ispin,i,j,:], overlap[ispin,i,j,:]
-                    # ))))
-                    # self.write(prefactor)
-                    # raise
+                    
                     chi0a += prefactor * np.einsum(
                         "m,n->mn", overlap[ispin,i,j,:], overlap[ispin,i,j,:]
                     )
@@ -392,7 +331,7 @@ class CGWResults:
         s = list(range(npdep_to_use)) + [-3, -2, -1]
         return m[s, :][:, s]
 
-    def compute_Ws(self, basis: List[int] = None, chi0a_fortran: bool = False, npdep_to_use: int = None) -> Dict[str, np.ndarray]:
+    def compute_Ws(self, Ws: str) -> np.ndarray:
         """ Compute unconstrained Wp (independent of active space) and
         constrained Wrp of a certain active space.
 
@@ -403,64 +342,35 @@ class CGWResults:
         Returns:
             a dictionary of W (4-index array)
         """
-        if npdep_to_use is None:
-            npdep_to_use = self.npdep
+        npdep_to_use = self.npdep
 
-        chi0 = self.extract(self.chi0, npdep_to_use)
-        fxc = self.fxc[:npdep_to_use, :npdep_to_use]
-        fhxc = self.fhxc[:npdep_to_use, :npdep_to_use]
+        chi0 = self.extract(self.chi0, self.npdep)
 
         chirpa = self.solve_dyson_with_identity_kernel(chi0)
-        p = self.solve_dyson_with_body_only_kernel(chi0, fxc)
-        chi = self.solve_dyson_with_identity_kernel(p)
+        
+        # fully screened potential
+        if Ws.split('_')[0] == 'Wp':
+            # random phase approximation
+            if Ws.split('_')[1] == 'rpa':
+                wps = chirpa
+            # unscreened
+            elif Ws.split('_')[1] == 'zero':
+                wps = (0, np.zeros([npdep_to_use, npdep_to_use]))
+        # partially screened potential
+        elif Ws.split('_')[0] == 'Wr':
+            chi0a = self.compute_chi0a()
+            # TODO: Why are not just extracting?
+            #chi0a = self.extract(self.chi0a_ref, npdep_to_use=npdep_to_use)
+            chi0r = chi0 - chi0a
+            
+            # random-phase approximation
+            if Ws.split('_')[1] == 'rpa':
+                wps = self.solve_dyson_with_identity_kernel(chi0r)
+            
+        # compute ERI from W in PDEP basis
+        Ws = self.solve_eri(h=wps[0] if self.eps_infty is None else (1.0 / self.eps_infty - 1.0),
+                            B=wps[1])
 
-        # Unconstrained W
-        chi_head, chi_body = chi
-        wps = {
-            "wp_rpa": chirpa,
-            "wp_zero": (0, np.zeros([npdep_to_use, npdep_to_use])),
-            "wp_tc": chi,
-            "wp_te": (chi_head, fxc + fhxc @ chi_body @ fhxc),
-            "wp_vte": (chi_head, fhxc @ chi_body @ fhxc),
-            "wp_epstev": (chi_head, fhxc @ chi_body),
-        }
-
-        # Constrained W
-        if self.projector_type == 'K' and chi0a_fortran == False:
-            chi0a = self.compute_chi0a(basis=basis, npdep_to_use=npdep_to_use)
-        else:
-            chi0a = self.extract(self.chi0a_ref, npdep_to_use=npdep_to_use)
-
-        # RPA
-        chi0r = chi0 - chi0a
-        chirrpa = self.solve_dyson_with_identity_kernel(chi0r)
-        # Test charge
-        pa_tc = self.solve_dyson_with_body_only_kernel(chi0a, fxc)
-        pr_tc = p - pa_tc
-        chir_tc = self.solve_dyson_with_identity_kernel(pr_tc)
-        # Test electron
-        pr_te = self.solve_dyson_with_body_only_kernel(chi0r, fxc)
-        chir_te = self.solve_dyson_with_identity_kernel(pr_te)
-
-        chir_te_head, chir_te_body = chir_te
-
-        wrps = {
-            "wrp_rpa": chirrpa,
-            "wrp_tc": chir_tc,
-            "wrp_te": (chir_te_head, fxc + fhxc @ chir_te_body @ fhxc),
-            "wrp_vte": (chir_te_head, fhxc @ chir_te_body @ fhxc),
-            "wrp_epstev": (chir_te_head, fhxc @ chir_te_body),  # eps^-1_Hxc Vc
-        }
-
-        # combine various W in PDEP basis and compute their ERI
-        ws = {**wps, **wrps}
-        Ws = {
-            key.capitalize(): self.solve_eri(
-                h=chi_head if self.eps_infty is None else (1.0 / self.eps_infty - 1.0),
-                B=chi_body, basis=basis, npdep_to_use=npdep_to_use
-            )
-            for key, (chi_head, chi_body) in ws.items()
-        }
         return Ws
 
     def parse_h1e(self):
@@ -478,19 +388,8 @@ class CGWResults:
         if self.h1e_treatment in ('R','T') or hasattr(self, 'nproj_sigma'):
             for vertex in ('n'):
                 self.parse_sigma(vertex)
-            # for vertex in ('v','c','n'):
-            #     try: 
-            #         self.parse_sigma(vertex)
-            #     except:
-            #         self.write(f'vertex = {vertex} not found!')
 
     def parse_sigma(self,vertex):
-        # try:
-        #     self.nproj_sigma
-        #     self.ks_projectors_sigma
-        # except:
-        #     self.nproj_sigma = self.nproj
-        #     self.ks_projectors_sigma = self.ks_projectors_
 
         checklist_cgw = [f"sigmax_{vertex}_a",f"sigmax_{vertex}_e",f"sigmax_{vertex}_f"]
         for h in checklist_cgw:
@@ -572,46 +471,11 @@ class CGWResults:
                 plt.savefig(f'{self.xc}-re-spin{ispin}.pdf',bbox_inches='tight')
                 plt.show()
 
-                # for iproj in range(self.nproj_sigma):
-                #     x = copy.deepcopy(data[0,iproj,iproj,0,:])
-                #     res = copy.deepcopy(data[0,iproj,iproj,2,:])
-                #     plt.plot(x * hartree_to_ev,res * hartree_to_ev)
-                #     #
-                # #     legend.append(f'$\Sigma^F$-{orbital[iproj]}')
-                # #     legend.append(f'$\Sigma^A$-{orbital[iproj]}')
-
-                # plt.title(f'{self.xc.upper()}-Im$\Sigma$')
-                # plt.xlabel('$\omega$ (eV)')
-                # plt.ylabel('E (eV)')
-                # plt.legend(legend)
-                # plt.savefig(f'{self.xc}-im.pdf',bbox_inches='tight')
-                # plt.show()
-
         basis_ = []
         for i in self.ks_projectors_sigma:
             basis_ += np.argwhere(self.ks_projectors == i)[0].tolist()
         basis_ = np.array(basis_)
-        # if self.cgw_calculation in ('G','S','Q') and self.projector_type == 'K':
-        #     basis__sigma = []
-        #     for i in basis:
-        #         basis__sigma += np.argwhere(self.ks_projectors_sigma == i)[0].tolist()
-        #     basis__sigma = np.array(basis__sigma)
-        # else:
-        #     basis__sigma = basis_
 
-        # basis_ = self.ks_projectors_sigma - self.nbndstart
-        # self.write(self.ks_projectors_sigma)
-        # self.write(self.nbndstart)
-        # self.write(basis_)
-        # self.write(self.egvs[0,basis_] - self.vxc[0,basis_,:][:,basis_])
-        # self.write(basis_)
-        # self.write(self.egvs[0,basis_]* hartree_to_ev)
-        # self.write(self.vxc[0,basis_,:][:,basis_]* hartree_to_ev)
-        # self.write(self.sigmac_eigen_n_e[0,:,:][:,:]* hartree_to_ev + self.sigmac_eigen_n_a[0,:,:][:,:]* hartree_to_ev)
-        # self.write(self.sigmax_n_f[0,:,:][:,:]* hartree_to_ev)
-        # self.write(self.qp_energy_n[0,:,:][:,:]* hartree_to_ev)
-
-        # self.write(basis_)
         for ispin in range(self.nspin):
             self.write( ( self.hks[ispin,basis_,:][:,basis_] - self.vxc[ispin,basis_,:][:,basis_] - self.vxx[ispin,basis_,:][:,basis_]\
                     + self.sigmac_eigen_n_f[ispin,:,:] \
@@ -624,510 +488,6 @@ class CGWResults:
 
         return
 
-    def solve_sigma(self,
-                    basis_name: str = "",
-                    g_type: str = 'e',
-                    vertex: str = 'n',
-                    basis: List[int] = None,
-                    npdep_to_use: int = None):
-                    # return_df: bool = False
-
-        assert vertex == 'n' # assert rpa now
-        assert self.h1e_treatment in ('R','T')
-        # assert self.nspin == 1
-
-        if self.projector_type in ('K','M'):
-            if self.range == True:
-                if basis is None:
-                    basis_ = self.ks_projectors - self.nbndstart
-                else:
-                    basis_ = np.array(basis) - self.nbndstart
-            else:
-                if basis is None:
-                    basis_ = np.array(range(len(self.ks_projectors)))
-                else:
-                    basis_ = []
-                    for i in basis:
-                        basis_ += np.argwhere(self.ks_projectors == i)[0].tolist()
-                    basis_ = np.array(basis_)
-            if self.cgw_calculation in ('G','S','Q') and self.projector_type == 'K':
-                basis__sigma = []
-                for i in basis:
-                    basis__sigma += np.argwhere(self.ks_projectors_sigma == i)[0].tolist()
-                basis__sigma = np.array(basis__sigma)
-            else:
-                basis__sigma = basis_
-
-        if self.projector_type in ('B','R','M'):
-            local_basis_ = np.array(range(len(self.local_projectors)))
-            if 'basis_' in dir():
-                basis_ = np.append(local_basis_,basis_+len(local_basis_))
-            else:
-                basis_ = local_basis_
-
-        if npdep_to_use is None:
-            npdep_to_use = self.npdep
-
-        nproj = len(basis_)
-        npair, pijmap, ijpmap = self.make_index_map(nproj)
-        assert npair <= self.npair_sigma
-
-        index = []
-        for p, (i, j) in enumerate(pijmap):
-            iproj, jproj = basis__sigma[[i, j]]
-            p1 = self.ijpmap_sigma[iproj,jproj]
-            index.append(p1)
-
-        ### Parallelism
-        self.pert = Parallel(npdep_to_use,self.comm,self.parallel)
-        # self.ifr = Parallel(self.n_imfreq)
-        # self.rfr = Parallel(self.n_refreq)
-        self.aband = Parallel(self.nbnd,self.comm,self.parallel)
-        # self.write(self.pert,self.aband)
-
-        ### Set frequencies
-        p = self.ecut_imfreq / (self.n_imfreq**(1/2)-1)
-        self.imfreq_list = np.zeros(self.n_imfreq)
-        for ifreq in range(self.n_imfreq):
-            y = 1 - ifreq/self.n_imfreq
-            self.imfreq_list[ifreq] = p*(y**(-1/2)-1)
-
-        self.refreq_list = np.zeros(self.n_refreq)
-        for ifreq in range(self.n_imfreq):
-            self.refreq_list[ifreq] = self.ecut_refreq/(self.n_refreq)*ifreq
-
-        # self.write(self.npair,self.nproj)
-        # if not hasattr(self, f"d_head_ifr_{vertex}_{g_type}"):
-            # braket_pair_eff[ispin, p, :] = self.braket[ispin, iproj, jproj, :npdep_to_use]
-
-        checklist_cgw = [f"d_head_ifr",f"z_head_rfr",f"d_body1_ifr",
-            f"z_body_rfr",f"d_diago"]
-        size_cgw = [(self.n_imfreq),(self.n_refreq),(self.nbnd,self.n_imfreq,self.npair_sigma,self.nspin),
-            (self.nbnd,self.n_refreq,self.npair_sigma,self.nspin),(self.n_lanczos,self.npdep,self.npair_sigma,self.nspin)]
-
-        ### use the collect_gw data from g_type = 'f' only
-        for i, h in enumerate(checklist_cgw):
-            if i == 4:
-                if g_type == 'a' or not self.l_enable_lanczos:
-                    continue
-            if i == 0:
-                tmp = np.fromfile(
-                    f"{self.path}/west.wfreq.save/{h}_{vertex}_f.dat", dtype=float
-                ).reshape(size_cgw[i],order='F')
-            elif i == 1:
-                tmp = np.fromfile(
-                    f"{self.path}/west.wfreq.save/{h}_{vertex}_f.dat", dtype=complex
-                ).reshape(size_cgw[i],order='F')
-            elif i == 2:
-                setattr(self, f"d_body1_ifr_{vertex}_{g_type}", np.zeros((self.aband.nloc,self.n_imfreq,npair,self.nspin)))
-                for im in range(self.aband.nloc):
-                    glob_im = self.aband.l2g(im)
-                    tmp = np.fromfile(
-                        f"{self.path}/west.wfreq.save/{h}_{vertex}_f.dat", dtype=float
-                    ).reshape(size_cgw[i],order='F')[glob_im,:,:,:][:,index,:]
-                    getattr(self, f"d_body1_ifr_{vertex}_{g_type}")[im,:,:,:] = tmp
-            elif i == 3:
-                setattr(self, f"z_body_rfr_{vertex}_{g_type}", np.zeros((self.aband.nloc,self.n_refreq,npair,self.nspin),dtype=complex))
-                for im in range(self.aband.nloc):
-                    glob_im = self.aband.l2g(im)
-                    tmp = np.fromfile(
-                        f"{self.path}/west.wfreq.save/{h}_{vertex}_f.dat", dtype=complex
-                    ).reshape(size_cgw[i],order='F')[glob_im,:,:,:][:,index,:]
-                    getattr(self, f"z_body_rfr_{vertex}_{g_type}")[im,:,:,:] = tmp
-            elif i == 4:
-                tmp = np.fromfile(
-                    f"{self.path}/west.wfreq.save/{h}_{vertex}_f.dat", dtype=float
-                ).reshape(size_cgw[i],order='F')
-                tmp = tmp[:,:npdep_to_use,:,:][:,:,index,:]
-                setattr(self, h+f"_{vertex}_{g_type}", tmp)
-        
-        # self.write(index,npair)
-        if g_type != 'a' and self.l_enable_lanczos:
-            setattr(self, f"d_body2_ifr_{vertex}_{g_type}", np.zeros((self.n_lanczos,self.pert.nloc,self.n_imfreq,npair,self.nspin)))
-            for ifreq in range(self.n_imfreq):
-                for ip in range(self.pert.nloc):
-                    glob_ip = self.pert.l2g(ip)
-                    tmp = np.fromfile(
-                        f"{self.path}/west.wfreq.save/d_body2_ifr_{vertex}_f_{ifreq+1:05d}.dat", dtype=float
-                    ).reshape((self.n_lanczos,self.npdep,1,self.npair_sigma,self.nspin),order='F')[:,:,:,index,:][:,:,0,:,:][:,glob_ip,:,:]
-                    getattr(self, f"d_body2_ifr_{vertex}_{g_type}")[:,ip,ifreq,:,:] = tmp
-
-        # braket_pair_eff = np.zeros([self.nspin, npair, npdep_to_use])
-        # for ispin in range(self.nspin):
-        #     for p, (i, j) in enumerate(pijmap):
-        #         iproj, jproj, = basis_[[i, j]]
-        #         braket_pair_eff[ispin, p, :] = self.braket[ispin, iproj, jproj, :npdep_to_use]
-        # eri_pair = (1/self.omega) * np.einsum(
-        #     "sip,pq,tjq->stij", braket_pair_eff, B.real, braket_pair_eff, optimize=True
-        # )
-
-        # if f"sigmax_n_a" not in locals().keys():
-
-        ### Exchange
-        Vc = self.Vc[:,:,basis_,:,:,:][:,:,:,basis_,:,:][:,:,:,:,basis_,:][:,:,:,:,:,basis_]
-        occ = self.occ[:,basis_] * 0.5 # nspin == 1 here
-        sigmax_f = getattr(self,f"sigmax_{vertex}_f")[:,basis__sigma,:][:,:,basis__sigma]
-        # this requires vertex == 'n'
-        sigmax_a = - np.einsum('ssijjl,sj->sil',Vc,occ,optimize=True)
-        sigmax_e = sigmax_f - sigmax_a 
-        # self.write(-np.einsum('ssijjl,sj->sil',Vc,occ,optimize=True))
-        # self.write(self.sigmax_n_a[:,basis_,:][:,:,basis_])
-
-
-        ### Correlation
-        self.imfreq_list_integrate = np.zeros((2,self.n_imfreq))
-        for ifreq in range(self.n_imfreq):
-            if ifreq == 0:
-                self.imfreq_list_integrate[0,ifreq] = 0.0
-            else:
-                self.imfreq_list_integrate[0,ifreq] = ( self.imfreq_list[ifreq] + self.imfreq_list[ifreq-1] ) * 0.5
-            if ifreq == self.n_imfreq-1:
-                self.imfreq_list_integrate[1,ifreq] = self.imfreq_list[self.n_imfreq-1]
-            else:
-                self.imfreq_list_integrate[1,ifreq] = ( self.imfreq_list[ifreq] + self.imfreq_list[ifreq+1] ) * 0.5
-        
-        energy = getattr(self,f"qp_energy_{vertex}")[:,basis__sigma,:][:,:,basis__sigma] / rydberg_to_hartree
-        # self.write(energy * hartree_to_ev / 2)
-
-        # import time
-        # time_start=time.time()
-
-        sigmac = self.solve_sigmac(basis=basis,energy=energy,vertex=vertex,g_type=g_type,l_diagonal=False,\
-            npdep_to_use=npdep_to_use) * rydberg_to_hartree
-
-        for i, h in enumerate(checklist_cgw):
-            try:
-                delattr(self, h+f"_{vertex}_{g_type}")
-            except:
-                pass
-        try:
-            delattr(self, f"d_body2_ifr_{vertex}_{g_type}")
-        except:
-            pass
-        
-        return locals()[f"sigmax_{g_type}"].reshape((self.nspin,nproj,nproj)), np.real(sigmac).reshape((self.nspin,nproj,nproj))
-        # return [sigmax_f,sigmax_e,sigmax_a]
-
-    def solve_sigmac(self,
-                    basis: List[int] = None,
-                    energy: np.ndarray = None,
-                    vertex: str = 'n',
-                    g_type: str = 'e',
-                    l_diagonal: bool = False,
-                    npdep_to_use: int = None):
-        
-        assert energy.all() != None
-        assert len(energy.shape) == 3 and energy.shape[1] == energy.shape[2] 
-        assert g_type in ('f','e','a')
-        assert vertex == 'n' # assert rpa now
-        assert self.h1e_treatment in ('R','T')
-        # assert self.nspin == 1
-
-        if self.projector_type in ('K','M'):
-            if self.range == True:
-                if basis is None:
-                    basis_ = self.ks_projectors - self.nbndstart
-                else:
-                    basis_ = np.array(basis) - self.nbndstart
-            else:
-                if basis is None:
-                    basis_ = np.array(range(len(self.ks_projectors)))
-                else:
-                    basis_ = []
-                    for i in basis:
-                        basis_ += np.argwhere(self.ks_projectors == i)[0].tolist()
-                    basis_ = np.array(basis_)
-            if self.cgw_calculation in ('G','S','Q') and self.projector_type == 'K':
-                basis__sigma = []
-                for i in basis:
-                    basis__sigma += np.argwhere(self.ks_projectors_sigma == i)[0].tolist()
-                basis__sigma = np.array(basis__sigma)
-            else:
-                basis__sigma = basis_
-        if self.projector_type in ('B','R','M'):
-            local_basis_ = np.array(range(len(self.local_projectors)))
-            if 'basis_' in dir():
-                basis_ = np.append(local_basis_,basis_+len(local_basis_))
-            else:
-                basis_ = local_basis_
-
-        if npdep_to_use is None:
-            npdep_to_use = self.npdep
-
-        nproj = len(basis_)
-        # egvs = self.egvs[basis_,0]
-        npair, pijmap, ijpmap = self.make_index_map(nproj)
-        assert energy.shape[1] == nproj
-
-        if self.parallel:
-            from mpi4py import MPI
-
-        sigmac = np.zeros((self.nspin,nproj,nproj),dtype=complex)
-
-        for ispin in range(self.nspin):
-            ## The part with imaginary integration
-            for iproj in range(nproj):
-                ib = basis[iproj] - 1
-                for jproj in range(nproj):
-                    ib1 = basis[jproj] - 1
-                    if l_diagonal:
-                        if jproj != iproj:
-                            continue
-                    else:
-                        if jproj > iproj:
-                            continue
-                    
-                    p1 = ijpmap[jproj,iproj]
-                    
-                    partial_h = 0
-
-                    if g_type in ('a','f'):
-                        for ifreq in range(self.n_imfreq):
-                            enrg = self.et[ispin,ib] - energy[ispin,iproj,iproj]
-                            if jproj == iproj:
-                                # self.write(getattr(self,f"d_head_ifr_{vertex}_{g_type}")[ifreq],self.integrate_imfreq(ifreq,enrg))
-                                partial_h += getattr(self,f"d_head_ifr_{vertex}_{g_type}")[ifreq] \
-                                    * self.integrate_imfreq(ifreq,enrg)
-                                # if ifreq == 0 and iproj == 0:
-                                #     self.write(ib,self.et[ib],energy[ispin,iproj,iproj],enrg,getattr(self,f"d_head_ifr_{vertex}_{g_type}")[ifreq],self.integrate_imfreq(ifreq,enrg))
-                    # self.write(partial_h)
-
-                    partial_b = 0
-
-                    for ifreq in range(self.n_imfreq):
-                        for im in range(self.aband.nloc):
-                            glob_im = self.aband.l2g(im)
-                            if g_type == 'a':
-                                if glob_im + 1 not in basis:
-                                    continue
-                            elif g_type == 'e':
-                                if glob_im + 1 in basis:
-                                    continue
-                            enrg = self.et[ispin,glob_im] - energy[ispin,iproj,iproj]
-                            if jproj == iproj:
-                                partial_b += getattr(self,f"d_body1_ifr_{vertex}_{g_type}")[im,ifreq,p1,ispin] \
-                                    * self.integrate_imfreq(ifreq,enrg)
-                            else:
-                                enrg1 = self.et[ispin,glob_im] - energy[ispin,jproj,jproj]
-#                                 if getattr(self,f"d_body1_ifr_{vertex}_{g_type}")[im,ifreq,p1,ispin] == None or self.integrate_imfreq(ifreq,enrg) == None or self.integrate_imfreq(ifreq,enrg1) == None:
-#                                     self.write(im,ifreq,p1,glob_im,iproj,jproj)
-                                partial_b += getattr(self,f"d_body1_ifr_{vertex}_{g_type}")[im,ifreq,p1,ispin] \
-                                    * 0.5 * ( self.integrate_imfreq(ifreq,enrg) + self.integrate_imfreq(ifreq,enrg1) )
-
-                            # if im == 0 and ifreq == 0 and p1 == 0 and iproj == 0:
-                            #     self.write(self.et[im],energy[ispin,iproj,iproj],ifreq,enrg,getattr(self,f"d_body1_ifr_{vertex}_{g_type}")[im,ifreq,p1,0], self.integrate_imfreq(ifreq,enrg))
-                            # if iproj == jproj and iproj == 3:
-                            #     self.write(partial_b, im, ifreq, self.et[im],energy[ispin,iproj,iproj],ifreq,enrg,getattr(self,f"d_body1_ifr_{vertex}_{g_type}")[im,ifreq,p1,0], self.integrate_imfreq(ifreq,enrg))
-
-                    if g_type in ('e','f') and self.l_enable_lanczos:
-                        for ifreq in range(self.n_imfreq):
-                            for ip in range(self.pert.nloc):
-                                glob_ip = self.pert.l2g(ip)
-                                for il in range(self.n_lanczos):
-                                    enrg = getattr(self,f"d_diago_{vertex}_{g_type}")[il,glob_ip,p1,ispin] - energy[ispin,iproj,iproj]
-                                    if jproj == iproj:
-                                        partial_b += getattr(self,f"d_body2_ifr_{vertex}_{g_type}")[il,ip,ifreq,p1,ispin] \
-                                            * self.integrate_imfreq(ifreq,enrg)
-                                    else:
-                                        enrg1 = getattr(self,f"d_diago_{vertex}_{g_type}")[il,glob_ip,p1,ispin] - energy[ispin,jproj,jproj]
-#                                         self.write(enrg1,getattr(self,f"d_body2_ifr_{vertex}_{g_type}")[il,ip,ifreq,p1,ispin],self.integrate_imfreq(ifreq,enrg),self.integrate_imfreq(ifreq,enrg1))
-                                        partial_b += getattr(self,f"d_body2_ifr_{vertex}_{g_type}")[il,ip,ifreq,p1,ispin] \
-                                            * 0.5 * ( self.integrate_imfreq(ifreq,enrg) + self.integrate_imfreq(ifreq,enrg1) )
-                                    # if ifreq == 0 and il == 0 and ip == 0 and p1 == 0 and iproj == 0 and jproj == 0:
-                                    #     self.write(ifreq,enrg,getattr(self,f"d_diago_{vertex}_{g_type}")[il,ip,p1,0],energy[ispin,iproj,iproj],getattr(self,f"d_body2_ifr_{vertex}_{g_type}")[il,ip,ifreq,p1,0],self.integrate_imfreq(ifreq,enrg))
-                    # if iproj == jproj and iproj == nproj-1:
-                    #     self.write(iproj, jproj, partial_h, partial_b)
-
-                    ## mp_sum
-                    if self.parallel:
-                        partial_b = self.comm.allreduce(partial_b, op=MPI.SUM)
-
-                    sigmac[ispin,jproj,iproj] += ( partial_b/self.omega/np.pi + partial_h*self.div/np.pi )  
-
-        # self.write(sigmac)
-
-        for ispin in range(self.nspin):
-            ## The part with poles
-            if self.l_frac_occ:
-                nbndval = self.nbnd_occ_nonzero
-                nbndval1 = self.nbnd_occ_one
-            else:
-                nbndval = self.nbnd_occ_nonzero
-            # self.write(nbndval)
-            for iproj in range(nproj):
-                ib = basis[iproj] - 1
-                for jproj in range(nproj):
-                    ib1 = basis[jproj] - 1
-                    if l_diagonal:
-                        if jproj != iproj:
-                            continue
-                    else:
-                        if jproj > iproj:
-                            continue
-                    
-                    p1 = ijpmap[jproj,iproj]
-
-                    enrg = energy[ispin,iproj,iproj]
-                    enrg1 = energy[ispin,jproj,jproj]
-
-                    # if iproj == 0 and jproj == 0:
-                    #     self.write(enrg,enrg1)
-
-                    residues_b = 0.0
-                    residues_h = 0.0
-
-                    # self.write(self.nbnd)
-                    for im in range(self.aband.nloc):
-                        glob_im = self.aband.l2g(im)
-                        if g_type == 'a':
-                            if glob_im + 1 not in basis:
-                                continue
-                        elif g_type == 'e':
-                            if glob_im + 1 in basis:
-                                continue
-                        
-                        if self.l_frac_occ:
-                            if glob_im + 1 > nbndval1 and glob_im + 1 <= nbndval:
-                                peso = self.occ_numbers[ispin,glob_im]
-                            else:
-                                peso = 1.0
-                        else:
-                            peso = 1.0
-                        
-                        this_is_a_pole = False
-                        if glob_im + 1 <= nbndval:
-                            segno = - 1.0
-                            # if iproj == 0 and jproj == 0:
-                            #     self.write(self.et[im] - enrg > 0.00001)
-                            if self.et[ispin,glob_im] - enrg > 0.00001:
-                                this_is_a_pole = True
-                        else:
-                            segno = 1.0
-                            if self.et[ispin,glob_im] - enrg < -0.00001:
-                                this_is_a_pole = True
-                        
-                        if this_is_a_pole:
-                            jfreq = self.retrieve_freq( self.et[ispin,glob_im] - enrg )            
-                            # if iproj == 0 and jproj == 0 and p1 == 0:
-                            #     self.write(im,jfreq,getattr(self,f"z_head_rfr_{vertex}_{g_type}")[jfreq-1],getattr(self,f"z_body_rfr_{vertex}_{g_type}")[im,jfreq-1,p1,0])
-                            for ifreq in range(self.n_imfreq):
-                                if ifreq != jfreq:
-                                    continue
-                                if ib == ib1 and glob_im == ib:
-                                    residues_h += 0.5 * peso * segno * getattr(self,f"z_head_rfr_{vertex}_{g_type}")[ifreq]
-                                residues_b += 0.5 * peso * segno * getattr(self,f"z_body_rfr_{vertex}_{g_type}")[im,ifreq,p1,ispin]
-                                # self.write(ifreq,getattr(self,f"z_head_rfr_{vertex}_{g_type}")[ifreq],getattr(self,f"z_body_rfr_{vertex}_{g_type}")[im,ifreq,p1,0])
-                        
-                        if self.l_frac_occ:
-                            this_is_a_pole = False
-                            if glob_im + 1 > nbndval1 and glob_im + 1 <= nbndval:
-                                segno = 1.0
-                                if self.et[ispin,glob_im] - enrg < -0.00001:
-                                    this_is_a_pole = True
-                            
-                            if this_is_a_pole:
-                                jfreq = self.retrieve_freq( self.et[ispin,glob_im] - enrg )
-                            
-                                for ifreq in range(self.n_refreq):
-                                    if ifreq != jfreq:
-                                        continue
-                                    if ib == ib1 and glob_im == ib:
-                                        residues_h += 0.5 * (1-peso) * segno * getattr(self,f"z_head_rfr_{vertex}_{g_type}")[ifreq]
-                                    residues_b += 0.5 * (1-peso) * segno * getattr(self,f"z_body_rfr_{vertex}_{g_type}")[im,ifreq,p1,ispin]
-
-                    for im in range(self.aband.nloc):
-                        glob_im = self.aband.l2g(im)
-                        if g_type == 'a':
-                            if glob_im + 1 not in basis:
-                                continue
-                        elif g_type == 'e':
-                            if glob_im + 1 in basis:
-                                continue
-                        
-                        if self.l_frac_occ:
-                            # if self.occ_numbers[im] < 1.0:
-                            #     self.write(im+1,self.occ_numbers[im],nbndval1,nbndval)
-                            if glob_im + 1 > nbndval1 and glob_im + 1 <= nbndval:
-                                peso = self.occ_numbers[ispin,glob_im]
-                            else:
-                                peso = 1.0
-                        else:
-                            peso = 1.0
-                        
-                        this_is_a_pole = False
-                        if glob_im + 1 <= nbndval:
-                            segno = - 1.0
-                            if self.et[ispin,glob_im] - enrg1 > 0.00001:
-                                this_is_a_pole = True
-                        else:
-                            segno = 1.0
-                            if self.et[ispin,glob_im] - enrg1 < -0.00001:
-                                this_is_a_pole = True
-                        
-                        if this_is_a_pole:
-                            jfreq = self.retrieve_freq( self.et[ispin,glob_im] - enrg1 )
-                            
-                            for ifreq in range(self.n_refreq):
-                                if ifreq != jfreq:
-                                    continue
-                                if ib == ib1 and glob_im == ib:
-                                    residues_h += 0.5 * peso * segno * getattr(self,f"z_head_rfr_{vertex}_{g_type}")[ifreq]
-                                residues_b += 0.5 * peso * segno * getattr(self,f"z_body_rfr_{vertex}_{g_type}")[im,ifreq,p1,ispin]
-                        
-                        if self.l_frac_occ:
-                            this_is_a_pole = False
-                            if glob_im + 1 > nbndval1 and glob_im + 1 <= nbndval:
-                                segno = 1.0
-                                if self.et[ispin,glob_im] - enrg1 < -0.00001:
-                                    this_is_a_pole = True
-                            
-                            if this_is_a_pole:
-                                jfreq = self.retrieve_freq( self.et[ispin,glob_im] - enrg1 )
-                                
-                                for ifreq in range(self.n_refreq):
-                                    if ifreq != jfreq:
-                                        continue
-                                    if ib == ib1 and glob_im == ib:
-                                        residues_h += 0.5 * (1-peso) * segno * getattr(self,f"z_head_rfr_{vertex}_{g_type}")[ifreq]
-                                    residues_b += 0.5 * (1-peso) * segno * getattr(self,f"z_body_rfr_{vertex}_{g_type}")[im,ifreq,p1,ispin]
-
-                    # if iproj == jproj and iproj == nproj-1:
-                    #     self.write(iproj, jproj, residues_h, residues_b)
-
-                    ## mp_sum
-                    if self.parallel:
-                        residues_h = self.comm.allreduce(residues_h, op=MPI.SUM)
-                        residues_b = self.comm.allreduce(residues_b, op=MPI.SUM)
-
-                    sigmac[ispin,jproj,iproj] += ( residues_b/self.omega + residues_h*self.div )  
-
-        for ispin in range(self.nspin):
-            if not l_diagonal:
-                for iproj in range(nproj):
-                    for jproj in range(nproj):
-                        if jproj > iproj:
-                            sigmac[ispin,jproj,iproj] = sigmac[ispin,iproj,jproj]
-
-        return sigmac
-
-    def retrieve_freq( self, freq ):
-        
-        ifreq = 1 + round( (self.n_refreq-1) * np.abs(freq) / self.ecut_refreq )
-        ifreq = np.min( [self.n_refreq, ifreq] )
-        ifreq = np.max( [1, ifreq] )
-
-        return int(ifreq) - 1
-
-    def integrate_imfreq(self,ifreq,c):
-        
-        if np.abs(c) < 0.000001:
-            return 0.0
-
-        a = self.imfreq_list_integrate[0,ifreq]
-        b = self.imfreq_list_integrate[1,ifreq]
-
-        return np.arctan( c * (b-a) / (c*c+a*b) )
-
     def write(self, *args):
 
         if self.rank == 0:
@@ -1137,289 +497,6 @@ class CGWResults:
                 data += ' '
             data = data[:-1]
             print(data)
-
-    def print_sigma(self, 
-                    basis: List[int] = None, 
-                    xc = True, 
-                    im = False,
-                    vertex: str = 'n'):
-
-        assert self.h1e_treatment in ('R','T')
-        # assert self.nspin == 1
-        
-        if basis == None:
-            basis = self.ks_projectors_sigma
-        basis_ = []
-        for i in basis:
-            basis_ += np.argwhere(self.ks_projectors_sigma == i)[0].tolist()
-        basis_ = np.array(basis_)
-
-        for i in range(len(basis_)):
-            spaces = ('f','e','a')
-
-            legend = [f'$\Sigma^{space.upper()}$-{basis[i]}' for space in spaces]
-
-            for ispin in range(self.nspin):
-                plt.figure()
-                for space in spaces:
-                    data = getattr(self,f'sigmac_{vertex}_'+space)
-                    x = copy.deepcopy(data[ispin,basis_[i],basis_[i],0,:])
-                    res = copy.deepcopy(data[ispin,basis_[i],basis_[i],1,:])
-                    if xc:
-                        res += getattr(self,f'sigmax_{vertex}_'+space)[ispin,basis_[i],basis_[i]]
-                    plt.plot(x * hartree_to_ev,res * hartree_to_ev)
-                    #
-                #     legend.append(f'$\Sigma^F$-{orbital[iproj]}')
-                #     legend.append(f'$\Sigma^A$-{orbital[iproj]}')
-                
-                if xc:
-                    plt.title(f'{self.xc.upper()}-Re$\Sigma$-Spin{ispin}')
-                else:
-                    plt.title(f'{self.xc.upper()}-Re$\Sigma$ (correlation part)-Spin{ispin}')
-                plt.xlabel('$\omega$ (eV)')
-                plt.ylabel('E (eV)')
-                plt.legend(legend)
-                plt.savefig(f'{self.xc}-re-{basis[i]}-spin{ispin}.pdf',bbox_inches='tight')
-                plt.show()
-
-            if im == True:
-                for ispin in range(self.nspin):
-                    plt.figure()
-                    for space in spaces:
-                        data = getattr(self,f'sigmac_{vertex}_'+space)
-                        x = copy.deepcopy(data[0,basis_[i],basis_[i],0,:])
-                        res = copy.deepcopy(data[0,basis_[i],basis_[i],2,:])                    
-                        plt.plot(x * hartree_to_ev,res * hartree_to_ev)
-                        #
-                    #     legend.append(f'$\Sigma^F$-{orbital[iproj]}')
-                    #     legend.append(f'$\Sigma^A$-{orbital[iproj]}')
-
-                    if xc:
-                        plt.title(f'{self.xc.upper()}-Im$\Sigma$-Spin{ispin}') 
-                    else:   
-                        plt.title(f'{self.xc.upper()}-Im$\Sigma$ (correlation part)-Spin{ispin}')
-                    plt.xlabel('$\omega$ (eV)')
-                    plt.ylabel('E (eV)')
-                    plt.legend(legend)
-                    plt.savefig(f'{self.xc}-im-{basis[i]}-spin{ispin}.pdf',bbox_inches='tight')
-                    plt.show()
-        
-        return
-
-    def print_spectral(self, basis: List[int] = None):
-
-        assert self.h1e_treatment in ('R','T')
-        assert self.nspin == 1
-        
-        if basis == None:
-            basis = self.ks_projectors_sigma
-        basis_ = []
-        for i in basis:
-            basis_ += np.argwhere(self.ks_projectors_sigma == i)[0].tolist()
-        basis_ = np.array(basis_)
-
-        # self.write(basis_)
-        for i in range(len(basis_)):
-            spaces = ('f')
-
-            legend = [f'$\Sigma^{space.upper()}$-{basis[i]}' for space in spaces]
-            for space in spaces:
-                data = getattr(self,'sigmac_n_'+space)
-                x = data[0,basis_[i],basis_[i],0,:] 
-                tmp1 = np.abs(data[0,basis_[i],basis_[i],2,:])
-                tmp2 = data[0,basis_[i],basis_[i],1,:] + getattr(self,'sigmax_n_'+space)[0,basis_[i],basis_[i]]\
-                    - np.einsum('ii->i',self.vxc[0,:,:],optimize=True)[basis_[i]]
-                res = tmp1 / ( (x - np.einsum('ii->i',self.hks[0,:,:],optimize=True)[basis_[i]] - tmp2)**2 + tmp1**2 )
-                
-                plt.plot(x * hartree_to_ev,res * hartree_to_ev)
-                #
-            #     legend.append(f'$\Sigma^F$-{orbital[iproj]}')
-            #     legend.append(f'$\Sigma^A$-{orbital[iproj]}')
-            
-            plt.title(f'{self.xc.upper()}-Re$A$')
-
-            plt.xlabel('$\omega$ (eV)')
-            plt.ylabel('Abs')
-            plt.legend(legend)
-            plt.savefig(f'{self.xc}-re-{basis[i]}-A.pdf',bbox_inches='tight')
-            plt.show()
-
-            # for space in spaces:
-            #     data = getattr(self,'sigmac_n_'+space)
-            #     x = data[0,basis_[i],basis_[i],0,:]
-            #     res = data[0,basis_[i],basis_[i],2,:]                    
-            #     plt.plot(x * hartree_to_ev,res * hartree_to_ev)
-            #     #
-            # #     legend.append(f'$\Sigma^F$-{orbital[iproj]}')
-            # #     legend.append(f'$\Sigma^A$-{orbital[iproj]}')
-
-            # if xc:
-            #     plt.title(f'{self.xc.upper()}-Im$\Sigma$') 
-            # else:   
-            #     plt.title(f'{self.xc.upper()}-Im$\Sigma$ (correlation part)')
-            # plt.xlabel('$\omega$ (eV)')
-            # plt.ylabel('E (eV)')
-            # plt.legend(legend)
-            # plt.savefig(f'{self.xc}-im-{basis[i]}.pdf',bbox_inches='tight')
-            # plt.show()
-        
-        return
-
-    def debug(self, basis: List[int] = None):
-
-        assert self.h1e_treatment in ('R','T') and self.projector_type == 'K'
-        assert self.nspin == 1
-
-        if basis == None:
-            basis = self.ks_projectors_sigma
-        if self.range == True:
-            if basis is None:
-                basis_ = self.ks_projectors - self.nbndstart
-            else:
-                basis_ = np.array(basis) - self.nbndstart
-            # if npdep_to_use is None:
-            #     npdep_to_use = self.npdep
-        else:
-            if basis is None:
-                basis_ = np.array(range(len(self.ks_projectors)))
-            else:
-                basis_ = []
-                for i in basis:
-                    basis_ += np.argwhere(self.ks_projectors == i)[0].tolist()
-                basis_ = np.array(basis_)
-        if self.cgw_calculation in ('G','S','Q') and self.projector_type == 'K':
-            basis__sigma = []
-            for i in basis:
-                basis__sigma += np.argwhere(self.ks_projectors_sigma == i)[0].tolist()
-            basis__sigma = np.array(basis__sigma)
-        else:
-            basis__sigma = basis_
-
-        # self.write(self.nbndstart)
-        # self.write(basis_)
-        for i in range(len(basis_)):
-            spaces = ('f')
-
-            legend = [f'$\Sigma^{space.upper()}$-{basis[i]}' for space in spaces]
-            for space in spaces:
-                data = getattr(self,'sigmac_n_'+space)
-                x = data[0,basis__sigma[i],basis__sigma[i],0,:]
-                res = data[0,basis__sigma[i],basis__sigma[i],1,:] - np.einsum('ii->i',self.vxc[0,:,:],optimize=True)[basis_[i]]
-                res2 = x - np.einsum('ii->i',self.hks[0,:,:],optimize=True)[basis_[i]]
-                res += getattr(self,'sigmax_n_'+space)[0,basis__sigma[i],basis__sigma[i]]
-                plt.plot(x * hartree_to_ev,res * hartree_to_ev)
-                plt.plot(x * hartree_to_ev,res2 * hartree_to_ev)
-                plt.plot(x * hartree_to_ev,(res2-res) * hartree_to_ev)
-                for j in range(len(res)):
-                    if np.abs(res2[j]-res[j]) * hartree_to_ev < 0.5:
-                        self.write(x[j] * hartree_to_ev)
-                #
-            #     legend.append(f'$\Sigma^F$-{orbital[iproj]}')
-            #     legend.append(f'$\Sigma^A$-{orbital[iproj]}')
-            
-            plt.title(f'{self.xc.upper()}-Re-debug')
-            plt.xlabel('$\omega$ (eV)')
-            plt.ylabel('E (eV)')
-            plt.legend(legend)
-            plt.savefig(f'{self.xc}-re-{basis[i]}-debug.pdf',bbox_inches='tight')
-            plt.show()
-
-            # for space in spaces:
-            #     data = getattr(self,'sigmac_n_'+space)
-            #     x = data[0,basis_[i],basis_[i],0,:]
-            #     res = data[0,basis_[i],basis_[i],2,:]                    
-            #     plt.plot(x * hartree_to_ev,res * hartree_to_ev)
-            #     #
-            # #     legend.append(f'$\Sigma^F$-{orbital[iproj]}')
-            # #     legend.append(f'$\Sigma^A$-{orbital[iproj]}')
-
-            # if xc:
-            #     plt.title(f'{self.xc.upper()}-Im$\Sigma$') 
-            # else:   
-            #     plt.title(f'{self.xc.upper()}-Im$\Sigma$ (correlation part)')
-            # plt.xlabel('$\omega$ (eV)')
-            # plt.ylabel('E (eV)')
-            # plt.legend(legend)
-            # plt.savefig(f'{self.xc}-im-{basis[i]}.pdf',bbox_inches='tight')
-            # plt.show()
-        
-        return
-
-    def print_hopping(self, basis: List[int] = None, npdep_to_use: int = None):
-
-        assert self.h1e_treatment in ('R','T')
-        assert self.nspin == 1
-        if basis == None:
-            basis = self.ks_projectors_sigma
-        # self.write(self.ks_projectors)
-        
-        if self.projector_type in ('K','M'):
-            # self.write(self.range)
-            if self.range == True:
-                if basis is None:
-                    basis_ = self.ks_projectors - self.nbndstart
-                else:
-                    basis_ = np.array(basis) - self.nbndstart
-                if npdep_to_use is None:
-                    npdep_to_use = self.npdep
-            else:
-                if basis is None:
-                    basis_ = np.array(range(len(self.ks_projectors)))
-                else:
-                    basis_ = []
-                    for i in basis:
-                        basis_ += np.argwhere(self.ks_projectors == i)[0].tolist()
-                    basis_ = np.array(basis_)
-            if self.cgw_calculation in ('G','S','Q') and self.projector_type == 'K':
-                basis__sigma = []
-                for i in basis:
-                    basis__sigma += np.argwhere(self.ks_projectors_sigma == i)[0].tolist()
-                basis__sigma = np.array(basis__sigma)
-            else:
-                basis__sigma = basis_
-                        
-        # basis_ = []
-        # for i in basis:
-        #     basis_ += np.argwhere(self.ks_projectors_sigma == i)[0].tolist()
-        # basis_ = np.array(basis_)
-
-        data = getattr(self,'sigmac_n_e')[:,basis__sigma,:,:,:][:,:,basis__sigma,:,:]
-        hks = self.hks[:,basis_,:][:,:,basis_]
-        assert self.nspin == 1
-        legend = [f'$t^E$-{iproj}' for iproj in basis]
-        for index in range(len(basis__sigma)):
-            x = data[0,index,index,0,:]
-            res = self.compute_h1e_from_hks(basis=basis,\
-                eri=self.make_heffs(basis=basis,dc='print_hopping'), dc='print_hopping')[0,index,index,0,:]
-            plt.plot(x * hartree_to_ev,res * hartree_to_ev)
-            #
-        #     legend.append(f'$\Sigma^F$-{orbital[iproj]}')
-        #     legend.append(f'$\Sigma^A$-{orbital[iproj]}')
-
-        plt.title(f'{self.xc.upper()}-Re$t$')
-        plt.xlabel('$\omega$ (eV)')
-        plt.ylabel('E (eV)')
-        plt.legend(legend)
-        plt.savefig(f'{self.xc}-re.pdf',bbox_inches='tight')
-        plt.show()
-
-        for index in range(len(basis__sigma)):
-            x = data[0,index,index,0,:]
-            res = self.compute_h1e_from_hks(basis=basis,\
-                eri=self.make_heffs(basis=basis,dc='print_hopping'), dc='print_hopping')[0,index,index,1,:]
-            plt.plot(x * hartree_to_ev,res * hartree_to_ev)
-            #
-        #     legend.append(f'$\Sigma^F$-{orbital[iproj]}')
-        #     legend.append(f'$\Sigma^A$-{orbital[iproj]}')
-
-        plt.title(f'{self.xc.upper()}-Im$t$')
-        plt.xlabel('$\omega$ (eV)')
-        plt.ylabel('E (eV)')
-        plt.legend(legend)
-        plt.savefig(f'{self.xc}-im.pdf',bbox_inches='tight')
-        plt.show()
-        
-        return
 
     @staticmethod
     def make_index_map(n: int) -> Tuple[int, np.ndarray, np.ndarray]:
@@ -1459,54 +536,27 @@ class CGWResults:
 
     def solve_eri(self,
                   h: float,
-                  B: np.ndarray,
-                  basis: List[int] = None,
-                  npdep_to_use: int = None) -> np.ndarray:
+                  B: np.ndarray) -> np.ndarray:
         """ Compute ERI of given W (defined by head h and body B) on a basis of KS orbitals.
 
         Args:
             h: head.
             B: body.
-            basis: list of band indices for the orbitals defining the active space.
-            npdep_to_use: # of PDEP basis to use.
 
         Returns:
             W, represented as a 4-index array.
         """
         nspin = self.nspin
-        if self.projector_type in ('K','M'):
-            if self.range == True:
-                if basis is None:
-                    basis_ = self.ks_projectors - self.nbndstart
-                else:
-                    basis_ = np.array(basis) - self.nbndstart
-            else:
-                if basis is None:
-                    basis_ = np.array(range(len(self.ks_projectors)))
-                else:
-                    basis_ = []
-                    for i in basis:
-                        basis_ += np.argwhere(self.ks_projectors == i)[0].tolist()
-                    basis_ = np.array(basis_)
-        if self.projector_type in ('B','R','M'):
-            local_basis_ = np.array(range(len(self.local_projectors)))
-            if 'basis_' in dir():
-                basis_ = np.append(local_basis_,basis_+len(local_basis_))
-            else:
-                basis_ = local_basis_
 
-        if npdep_to_use is None:
-            npdep_to_use = self.npdep
-
-        neff = len(basis_)
+        neff = len(self.basis)
         npair, pijmap, ijpmap = self.make_index_map(neff)
         assert npair <= self.npair
 
-        braket_pair_eff = np.zeros([self.nspin, npair, npdep_to_use])
+        braket_pair_eff = np.zeros([self.nspin, npair, self.npdep])
         for ispin in range(self.nspin):
             for p, (i, j) in enumerate(pijmap):
-                iproj, jproj, = basis_[[i, j]]
-                braket_pair_eff[ispin, p, :] = self.braket[ispin, iproj, jproj, :npdep_to_use]
+                iproj, jproj, = self.basis[[i, j]]
+                braket_pair_eff[ispin, p, :] = self.braket[ispin, iproj, jproj, :self.npdep]
         eri_pair = (1/self.omega) * np.einsum(
             "sip,pq,tjq->stij", braket_pair_eff, B.real, braket_pair_eff, optimize=True
         )
@@ -1529,42 +579,6 @@ class CGWResults:
         for s1, s2, i, j, k, l in np.ndindex(nspin, nspin, n, n, n, n):
             eri[s1, s2, i, j, k, l] = eri_pair[s1, s2, ijpmap[i, j], ijpmap[k, l]]
         return eri
-
-    @staticmethod
-    def solve_dyson_with_body_only_kernel(bare: np.ndarray, kernel: np.ndarray) -> np.ndarray:
-        """ Solve Dyson equation between bare and screened quantity.
-
-        scr = bare + bare @ kernel @ scr
-        bare is Npdep + 3 by Npdep + 3 matrix
-        kernel is Npdep + Npdep (neglecting head and wings)
-
-        Args:
-            bare: bare quantity.
-            kernel: kernel in Dyson equation.
-
-        Returns:
-            screened (dressed) quantity.
-        """
-
-        npdep = bare.shape[0] - 3
-        assert bare.shape == (npdep + 3, npdep + 3)
-        assert kernel.shape == (npdep, npdep), "currently only support headless wingless kernel"
-
-        I = np.eye(npdep)
-
-        # extract body, head and wings of bare quantity
-        B = bare[:npdep, :npdep]
-        h = bare[npdep:, npdep:]
-        W1 = bare[:npdep, npdep:]
-        W2 = bare[npdep:, :npdep]
-
-        # compute body, head and wings of screened quantity
-        scr00 = h + W2 @ kernel @ np.linalg.inv((I - B @ kernel)) @ W1
-        scr01 = W2 @ np.linalg.inv((I - kernel @ B))
-        scr10 = scr01.T
-        scr11 = np.linalg.inv((I - B @ kernel)) @ B
-
-        return np.array(np.bmat([[scr11, scr10], [scr01, scr00]]))
 
     @staticmethod
     def solve_dyson_with_identity_kernel(bare: np.ndarray) -> Tuple[float, np.ndarray]:
@@ -1602,37 +616,31 @@ class CGWResults:
 
         return Theta, Lambda
 
-    def compute_vh_from_eri(self, basis_: List[int], eri: np.ndarray) -> np.ndarray:
+    def compute_vh_from_eri(self, eri: np.ndarray) -> np.ndarray:
         """ Compute VHartree from ERI.
         
         Args:
-            basis_: list of indices (in ks_projectors, NOT absolute band indices) for orbitals in the active space.
             eri: ERI.
 
         Returns:
             VHartree matrix in active space.
         """
-        # self.write(basis_)
-        # self.write(self.dm[:, basis_, :][:, :, basis_])
-        return np.einsum("stijkl,tkl->sij", eri, self.dm[:, basis_, :][:, :, basis_], optimize=True)
+        return np.einsum("stijkl,tkl->sij", eri, self.dm[:, self.basis, :][:, :, self.basis], optimize=True)
 
-    def compute_vxx_from_eri(self, basis_: List[int], eri: np.ndarray) -> np.ndarray:
+    def compute_vxx_from_eri(self, eri: np.ndarray) -> np.ndarray:
         """ Compute VEXX from ERI.
 
         Args:
-            basis_: list of indices (in ks_projectors, NOT absolute band indices) for orbitals in the active space.
             eri: ERI.
 
         Returns:
             VEXX matrix in active space.
         """
-        return - 0.5 * self.nspin * np.einsum("ssikjl,skl->sij", eri, self.dm[:, basis_, :][:, :, basis_], optimize=True)
+        return - 0.5 * self.nspin * np.einsum("ssikjl,skl->sij", eri, self.dm[:, self.basis, :][:, :, self.basis], optimize=True)
 
     def compute_h1e_from_hks(self,
-                             basis: List[int],
                              eri: np.ndarray,
-                             dc: str = "hf",
-                             npdep_to_use: int = None,
+                             dc: str = "exact",
                              mu: float = 0,
                              sigma: Optional[List[np.ndarray]] = None) -> np.ndarray:
         """ Compute 1e term of effective Hamiltonian from KS Hamiltonian.
@@ -1641,256 +649,72 @@ class CGWResults:
             basis: list of band indices for orbitals in the active space.
             eri: ERI.
             dc: scheme for computing double counting.
-            npdep_to_use: # of PDEP basis to use.
             mu: chemical potential, used to shift the spectrum of resulting effective Hamiltonian.
 
         Returns:
             1e part of effective Hamiltonian.
         """
-        # if basis is None:
-        #     basis_ = self.ks_projectors - self.nbndstart
-        # else:
-        #     basis_ = np.array(basis) - self.nbndstart
 
-        if self.projector_type in ('K','M'):
-            if self.range == True:
-                if basis is None:
-                    basis_ = self.ks_projectors - self.nbndstart
-                else:
-                    basis_ = np.array(basis) - self.nbndstart
-            else:
-                if basis is None:
-                    basis_ = np.array(range(len(self.ks_projectors)))
-                else:
-                    basis_ = []
-                    for i in basis:
-                        basis_ += np.argwhere(self.ks_projectors == i)[0].tolist()
-                    basis_ = np.array(basis_)
-            if self.cgw_calculation in ('G','S','Q') and self.projector_type == 'K':
-                if 'sigma' in dc or 'hopping' in dc or 'test' in dc:
-                    basis__sigma = []
-                    for i in basis:
-                        basis__sigma += np.argwhere(self.ks_projectors_sigma == i)[0].tolist()
-                    basis__sigma = np.array(basis__sigma)
-            else:
-                basis__sigma = basis_
-        # self.write(basis__sigma)
-
-        if self.projector_type in ('B','R','M'):
-            # self.write(basis_,np.array(range(len(self.local_projectors))))
-            local_basis_ = np.array(range(len(self.local_projectors)))
-            if 'basis_' in dir():
-                basis_ = np.append(local_basis_,basis_+len(local_basis_))
-            else:
-                basis_ = local_basis_
-
-        if npdep_to_use is None:
-            npdep_to_use = self.npdep
-
-        # self.write(basis_)
-        # self.write(basis__sigma)
-
-        braket = self.braket[:, basis_, :, :][:, :, basis_, :]
-        # self.write(braket)
-        occ = self.occ[:, basis_]
+        braket = self.braket[:, self.basis, :, :][:, :, self.basis, :]
+        occ = self.occ[:, self.basis]
+        
+        # calculate double-counting term
         if dc == "hf":
-            hdc = self.compute_vh_from_eri(basis_, eri) + self.compute_vxx_from_eri(basis_, eri)
-        elif dc == "hfxc":
-            nA = np.einsum("siin,si->n", braket, occ)[:npdep_to_use]
-            hdc = (self.compute_vh_from_eri(basis_, eri) +
-                   (1/self.omega) * np.einsum(
-                       "spqm,mn,n->spq", braket, self.fxc[:npdep_to_use,:npdep_to_use], nA
-                   ))
-        elif dc == "fhxc":
-            nA = np.einsum("siin,si->n", braket, occ)[:npdep_to_use]
-            hdc = (1 / self.omega) * np.einsum(
-                "spqm,mn,n->spq", braket, self.fhxc[:npdep_to_use,:npdep_to_use], nA
-            )
-        # elif dc in ("sigmar","sigmar_0"):
-        #     hdc = self.vxc[:, basis_, :][:, :, basis_] \
-        #     + self.vxx[:, basis_, :][:, :, basis_] - self.sigmarx - self.sigmarc_0
-        # elif dc == "sigmar_f":
-        #     hdc = self.vxc[:, basis_, :][:, :, basis_] \
-        #     + self.vxx[:, basis_, :][:, :, basis_] - self.sigmarx - self.sigmarc_f
-        elif len(dc.split('_')) == 2 and dc.split('_')[0] == 'sigma':
-            # dc == 'sigma_e':
-            # self.write('sigmax_e+sigmac_e ===================')
-            # self.write(self.sigmax_e + self.sigmac_e[:, :, :, 1, int((self.n_spectralf+1)/2)])
-            hdc = self.compute_vh_from_eri(basis_, eri) \
-                + self.vxc[:, basis_, :][:, :, basis_] + self.vxx[:, basis_, :][:, :, basis_]\
-                - getattr(self,'sigmax_'+dc.split('_')[1]+'_e')[:, basis__sigma, :][:, :, basis__sigma]\
-                - getattr(self,'sigmac_eigen_'+dc.split('_')[1]+'_e')[:, basis__sigma, :][:, :, basis__sigma]
-        elif len(dc.split('_')) == 3 and dc.split('_')[0] == 'sigma' and dc.split('_')[2] == 'build':
-            # dc == 'sigma_e':
-            # self.write('sigmax_e+sigmac_e ===================')
-            # self.write(self.sigmax_e + self.sigmac_e[:, :, :, 1, int((self.n_spectralf+1)/2)])
-            sigmax_e, sigmac_e = self.solve_sigma(basis=basis,g_type='e',vertex='n',npdep_to_use=npdep_to_use)
-            hdc = self.compute_vh_from_eri(basis_, eri) \
-                + self.vxc[:, basis_, :][:, :, basis_] + self.vxx[:, basis_, :][:, :, basis_]\
-                - sigmax_e - sigmac_e
-        elif dc == 'read':
-            assert sigma != None and len(sigma) == 2
-            sigmax_e, sigmac_e = sigma
-            hdc = self.compute_vh_from_eri(basis_, eri) \
-                + self.vxc[:, basis_, :][:, :, basis_] + self.vxx[:, basis_, :][:, :, basis_]\
-                - sigmax_e - sigmac_e
-        elif dc == 'test':
-            hdc = self.compute_vh_from_eri(basis_, eri) \
-                + 0.5 * ( self.vxc[:, basis_, :][:, :, basis_] + self.vxx[:, basis_, :][:, :, basis_]\
-                - getattr(self,'sigmax_n_e')[:, basis__sigma, :][:, :, basis__sigma]
-                - getattr(self,'sigmac_eigen_n_e')[:, basis__sigma, :][:, :, basis__sigma] )
-
-            self.write(self.vxc[:, basis_, :][:, :, basis_] + self.vxx[:, basis_, :][:, :, basis_]\
-                - getattr(self,'sigmax_n_e')[:, basis__sigma, :][:, :, basis__sigma]\
-                - getattr(self,'sigmac_eigen_n_e')[:, basis__sigma, :][:, :, basis__sigma])
-                # - getattr(self,'sigmac_eigen_'+dc.split('_')[1]+'_e')[:, basis__sigma, :][:, :, basis__sigma]
-                # + Z * (self.vxc[:, basis_, :][:, :, basis_] + self.vxx[:, basis_, :][:, :, basis_]\
-                # - getattr(self,'sigmax_n_e')[:, basis__sigma, :][:, :, basis__sigma]\
-                # - getattr(self,'sigmac_eigen_n_e')[:, basis__sigma, :][:, :, basis__sigma])
-                # + self.z_e * ( self.vxc[:, basis_, :][:, :, basis_] + self.vxx[:, basis_, :][:, :, basis_]\
-                # - self.sigmax_e - self.sigmac_eigen_e )
-                # + self.vxc[:, basis_, :][:, :, basis_] + self.vxx[:, basis_, :][:, :, basis_]\
-                # - self.sigmax_e - self.sigmac_e[:, :, :, 1, int((self.n_spectralf+1)/2)]
-        elif dc == 'print_hopping':
-            # self.write(basis__sigma)
-            hdc = np.zeros((self.nspin,len(basis__sigma),len(basis__sigma),2,self.n_spectralf))
-            tmp = self.compute_vh_from_eri(basis_, eri) \
-                + self.vxc[:, basis_, :][:, :, basis_] + self.vxx[:, basis_, :][:, :, basis_]\
-                - getattr(self,'sigmax_n_e')[:, basis__sigma, :][:, :, basis__sigma]
-
-            for i in range(2):
-                if i == 0:
-                    for i_spectralf in range(self.n_spectralf):
-                        hdc[:,:,:,i,i_spectralf] = tmp
-            hdc -= getattr(self,'sigmac_n_e')[:, basis__sigma, :,1:,:][:, :, basis__sigma,:,:]
+            hdc = self.compute_vh_from_eri(eri) + self.compute_vxx_from_eri(eri)
+        elif dc == 'excact':
+            hdc = self.compute_vh_from_eri(self.basis, eri) \
+                + self.vxc[:, self.basis, :][:, :, self.basis] + self.vxx[:, self.basis, :][:, :, self.basis]\
+                - getattr(self,'sigmax_n_e')[:, self.basis, :][:, :, self.basis]\
+                - getattr(self,'sigmac_eigen_n_e')[:, self.basis, :][:, :, self.basis]
         else:
             raise ValueError("Unknown double counting scheme")
         
-        # self.write(self.compute_vh_from_eri(basis_, eri)[:, basis_, :][:, :, basis_], self.compute_vxx_from_eri(basis_, eri)[:, basis_, :][:, :, basis_])
-        
-        # self.write('vh_eri ===================')
-        # self.write(self.compute_vh_from_eri(basis_, eri))
-        # self.write('vxx_eri ===================')
-        # self.write(self.compute_vxx_from_eri(basis_, eri))
-        # self.write('vxc+vxx ===================')
-        # self.write(self.vxc[:, basis_, :][:, :, basis_] + self.vxx[:, basis_, :][:, :, basis_])
-
-        # if dc == 'sigmar':
-        #     self.write('sigmarx+sigmarc_0 ===================')
-        #     self.write(self.sigmarx + self.sigmarc_0)
-        #     h1e = self.hks[:, basis_, :][:, :, basis_] - hdc - self.compute_vh_from_eri(basis_, eri) 
-        # elif dc == 'sigmar_0':
-        #     self.write('sigmarx+sigmarc_0 ===================')
-        #     self.write(self.sigmarx + self.sigmarc_0)
-        #     self.write('z_0 ===================')
-        #     self.write(self.z_0)
-        #     h1e = self.z_0 * ( self.hks[:, basis_, :][:, :, basis_] - hdc ) - self.compute_vh_from_eri(basis_, eri)
-        # elif dc == 'sigmar_f':
-        #     self.write('sigmarx+sigmarc_f ===================')
-        #     self.write(self.sigmarx + self.sigmarc_f)
-        #     self.write('z_f ===================')
-        #     self.write(self.z_f)
-        #     h1e = self.hks[:, basis_, :][:, :, basis_] - self.z_f * hdc - self.compute_vh_from_eri(basis_, eri)
-
-        if dc != 'print_hopping':
-            h1e = self.hks[:, basis_, :][:, :, basis_] - hdc
-            # h1e = np.diag(np.einsum('ii->i',(self.hks[:, basis_, :][:, :, basis_] - hdc)[0,:,:], optimize=True)).reshape(1, len(basis_), len(basis_))
-            for ispin in range(self.nspin):
-                for i in range(len(basis_)):
-                    h1e[ispin, i, i] -= mu
-        else:
-            h1e = np.zeros((self.nspin,len(basis__sigma),len(basis__sigma),2,self.n_spectralf))
-            for i in range(2):
-                if i == 0:
-                    for i_spectralf in range(self.n_spectralf):
-                        h1e[:,:,:,i,i_spectralf] = self.hks[:, basis_, :][:, :, basis_]
-            h1e -= hdc
-
-        # self.write('h1e ===================')
-        # self.write(self.compute_vh_from_eri(basis_, eri))
-        # self.write(h1e * hartree_to_ev)
-        # self.write(h1e[0,:,:,0,810] * hartree_to_ev )
-        # self.write(self.vxc[:, basis_, :][:, :, basis_] * hartree_to_ev)
-        # self.write(self.sigmac_n_e[0,:,:,1,810] * hartree_to_ev)
+        # subtract double counting from Kohn-Sham eigenvalues
+        h1e = self.hks[:, self.basis, :][:, :, self.basis] - hdc
+        # subtract chemical potential from diagonal terms
+        for ispin in range(self.nspin):
+            for i in range(len(self.basis)):
+                h1e[ispin, i, i] -= mu
 
         return h1e
 
     def make_heff_with_eri(self,
-                            basis: List[int],
                             eri: np.ndarray,
-                            dc: str = "hf",
+                            dc: str = "exact",
                             point_group_rep: PointGroupRep = None,
-                            npdep_to_use: int = None,
                             nspin: int = 1,
                             symmetrize: Dict[str, bool] = {},
                             sigma: Optional[List[np.ndarray]] = None) -> Heff:
         """ Construct effective Hamiltonian based on ERI.
 
         Args:
-            basis: list of band indices for orbitals in the active space.
             eri: ERI.
             dc: scheme for computing double counting.
             point_group_rep: representation of
-            npdep_to_use: # of PDEP basis to use.
             nspin: # of spin channels.
             symmetrize: arguments for symmetrization function of Heff.
 
         Returns:
             effective Hamiltonian.
         """
-        # self.write(basis)
-        # self.write(self.occ)
-        h1e = self.compute_h1e_from_hks(basis, eri, dc=dc, npdep_to_use=npdep_to_use, sigma=sigma)
-
-        # if self.nspin == 2 and nspin == 1:
-        #     # Rotate spin down orbitals to maximally resemble spin up orbitals
-        #     # Then symmetrize spin up and spin down matrix elements (i.e. apply time reversal symmetry)
-        #     # Orthogonal Procrustes problem as defined on Wikipedia:
-        #     # denote A = psi^{dw}_iG, B = psi^{up}_jG', the rotation matrix for spin down orbitals is
-        #     # R = argmin_Omega || Omega A - B ||_F subject to Omega^T Omega = I
-        #     # let M = B A^T, which is exactly the overlap s1e[0, 1], the SVD of M is
-        #     # M = U Sigma V^T
-        #     # then R is computed as R = U V^T
-
-        #     basis_ = np.array(basis) - self.nbndstart
-
-        #     S = self.s1e[0, 1][basis_,:][:,basis_]
-        #     u, s, vt = np.linalg.svd(S)
-        #     R = u @ vt  # R = < psi^old_i | psi^new_j >
-        #     h1e_up = h1e[0]
-        #     h1e_dw = h1e[1]
-        #     h1e_dw_r = np.einsum("pq,pi,qj->ij", h1e_dw, R, R)  # rotate spin down orbitals
-        #     eri_up = eri[0, 0]
-        #     eri_dw = eri[1, 1]
-        #     # rotate spin down orbitals
-        #     eri_dw_r = np.einsum("pqrs,pi,qj,rk,sl->ijkl", eri_dw, R, R, R, R, optimize=True)
-        #     h1e = (h1e_up + h1e_dw_r) / 2
-        #     eri = (eri_up + eri_dw_r) / 2
-
+        # calculate effective one-body terms
+        h1e = self.compute_h1e_from_hks(eri, dc=dc, sigma=sigma)
+        # calculate point-group representation
         if point_group_rep is None and self.point_group is not None:
             orbitals = [
                 VData(f"{self.path}/west.westpp.save/wfcK000001B{i:06d}.cube", normalize="sqrt")
-                for i in basis
+                for i in self.ks_projectors
             ]
-            if self.projector_type != 'K':
-                orbitals += [
-                            VData(f"wannier_{i:05d}.xsf", normalize=True)
-                            for i in self.local_projectors
-                        ]
             point_group_rep, _ = self.point_group.compute_rep_on_orbitals(orbitals, orthogonalize=True)
-
+        # initialize class for effective Hamiltonian
         heff = Heff(h1e, eri, point_group_rep=point_group_rep)
         heff.symmetrize(**symmetrize)
         return heff
 
     def make_heffs(self,
                     basis_name: str = "",
-                    basis: Union[Dict, List[int]] = None,
-                    Ws: List[str] = None,
-                    npdep_to_use: int = None,
-                    chi0a_fortran: bool = False,
-                    dc: str = "hf",
-                    nspin: int = 1,
+                    Ws: str = "Wrp_rpa",
+                    dc: str = "exact",
                     nelec: Tuple = None,
                     symmetrize: Dict[str, bool] = {},
                     run_fci_inplace: bool = False,
@@ -1918,118 +742,43 @@ class CGWResults:
             nroots: # of roots for FCI calculations.
             verbose: if True, self.write detailed info for FCI calculations.
         """
-        if self.projector_type not in ('B','R'):
-            if basis is None:
-                # Default: use all ks_projectors
-                basis_indices = self.ks_projectors
-                basis_labels = [""] * len(basis_indices)
-            elif isinstance(basis, dict):
-                # basis = {label: indices}
-                basis_labels = []
-                basis_indices = []
-                for label, indices in basis.items():
-                    basis_labels.extend([label] * len(indices))
-                    basis_indices.extend(indices)
-            else:
-                # basis = [indices]
-                basis_indices = basis
-                basis_labels = [""] * len(basis_indices)
-
-            basis_name = basis_name
-            if not basis_name:
-                idx1, idx2 = basis_indices[0], basis_indices[-1]
-                if np.all(basis_indices == np.arange(idx1, idx2+1)):
-                    basis_name = f'{idx1}-{idx2}'
-
-        # basis_ = np.array(basis_indices) - self.nbndstart
-            basis = basis_indices  # basis_indices here is the "basis" variable for other functions
-
-        # calculate basis_
-        if self.projector_type in ('K','M'):
-            # self.write(self.range)
-            if self.range == True:
-                if basis is None:
-                    basis_ = self.ks_projectors - self.nbndstart
-                else:
-                    basis_ = np.array(basis) - self.nbndstart
-                if npdep_to_use is None:
-                    npdep_to_use = self.npdep
-            else:
-                if basis is None:
-                    basis_ = np.array(range(len(self.ks_projectors)))
-                else:
-                    basis_ = []
-                    for i in basis:
-                        basis_ += np.argwhere(self.ks_projectors == i)[0].tolist()
-                    basis_ = np.array(basis_)
-            if self.cgw_calculation in ('G','S','Q') and self.projector_type == 'K':
-                if 'sigma' in dc or 'hopping' in dc:
-                    basis__sigma = []
-                    for i in basis:
-                        basis__sigma += np.argwhere(self.ks_projectors_sigma == i)[0].tolist()
-                    basis__sigma = np.array(basis__sigma)
-            else:
-                basis__sigma = basis_
-
-        if self.projector_type in ('B','R','M'):
-            local_basis_ = np.array(range(len(self.local_projectors)))
-            if 'basis_' in dir():
-                basis_ = np.append(local_basis_,basis_+len(local_basis_))
-            else:
-                basis_ = local_basis_
-
-        if npdep_to_use is None:
-            npdep_to_use = self.npdep
-
-        Vc = self.Vc[:,:,basis_,:,:,:][:,:,:,basis_,:,:][:,:,:,:,basis_,:][:,:,:,:,:,basis_]
-
-        Wdict = self.compute_Ws(basis=basis, chi0a_fortran=chi0a_fortran, npdep_to_use=npdep_to_use)
-
-        if dc == 'print_hopping':
-            return Vc + Wdict['Wrp_rpa']
-
-        if Ws == ['Bare']:
-            pass
+        basis_indices = self.ks_projectors
+        basis_labels = [""] * len(basis_indices)
+        
+        # Set name for basis
+        # TODO: unnecessary
+        if not basis_name:
+            idx1, idx2 = basis_indices[0], basis_indices[-1]
+            if np.all(basis_indices == np.arange(idx1, idx2+1)):
+                basis_name = f'{idx1}-{idx2}'
         else:
-            if Ws is None:
-                Ws = self.Ws_all
-            assert all(key in Wdict for key in Ws)
+            basis_name = basis_name
+        
+        basis__sigma = self.basis
 
+        npdep_to_use = self.npdep
+
+        Vc = self.Vc[:,:,self.basis,:,:,:][:,:,:,self.basis,:,:][:,:,:,:,self.basis,:][:,:,:,:,:,self.basis]
+        # calculate screened electron repulsion integrals
+        W = self.compute_Ws(Ws)
+
+        # determine point-group representation
         if self.point_group is None:
             point_group_rep = None
         else:
             orbitals = [
                 VData(f"{self.path}/west.westpp.save/wfcK000001B{i:06d}.cube", normalize="sqrt")
-                for i in basis
+                for i in self.ks_projectors
             ]
-            if self.projector_type != 'K':
-                orbitals += [
-                            VData(f"wannier_{i:05d}.xsf", normalize=True)
-                            for i in self.local_projectors
-                        ]
             point_group_rep, orbital_symms = self.point_group.compute_rep_on_orbitals(orbitals, orthogonalize=True)
 
-        if Ws == ['Bare']:
-            heffs = {
-                W:self.make_heff_with_eri(
-                    basis=basis, eri=Vc, dc=dc,
-                    npdep_to_use=npdep_to_use, nspin=nspin,
-                    symmetrize=symmetrize, point_group_rep=point_group_rep,
-                    sigma=sigma
-                )
-                for W in Ws
-            }
+        if Ws == 'Bare':
+            heff = self.make_heff_with_eri(eri=Vc, dc=dc, symmetrize=symmetrize,
+                    point_group_rep=point_group_rep, sigma=sigma)
         else:
-            heffs = {
-                W: self.make_heff_with_eri(
-                    basis=basis, eri=Vc + Wdict[W], dc=dc,
-                    npdep_to_use=npdep_to_use, nspin=nspin,
-                    symmetrize=symmetrize, point_group_rep=point_group_rep,
-                    sigma=sigma
-                )
-                for W in Ws
-            }
-
+            heff = self.make_heff_with_eri(eri=Vc + W, dc=dc, symmetrize=symmetrize,
+                    point_group_rep=point_group_rep, sigma=sigma)
+            
         if run_fci_inplace:
             if not verbose:
                 # mute all self.write functions
@@ -2063,51 +812,42 @@ class CGWResults:
                 nel = np.sum(self.occ[:,basis_])
                 nelec = (int(round(nel))//2, int(round(nel))//2)
 
-            for W, heff in heffs.items():
-                data = {
-                    "basis_name": basis_name,
-                    "basis": basis,
-                    "nelec": nelec,
-                    "nspin": nspin,
-                    "eri": W,
-                    "dc": dc,
-                    "npdep": npdep_to_use,
-                }
+            data = {
+                "basis_name": basis_name,
+                "basis": self.ks_projectors,
+                "nelec": nelec,
+                "nspin": self.nspin,
+                "eri": Ws,
+                "dc": dc,
+            }
 
-                self.write("-----------------------------------------------------")
-                self.write("FCI calculation using ERI:", W)
+            self.write("-----------------------------------------------------")
+            self.write("FCI calculation using ERI:", W)
 
-                fcires = heff.FCI(nelec=nelec, nroots=nroots)
+            fcires = heff.FCI(nelec=nelec, nroots=nroots)
 
-                # self.write(fcires['excitations'])
+            self.write(f"{'#':>2}  {'ev':>5} {'term':>4} diag[1RDM - 1RDM(GS)]")
+            self.write(f"{'':>15}" + " ".join(f"{b:>4}" for b in self.basis))
+            ispin = 0
+            self.write(f"{'':>15}" + " ".join(f"{self.egvs[ispin,b]*hartree_to_ev:>4.1f}" for b in self.basis))
+            if self.point_group is not None:
+                self.write(f"{'':>15}" + " ".join(f"{s.partition('(')[0]:>4}" for s in orbital_symms))
+            for i, (ev, mult, symm, ex) in enumerate(zip(
+                    fcires["evs"], fcires["mults"], fcires["symms_maxproj"], fcires["excitations"]
+            )):
+                symbol = f"{int(round(mult))}{symm.partition('(')[0]}"
+                exstring = " ".join(f"{e:>4.1f}" for e in ex)
+                self.write(f"{i:>2}  {ev:.3f} {symbol:>4} {exstring}")
 
-                # self.write results
-                self.write(f"{'#':>2}  {'ev':>5} {'term':>4} diag[1RDM - 1RDM(GS)]")
-                self.write(f"{'':>15}" + " ".join(f"{b:>4}" for b in basis_))
-                ispin = 0
-                if self.projector_type == 'K':
-                    self.write(f"{'':>15}" + " ".join(f"{self.egvs[ispin, b]*hartree_to_ev:>4.1f}" for b in basis_))
-                if self.point_group is not None:
-                    self.write(f"{'':>15}" + " ".join(f"{s.partition('(')[0]:>4}" for s in orbital_symms))
-                if self.projector_type not in ('K','R'):
-                    if any(basis_labels):
-                        self.write(f"{'':>15}" + " ".join(f"{label:>4}" for label in basis_labels))
-                for i, (ev, mult, symm, ex) in enumerate(zip(
-                        fcires["evs"], fcires["mults"], fcires["symms_maxproj"], fcires["excitations"]
-                )):
-                    symbol = f"{int(round(mult))}{symm.partition('(')[0]}"
-                    exstring = " ".join(f"{e:>4.1f}" for e in ex)
-                    self.write(f"{i:>2}  {ev:.3f} {symbol:>4} {exstring}")
+                data.update({
+                    f"ev{i}": ev,
+                    f"mult{i}": mult,
+                    f"symm{i}": symm,
+                })
 
-                    data.update({
-                        f"ev{i}": ev,
-                        f"mult{i}": mult,
-                        f"symm{i}": symm,
-                    })
+            self.write("-----------------------------------------------------")
 
-                self.write("-----------------------------------------------------")
-
-                df = df.append(data, ignore_index=True)
+            df = df.append(data, ignore_index=True)
 
             if not verbose:
                 # mute all self.write functions
@@ -2119,36 +859,4 @@ class CGWResults:
             else:
                 return df
         else:
-            return heffs
-
-class Parallel:
-    def __init__(self,
-                n: int,
-                comm = None,
-                parallel: bool = True
-                ):
-
-        if parallel:
-            self.comm = comm
-            self.size = self.comm.Get_size()
-            self.rank = self.comm.Get_rank()
-        else:
-            self.size = 1
-            self.rank = 0
-
-        self.nglob = n
-
-        if self.rank + 1 <= self.nglob%self.size:
-            self.nloc = int(np.ceil(self.nglob/self.size))
-        else:
-            self.nloc = int(np.floor(self.nglob/self.size))
-
-    def l2g(self,
-            iloc: int = None):
-
-        return self.size * iloc + self.rank
-
-    def g2l(self,
-            iglob: int = None):
-
-        return iglob//self.size, iglob%self.size
+            return heff
