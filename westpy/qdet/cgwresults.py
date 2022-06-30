@@ -812,31 +812,3 @@ class CGWResults:
             if hasattr(self, 'nproj_sigma'):
                 self.egvs_sigma[ispin,:] = egvs[self.ks_projectors_sigma - 1]
                 self.occ_sigma[ispin,:] = occ[self.ks_projectors_sigma - 1]
-            # for use in solve_sigmac
-            if self.h1e_treatment in ('R','T'):
-                # assert self.nspin == 1
-                #
-                self.et[ispin, :] = egvs / rydberg_to_hartree
-                if self.nspin == 1:
-                    self.occ_numbers[ispin, :] = occ / 2
-                elif self.nspin == 2:
-                    self.occ_numbers[ispin, :] = occ
-                # self.write(self.occ_numbers)
-                #
-                t = find_index("Warning: fractional occupation case!", wfoutput)
-                if t != None:
-                    self.l_frac_occ = True
-                    i_list = find_indices("nbnd_occ_one", wfoutput)
-                    self.nbnd_occ_one[ispin] = parse_one_value(int, wfoutput[i_list[ispin]+1])
-                    i_list = find_indices("nbnd_occ_nonzero", wfoutput)
-                    self.nbnd_occ_nonzero[ispin] = parse_one_value(int, wfoutput[i_list[ispin]+1])
-                else: 
-                    self.l_frac_occ = False
-                    if self.nspin == 1:
-                        self.nbnd_occ_one[ispin] = int( self.nelec / 2 )
-                    elif self.nspin == 2:
-                        i = find_index("nelup", wfoutput)
-                        self.nbnd_occ_one[0] = parse_one_value(int, wfoutput[i])
-                        i = find_index("neldw", wfoutput)
-                        self.nbnd_occ_one[1] = parse_one_value(int, wfoutput[i])
-                    self.nbnd_occ_nonzero[ispin] = self.nbnd_occ_one[ispin]               
