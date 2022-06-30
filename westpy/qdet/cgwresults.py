@@ -61,62 +61,10 @@ class CGWResults:
         self.point_group = point_group
 
         # read general info from JSON file
-        self.js = json.load(open(f"{self.path}/west.wfreq.save/wfreq.json"))
-        self.nspin = self.js["system"]["electron"]["nspin"]
-        self.npdep = self.js["input"]["wfreq_control"]["n_pdep_eigen_to_use"]
-        self.omega = self.js["system"]["cell"]["omega"]
-        self.l_enable_lanczos = self.js["input"]["wfreq_control"]["l_enable_lanczos"]
-
-        self.cgw_calculation = self.js["input"]["cgw_control"]["cgw_calculation"]
-        self.h1e_treatment = self.js["input"]["cgw_control"]["h1e_treatment"]
-        self.projector_type = self.js["input"]["cgw_control"]["projector_type"]
-        self.nproj = 0
-        self.range = False
-        
-        # read data on Kohn-Sham active space
-        self.nbndstart, self.nbndend = np.array(self.js['input']['cgw_control']['ks_projector_range'], dtype=int)
-        if self.nbndstart != 0:
-            self.ks_projectors = np.arange(self.nbndstart, self.nbndend + 1)
-        else:
-            self.ks_projectors = np.array(self.js['input']['cgw_control']['ks_projectors'], dtype=int)
-        self.nproj = len(self.ks_projectors)
-        try:
-            self.nproj_sigma
-            self.ks_projectors_sigma
-        except:
-            self.nproj_sigma = self.nproj
-            self.ks_projectors_sigma = self.ks_projectors
-        # generate basis from Kohn-Sham projectors
-        self.basis = np.array(range(len(self.ks_projectors)))
-        # generate pairs of Kohn-Sham indices and mappings
-        self.npair, self.pijmap, self.ijpmap = self.make_index_map(self.nproj)
+        __read_wfreq_json(f"{self.path}/west.wfreq.save/wfreq.json")
         
         # read data from wfreq.out
-        wfoutput = open(f"{self.path}/wfreq.out").readlines()
-        i = find_index("Divergence =", wfoutput)
-        self.div = parse_one_value(float, wfoutput[i])
-        i = find_index("n_spectralf", wfoutput)
-        self.n_spectralf = parse_one_value(int, wfoutput[i])
-        i = find_index("n_imfreq", wfoutput)
-        self.n_imfreq = parse_one_value(int, wfoutput[i])
-        i = find_index("n_refreq", wfoutput)
-        self.n_refreq = parse_one_value(int, wfoutput[i])
-        i = find_index("n_lanczos", wfoutput)
-        self.n_lanczos = parse_one_value(int, wfoutput[i])
-        i = find_index("nbnd", wfoutput)
-        self.nbnd = parse_one_value(int, wfoutput[i])
-        i = find_index("ecut_imfreq", wfoutput)
-        self.ecut_imfreq = parse_one_value(float, wfoutput[i])
-        i = find_index("ecut_refreq", wfoutput)
-        self.ecut_refreq = parse_one_value(float, wfoutput[i])
-        i = find_index("nelec", wfoutput)
-        self.nelec = parse_one_value(float, wfoutput[i])
-        #
-        i = find_index("PBE0", wfoutput)
-        if i != None:
-            self.xc = 'ddh'
-        else:
-            self.xc = 'pbe'
+        __read_wfreq_out(f"{self.path}/wfreq.out")
 
         # read occupation numbers and Kohn-Sham eigenvalues
         self.occ = np.zeros([self.nspin, self.nproj])
@@ -130,55 +78,7 @@ class CGWResults:
         self.nbnd_occ_nonzero = np.zeros([self.nspin])
         # if occupation is not specified, read occupation from QE pwscf.save
         if occ is None:
-            # read occupation from pw xml file
-            for ispin in range(self.nspin):
-                if self.nspin == 1:
-                    xmlroot = etree.parse(f"{path}/pwscf.save/K00001/eigenval.xml")
-                else:
-                    xmlroot = etree.parse(f"{path}/pwscf.save/K00001/eigenval{ispin+1}.xml")
-                egvsleaf = xmlroot.find("./EIGENVALUES")
-                nbnd = int(egvsleaf.attrib["size"])
-                egvs = np.fromstring(egvsleaf.text, sep=" ")
-                occleaf = xmlroot.find("./OCCUPATIONS")
-                occ = np.fromstring(occleaf.text, sep=" ")
-                assert egvs.shape == (nbnd,) and occ.shape == (nbnd,)
-                if self.nspin == 1:
-                    occ *= 2
-                self.egvs[ispin, :] = egvs[self.ks_projectors - 1]  # -1 because band index start from 1
-                self.occ[ispin, :] = occ[self.ks_projectors - 1]
-                if hasattr(self, 'nproj_sigma'):
-                    self.egvs_sigma[ispin,:] = egvs[self.ks_projectors_sigma - 1]
-                    self.occ_sigma[ispin,:] = occ[self.ks_projectors_sigma - 1]
-                # for use in solve_sigmac
-                if self.h1e_treatment in ('R','T'):
-                    # assert self.nspin == 1
-                    #
-                    self.et[ispin, :] = egvs / rydberg_to_hartree
-                    if self.nspin == 1:
-                        self.occ_numbers[ispin, :] = occ / 2
-                    elif self.nspin == 2:
-                        self.occ_numbers[ispin, :] = occ
-                    # self.write(self.occ_numbers)
-                    #
-                    t = find_index("Warning: fractional occupation case!", wfoutput)
-                    if t != None:
-                        self.l_frac_occ = True
-                        i_list = find_indices("nbnd_occ_one", wfoutput)
-                        self.nbnd_occ_one[ispin] = parse_one_value(int, wfoutput[i_list[ispin]+1])
-                        i_list = find_indices("nbnd_occ_nonzero", wfoutput)
-                        self.nbnd_occ_nonzero[ispin] = parse_one_value(int, wfoutput[i_list[ispin]+1])
-                    else: 
-                        self.l_frac_occ = False
-                        if self.nspin == 1:
-                            self.nbnd_occ_one[ispin] = int( self.nelec / 2 )
-                        elif self.nspin == 2:
-                            i = find_index("nelup", wfoutput)
-                            self.nbnd_occ_one[0] = parse_one_value(int, wfoutput[i])
-                            i = find_index("neldw", wfoutput)
-                            self.nbnd_occ_one[1] = parse_one_value(int, wfoutput[i])
-                        self.nbnd_occ_nonzero[ispin] = self.nbnd_occ_one[ispin]               
-                    # self.write(self.nbnd_occ_one, self.nbnd_occ_nonzero)
-                    # self.ecut_refreq = parse_one_value(float, wfoutput[i])
+            __read_pw_xml(f"{path}/pwscf.save/K00001/")
         else:
             self.write("Warning: user-defined occupation!")
             self.occ[...] = occ
@@ -387,28 +287,18 @@ class CGWResults:
             ).reshape(self.nspin, self.nproj, self.nproj))
 
         if self.h1e_treatment in ('R','T') or hasattr(self, 'nproj_sigma'):
-            for vertex in ('n'):
-                self.parse_sigma(vertex)
+            self.parse_sigma()
 
-    def parse_sigma(self,vertex):
+    def parse_sigma(self):
 
-        checklist_cgw = [f"sigmax_{vertex}_a",f"sigmax_{vertex}_e",f"sigmax_{vertex}_f"]
+        checklist_cgw = [f"sigmax_n_a",f"sigmax_n_e",f"sigmax_n_f"]
         for h in checklist_cgw:
-            if self.h1e_treatment == 'R':
-                tmp = np.fromfile(
-                    f"{self.path}/west.wfreq.save/{h}.dat", dtype=float
-                ).reshape(self.nspin, self.nproj_sigma, self.nproj_sigma)
-                # self.write(tmp)
-            elif self.h1e_treatment == 'T':
-                tmp1 = np.fromfile(
-                    f"{self.path}/west.wfreq.save/{h}.dat", dtype=float
-                ).reshape(self.nspin, self.nproj_sigma)
-                tmp = np.zeros([self.nspin, self.nproj_sigma, self.nproj_sigma], dtype=float)
-                for ispin in range(self.nspin):
-                    tmp[ispin, ...] = np.diag(tmp1[ispin, ...])
+            tmp = np.fromfile(
+                f"{self.path}/west.wfreq.save/{h}.dat", dtype=float
+            ).reshape(self.nspin, self.nproj_sigma, self.nproj_sigma)
             setattr(self, h, tmp)
             
-        checklist_cgw = [f"qp_energy_{vertex}"]
+        checklist_cgw = [f"qp_energy_n"]
         for h in checklist_cgw:
             tmp1 = np.fromfile(
                     f"{self.path}/west.wfreq.save/{h}.dat", dtype=float
@@ -418,28 +308,17 @@ class CGWResults:
                 tmp[ispin, ...] = np.diag(tmp1[ispin, ...]) 
             setattr(self, h, tmp)
 
-        checklist_cgw = [f"sigmac_eigen_{vertex}_a",f"sigmac_eigen_{vertex}_e",f"sigmac_eigen_{vertex}_f"]
+        checklist_cgw =
+        [f"sigmac_eigen_n_a",f"sigmac_eigen_n_e",f"sigmac_eigen_n_f"]
         for h in checklist_cgw:
-            if self.h1e_treatment == 'R':
-                tmp = np.fromfile(
-                    f"{self.path}/west.wfreq.save/{h}.dat", dtype=float
-                ).reshape(self.nspin, self.nproj_sigma, self.nproj_sigma)
-                # self.write(tmp)
-            elif self.h1e_treatment == 'T':
-                tmp1 = np.fromfile(
-                    f"{self.path}/west.wfreq.save/{h}.dat", dtype=float
-                ).reshape(self.nspin, self.nproj_sigma)
-                tmp = np.zeros([self.nspin, self.nproj_sigma, self.nproj_sigma], dtype=float)
-                for ispin in range(self.nspin):
-                    tmp[ispin, ...] = np.diag(tmp1[ispin, ...])
+            tmp = np.fromfile(
+                f"{self.path}/west.wfreq.save/{h}.dat", dtype=float
+            ).reshape(self.nspin, self.nproj_sigma, self.nproj_sigma)
             setattr(self, h, tmp)
 
-        checklist_cgw = [f"sigmac_{vertex}_a",f"sigmac_{vertex}_e",f"sigmac_{vertex}_f"]
+        checklist_cgw = [f"sigmac_n_a",f"sigmac_n_e",f"sigmac_n_f"]
 
         for h in checklist_cgw:
-            # setattr(self, h, np.fromfile(
-            #     f"{self.path}/west.wfreq.save/{h}.dat", dtype=float
-            # ).reshape(self.nspin, self.nproj, 3, self.n_spectralf))
             tmp = np.fromfile(
                 f"{self.path}/west.wfreq.save/{h}.dat", dtype=float
             ).reshape(self.nspin, self.nproj_sigma, 3, self.n_spectralf)
@@ -450,27 +329,6 @@ class CGWResults:
                         for iproj in range(self.nproj_sigma):
                             tmp1[ispin,iproj,iproj,index,i_spectralf] = tmp[ispin,iproj,index,i_spectralf]
             setattr(self, h, tmp1*ev_to_hartree) 
-
-        if vertex == 'n':
-            data = getattr(self,'sigmac_'+vertex+'_e') 
-            for ispin in range(self.nspin):
-                plt.figure()
-                legend = [f'$\Sigma^E$-{iproj}' for iproj in list(self.ks_projectors_sigma)]
-                for iproj in range(self.nproj_sigma):
-                    x = copy.deepcopy(data[ispin,iproj,iproj,0,:])
-                    # res = copy.deepcopy(data[0,iproj,iproj,1,:])
-                    res = copy.deepcopy(data[ispin,iproj,iproj,1,:]) + getattr(self,'sigmax_'+vertex+'_e')[ispin,iproj,iproj]
-                    plt.plot(x * hartree_to_ev,res * hartree_to_ev)
-                    #
-                #     legend.append(f'$\Sigma^F$-{orbital[iproj]}')
-                #     legend.append(f'$\Sigma^A$-{orbital[iproj]}')
-
-                plt.title(f'{self.xc.upper()}-Re$\Sigma$-Spin{ispin}')
-                plt.xlabel('$\omega$ (eV)')
-                plt.ylabel('E (eV)')
-                plt.legend(legend)
-                plt.savefig(f'{self.xc}-re-spin{ispin}.pdf',bbox_inches='tight')
-                plt.show()
 
         basis_ = []
         for i in self.ks_projectors_sigma:
@@ -859,3 +717,128 @@ class CGWResults:
                 return df
         else:
             return heff
+    def __read_wfreq_json(filename):
+        """The function reads parameters from JSON file and stores them in class
+        variables.
+        Args:
+            filename: filename of the wfreq JSON output file. 
+        """
+        self.js = json.load(open(filename))
+        self.nspin = self.js["system"]["electron"]["nspin"]
+        self.npdep = self.js["input"]["wfreq_control"]["n_pdep_eigen_to_use"]
+        self.omega = self.js["system"]["cell"]["omega"]
+        self.l_enable_lanczos = self.js["input"]["wfreq_control"]["l_enable_lanczos"]
+
+        self.cgw_calculation = self.js["input"]["cgw_control"]["cgw_calculation"]
+        self.h1e_treatment = self.js["input"]["cgw_control"]["h1e_treatment"]
+        self.projector_type = self.js["input"]["cgw_control"]["projector_type"]
+        self.nproj = 0
+        
+        # read data on Kohn-Sham active space
+        nbndstart, nbndend = np.array(self.js['input']['cgw_control']['ks_projector_range'], dtype=int)
+        if nbndstart != 0:
+            self.ks_projectors = np.arange(nbndstart, nbndend + 1)
+        else:
+            self.ks_projectors = np.array(self.js['input']['cgw_control']['ks_projectors'], dtype=int)
+        self.nproj = len(self.ks_projectors)
+        try:
+            self.nproj_sigma
+            self.ks_projectors_sigma
+        except:
+            self.nproj_sigma = self.nproj
+            self.ks_projectors_sigma = self.ks_projectors
+        # generate basis from Kohn-Sham projectors
+        self.basis = np.array(range(len(self.ks_projectors)))
+        # generate pairs of Kohn-Sham indices and mappings
+        self.npair, self.pijmap, self.ijpmap = self.make_index_map(self.nproj)
+
+        return
+
+    def __read_wfreq_out(filename):
+        """ Reads parameters from wfreq.out and stores them in class variables.
+        Args:
+            filename: filename of the wfreq.out file
+        """
+
+        wfoutput = open(filename).readlines()
+        i = find_index("Divergence =", wfoutput)
+        self.div = parse_one_value(float, wfoutput[i])
+        i = find_index("n_spectralf", wfoutput)
+        self.n_spectralf = parse_one_value(int, wfoutput[i])
+        i = find_index("n_imfreq", wfoutput)
+        self.n_imfreq = parse_one_value(int, wfoutput[i])
+        i = find_index("n_refreq", wfoutput)
+        self.n_refreq = parse_one_value(int, wfoutput[i])
+        i = find_index("n_lanczos", wfoutput)
+        self.n_lanczos = parse_one_value(int, wfoutput[i])
+        i = find_index("nbnd", wfoutput)
+        self.nbnd = parse_one_value(int, wfoutput[i])
+        i = find_index("ecut_imfreq", wfoutput)
+        self.ecut_imfreq = parse_one_value(float, wfoutput[i])
+        i = find_index("ecut_refreq", wfoutput)
+        self.ecut_refreq = parse_one_value(float, wfoutput[i])
+        i = find_index("nelec", wfoutput)
+        self.nelec = parse_one_value(float, wfoutput[i])
+        #
+        i = find_index("PBE0", wfoutput)
+        if i != None:
+            self.xc = 'ddh'
+        else:
+            self.xc = 'pbe'
+
+        return
+
+    def __read_pw_xml(path):
+        """ Read Kohn-Sham eigenvalues and occupations from Quantum Espresso
+        XML files and store it in class variables.
+        Args:
+            path: directory that contains the eigenval.xml or set of
+            eigenval*.xml files.
+        """
+
+        for ispin in range(self.nspin):
+            if self.nspin == 1:
+                xmlroot = etree.parse(path+"eigenval.xml")
+            else:
+                xmlroot = etree.parse(path+"eigenval{ispin+1}.xml")
+            egvsleaf = xmlroot.find("./EIGENVALUES")
+            nbnd = int(egvsleaf.attrib["size"])
+            egvs = np.fromstring(egvsleaf.text, sep=" ")
+            occleaf = xmlroot.find("./OCCUPATIONS")
+            occ = np.fromstring(occleaf.text, sep=" ")
+            assert egvs.shape == (nbnd,) and occ.shape == (nbnd,)
+            if self.nspin == 1:
+                occ *= 2
+            self.egvs[ispin, :] = egvs[self.ks_projectors - 1]  # -1 because band index start from 1
+            self.occ[ispin, :] = occ[self.ks_projectors - 1]
+            if hasattr(self, 'nproj_sigma'):
+                self.egvs_sigma[ispin,:] = egvs[self.ks_projectors_sigma - 1]
+                self.occ_sigma[ispin,:] = occ[self.ks_projectors_sigma - 1]
+            # for use in solve_sigmac
+            if self.h1e_treatment in ('R','T'):
+                # assert self.nspin == 1
+                #
+                self.et[ispin, :] = egvs / rydberg_to_hartree
+                if self.nspin == 1:
+                    self.occ_numbers[ispin, :] = occ / 2
+                elif self.nspin == 2:
+                    self.occ_numbers[ispin, :] = occ
+                # self.write(self.occ_numbers)
+                #
+                t = find_index("Warning: fractional occupation case!", wfoutput)
+                if t != None:
+                    self.l_frac_occ = True
+                    i_list = find_indices("nbnd_occ_one", wfoutput)
+                    self.nbnd_occ_one[ispin] = parse_one_value(int, wfoutput[i_list[ispin]+1])
+                    i_list = find_indices("nbnd_occ_nonzero", wfoutput)
+                    self.nbnd_occ_nonzero[ispin] = parse_one_value(int, wfoutput[i_list[ispin]+1])
+                else: 
+                    self.l_frac_occ = False
+                    if self.nspin == 1:
+                        self.nbnd_occ_one[ispin] = int( self.nelec / 2 )
+                    elif self.nspin == 2:
+                        i = find_index("nelup", wfoutput)
+                        self.nbnd_occ_one[0] = parse_one_value(int, wfoutput[i])
+                        i = find_index("neldw", wfoutput)
+                        self.nbnd_occ_one[1] = parse_one_value(int, wfoutput[i])
+                    self.nbnd_occ_nonzero[ispin] = self.nbnd_occ_one[ispin]               
