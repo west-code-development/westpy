@@ -94,15 +94,12 @@ class QDETResults:
         self.chi0a_ref = np.fromfile(
             "{}/west.wfreq.save/chi0a.dat".format(path), dtype=complex
         ).reshape(self.npdep + 3, self.npdep + 3).T
-        self.p_ref = np.fromfile(
-            "{}/west.wfreq.save/p.dat".format(path), dtype=complex
-        ).reshape(self.npdep + 3, self.npdep + 3).T
 
         if verbose:
             self.print_summary()
 
-    def print_summary(self):
-        """ Print a summary after parsing CGW results. """
+    def __str__(self):
+        """ Print a summary of QDET calculation. """
         self.write("---------------------------------------------------------------")
         self.write("CGW Results General Info")
         self.write(f"path: {self.path}")
@@ -116,11 +113,11 @@ class QDETResults:
         self.write("occupations:")
         self.write(self.occ)
         self.write("max|chi0a - chi0a_ref| = {:.3f}".format(
-            np.max(np.abs(self.compute_chi0a() - self.chi0a_ref))
+            np.max(np.abs(self.__compute_chi0a() - self.chi0a_ref))
             ))
         self.write("---------------------------------------------------------------")
 
-    def compute_chi0a(self) -> np.ndarray:
+    def __compute_chi0a(self) -> np.ndarray:
         """ Compute chi0^a (chi0 projected into active space).
 
         Returns:
@@ -153,12 +150,12 @@ class QDETResults:
         return chi0a
 
     @staticmethod
-    def extract(m, npdep_to_use: int) -> np.ndarray:
+    def __extract(m, npdep_to_use: int) -> np.ndarray:
         """ Helper function to handle macroscopic part of chi0. """
         s = list(range(npdep_to_use)) + [-3, -2, -1]
         return m[s, :][:, s]
 
-    def compute_Ws(self, Ws: str) -> np.ndarray:
+    def __compute_Ws(self, Ws: str) -> np.ndarray:
         """ Compute unconstrained Wp (independent of active space) and
         constrained Wrp of a certain active space.
 
@@ -171,7 +168,7 @@ class QDETResults:
         """
         npdep_to_use = self.npdep
 
-        chi0 = self.extract(self.chi0, self.npdep)
+        chi0 = self.__extract(self.chi0, self.npdep)
 
         chirpa = self.solve_dyson_with_identity_kernel(chi0)
         
@@ -185,7 +182,7 @@ class QDETResults:
                 wps = (0, np.zeros([npdep_to_use, npdep_to_use]))
         # partially screened potential
         elif Ws.split('_')[0] == 'Wrp':
-            chi0a = self.compute_chi0a()
+            chi0a = self.__compute_chi0a()
             # TODO: Why are not just extracting?
             #chi0a = self.extract(self.chi0a_ref, npdep_to_use=npdep_to_use)
             chi0r = chi0 - chi0a
@@ -195,7 +192,7 @@ class QDETResults:
                 wps = self.solve_dyson_with_identity_kernel(chi0r)
             
         # compute ERI from W in PDEP basis
-        Ws = self.solve_eri(h=wps[0] if self.eps_infty is None else (1.0 / self.eps_infty - 1.0),
+        Ws = self.__npdep_to_eri(h=wps[0] if self.eps_infty is None else (1.0 / self.eps_infty - 1.0),
                             B=wps[1])
 
         return Ws
@@ -307,7 +304,7 @@ class QDETResults:
             self.nspin, self.nspin, self.npair, self.npair).real
         return self.unfold_eri(eri_pair, self.nproj)
 
-    def solve_eri(self,
+    def __npdep_to_eri(self,
                   h: float,
                   B: np.ndarray) -> np.ndarray:
         """ Compute ERI of given W (defined by head h and body B) on a basis of KS orbitals.
@@ -498,7 +495,7 @@ class QDETResults:
 
         Vc = self.Vc[:,:,self.basis,:,:,:][:,:,:,self.basis,:,:][:,:,:,:,self.basis,:][:,:,:,:,:,self.basis]
         # calculate screened electron repulsion integrals
-        W = self.compute_Ws(Ws)
+        W = self.__compute_Ws(Ws)
 
         # determine point-group representation
         if self.point_group is None:
@@ -605,8 +602,6 @@ class QDETResults:
         self.omega = self.js["system"]["cell"]["omega"]
         self.l_enable_lanczos = self.js["input"]["wfreq_control"]["l_enable_lanczos"]
 
-        self.cgw_calculation = self.js["input"]["cgw_control"]["cgw_calculation"]
-        self.h1e_treatment = self.js["input"]["cgw_control"]["h1e_treatment"]
         self.nproj = 0
         
         # read data on Kohn-Sham active space
@@ -624,39 +619,6 @@ class QDETResults:
 
         return
 
-    def __read_wfreq_out(self, filename):
-        """ Reads parameters from wfreq.out and stores them in class variables.
-        Args:
-            filename: filename of the wfreq.out file
-        """
-
-        wfoutput = open(filename).readlines()
-        i = find_index("Divergence =", wfoutput)
-        self.div = parse_one_value(float, wfoutput[i])
-        i = find_index("n_spectralf", wfoutput)
-        self.n_spectralf = parse_one_value(int, wfoutput[i])
-        i = find_index("n_imfreq", wfoutput)
-        self.n_imfreq = parse_one_value(int, wfoutput[i])
-        i = find_index("n_refreq", wfoutput)
-        self.n_refreq = parse_one_value(int, wfoutput[i])
-        i = find_index("n_lanczos", wfoutput)
-        self.n_lanczos = parse_one_value(int, wfoutput[i])
-        i = find_index("nbnd", wfoutput)
-        self.nbnd = parse_one_value(int, wfoutput[i])
-        i = find_index("ecut_imfreq", wfoutput)
-        self.ecut_imfreq = parse_one_value(float, wfoutput[i])
-        i = find_index("ecut_refreq", wfoutput)
-        self.ecut_refreq = parse_one_value(float, wfoutput[i])
-        i = find_index("nelec", wfoutput)
-        self.nelec = parse_one_value(float, wfoutput[i])
-        #
-        i = find_index("PBE0", wfoutput)
-        if i != None:
-            self.xc = 'ddh'
-        else:
-            self.xc = 'pbe'
-
-        return
     def __read_pw_xml(self, path):
         """ Read Kohn-Sham eigenvalues and occupations from Quantum Espresso
         XML files and store it in class variables.
