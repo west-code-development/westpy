@@ -19,16 +19,9 @@ class QDETResults:
     ev_thr = 0.001 * ev_to_hartree  # threshold for determining degenerate states
     occ_thr = 0.001  # threshold for determining equal occupations
 
-    # labels for all possible expressions of W
-    Ws_all = [
-        "Wrp_rpa", "Wrp_tc", "Wrp_te", "Wrp_vte", "Wrp_epstev",
-        "Wp_rpa", "Wp_tc", "Wp_te", "Wp_vte", "Wp_epstev", "Wp_zero"
-    ]
-
     def __init__(self,
                  path: str,
                  occ: Optional[np.ndarray] = None,
-                 fxc: Optional[np.ndarray] = None,
                  eps_infty: Optional[float] = None,
                  overlap_basis: Optional[Union[Dict, List[int]]] = None,
                  point_group: Optional[PointGroup] = None,
@@ -38,23 +31,10 @@ class QDETResults:
         Args:
             path: directory where pw, wstat and wfreq calculations are performed.
             occ: occupation numbers. Read from pw results if not defined.
-            fxc: user-defined fxc matrix on PDEP basis. Read from wstat save folder if not defined.
             eps_infty: user-defined epsilon infinity.
             point_group: point group of the system.
             verbose: if True, self.write a summary.
         """
-
-        try:
-            from mpi4py import MPI
-            self.comm = MPI.COMM_WORLD
-            self.parallel = True
-            self.size = self.comm.size
-            self.rank = self.comm.rank
-        except:
-            self.comm = None
-            self.parallel = False
-            self.size = 1
-            self.rank = 0
 
         self.path = path
         self.eps_infty = eps_infty
@@ -69,9 +49,7 @@ class QDETResults:
         # read occupation numbers and Kohn-Sham eigenvalues
         self.occ = np.zeros([self.nspin, self.nproj])
         self.egvs = np.zeros([self.nspin, self.nproj])
-        if hasattr(self, 'nproj_sigma'):
-            self.occ_sigma = np.zeros([self.nspin, self.nproj_sigma])
-            self.egvs_sigma = np.zeros([self.nspin, self.nproj_sigma])
+        
         # if occupation is not specified, read occupation from QE pwscf.save
         if occ is None:
             self.__read_pw_xml(f"{path}/pwscf.save/K00001/")
@@ -88,35 +66,12 @@ class QDETResults:
         # 1 electron Hamiltonian elements
         self.parse_h1e()
 
-        if hasattr(self, 'nproj_sigma'):
-            self.qps_sigma = np.zeros((self.nspin,self.nproj_sigma))
-            for ispin in range(self.nspin):
-                self.qps_sigma[ispin,:] = np.einsum("ii->i", self.qp_energy_n[ispin,:,:], optimize=True)
-        else:
-            self.qps = np.zeros((self.nspin,self.nproj))
-            for ispin in range(self.nspin):
-                self.qps[ispin,:] = np.einsum("ii->i", self.qp_energy_n[ispin,:,:], optimize=True)
+        self.qps = np.zeros((self.nspin,self.nproj))
+        for ispin in range(self.nspin):
+            self.qps[ispin,:] = np.einsum("ii->i", self.qp_energy_n[ispin,:,:], optimize=True)
 
         # read bare Coulomb potential Vc from file
         self.Vc = self.parse_eri("/west.wfreq.save/vc.dat")
-
-        # read fxc kernel from file or use user-provided matrix
-        self.fxc = np.zeros([self.npdep, self.npdep])
-        if fxc is None:
-            try:
-                self.parse_fxc(f"{self.path}/west.wstat.save/FXC.dat")
-            except:
-                self.write("Warning: error reading fxc file, fxc is set to zero!")
-        else:
-            self.write("Warning: user-defined fxc matrix!")
-            if isinstance(fxc, np.ndarray):
-                assert fxc.shape == (self.npdep, self.npdep)
-                self.fxc[...] = fxc
-            else:
-                self.parse_fxc(fxc)
-        # identity matrix in (npdep, npdep)-matrix
-        self.I = np.eye(self.npdep)
-        self.fhxc = self.fxc + self.I
 
         # braket and overlap
         self.overlap = np.fromfile(f"{path}/west.wfreq.save/overlap.dat", dtype=float).reshape(
@@ -145,23 +100,6 @@ class QDETResults:
 
         if verbose:
             self.print_summary()
-
-    def parse_fxc(self, path: str):
-        """ Read fxc matrix from FXC.dat.
-
-        Args:
-            path: directory containing FXC.dat.
-
-        Returns:
-            fxc matrix.
-        """
-        self.fxc[...] = 0
-        fxc = WstatOutput.parse_fxc(path)
-        npdep_ = fxc.shape[0]
-        n = min(self.npdep, npdep_)
-        if n < self.npdep:
-            self.write("Warning: fxc dimension < npdep, extra elements are set to zero")
-        self.fxc[:n, :n] = fxc[:n, :n]
 
     def print_summary(self):
         """ Print a summary after parsing CGW results. """
@@ -282,8 +220,7 @@ class QDETResults:
                 f"{self.path}/west.wfreq.save/{h}.dat", dtype=float
             ).reshape(self.nspin, self.nproj, self.nproj))
 
-        if self.h1e_treatment in ('R','T') or hasattr(self, 'nproj_sigma'):
-            self.parse_sigma()
+        self.parse_sigma()
 
     def parse_sigma(self):
 
@@ -291,15 +228,15 @@ class QDETResults:
         for h in checklist_cgw:
             tmp = np.fromfile(
                 f"{self.path}/west.wfreq.save/{h}.dat", dtype=float
-            ).reshape(self.nspin, self.nproj_sigma, self.nproj_sigma)
+            ).reshape(self.nspin, self.nproj, self.nproj)
             setattr(self, h, tmp)
             
         checklist_cgw = [f"qp_energy_n"]
         for h in checklist_cgw:
             tmp1 = np.fromfile(
                     f"{self.path}/west.wfreq.save/{h}.dat", dtype=float
-            ).reshape(self.nspin, self.nproj_sigma)
-            tmp = np.zeros([self.nspin, self.nproj_sigma, self.nproj_sigma], dtype=float)
+            ).reshape(self.nspin, self.nproj)
+            tmp = np.zeros([self.nspin, self.nproj, self.nproj], dtype=float)
             for ispin in range(self.nspin):
                 tmp[ispin, ...] = np.diag(tmp1[ispin, ...]) 
             setattr(self, h, tmp)
@@ -308,7 +245,7 @@ class QDETResults:
         for h in checklist_cgw:
             tmp = np.fromfile(
                 f"{self.path}/west.wfreq.save/{h}.dat", dtype=float
-            ).reshape(self.nspin, self.nproj_sigma, self.nproj_sigma)
+            ).reshape(self.nspin, self.nproj, self.nproj)
             setattr(self, h, tmp)
 
         checklist_cgw = [f"sigmac_n_a",f"sigmac_n_e",f"sigmac_n_f"]
@@ -316,17 +253,17 @@ class QDETResults:
         for h in checklist_cgw:
             tmp = np.fromfile(
                 f"{self.path}/west.wfreq.save/{h}.dat", dtype=float
-            ).reshape(self.nspin, self.nproj_sigma, 3, self.n_spectralf)
-            tmp1 = np.zeros((self.nspin, self.nproj_sigma, self.nproj_sigma, 3, self.n_spectralf))
+            ).reshape(self.nspin, self.nproj, 3, self.n_spectralf)
+            tmp1 = np.zeros((self.nspin, self.nproj, self.nproj, 3, self.n_spectralf))
             for i_spectralf in range(self.n_spectralf):
                 for index in range(3):
                     for ispin in range(self.nspin):
-                        for iproj in range(self.nproj_sigma):
+                        for iproj in range(self.nproj):
                             tmp1[ispin,iproj,iproj,index,i_spectralf] = tmp[ispin,iproj,index,i_spectralf]
             setattr(self, h, tmp1*ev_to_hartree) 
 
         basis_ = []
-        for i in self.ks_projectors_sigma:
+        for i in self.ks_projectors:
             basis_ += np.argwhere(self.ks_projectors == i)[0].tolist()
         basis_ = np.array(basis_)
 
@@ -522,39 +459,6 @@ class QDETResults:
 
         return h1e
 
-    def make_heff_with_eri(self,
-                            eri: np.ndarray,
-                            dc: str = "exact",
-                            point_group_rep: PointGroupRep = None,
-                            nspin: int = 1,
-                            symmetrize: Dict[str, bool] = {},
-                            sigma: Optional[List[np.ndarray]] = None) -> Heff:
-        """ Construct effective Hamiltonian based on ERI.
-
-        Args:
-            eri: ERI.
-            dc: scheme for computing double counting.
-            point_group_rep: representation of
-            nspin: # of spin channels.
-            symmetrize: arguments for symmetrization function of Heff.
-
-        Returns:
-            effective Hamiltonian.
-        """
-        # calculate effective one-body terms
-        h1e = self.compute_h1e_from_hks(eri, dc=dc, sigma=sigma)
-        # calculate point-group representation
-        if point_group_rep is None and self.point_group is not None:
-            orbitals = [
-                VData(f"{self.path}/west.westpp.save/wfcK000001B{i:06d}.cube", normalize="sqrt")
-                for i in self.ks_projectors
-            ]
-            point_group_rep, _ = self.point_group.compute_rep_on_orbitals(orbitals, orthogonalize=True)
-        # initialize class for effective Hamiltonian
-        heff = Heff(h1e, eri, point_group_rep=point_group_rep)
-        heff.symmetrize(**symmetrize)
-        return heff
-
     def make_heffs(self,
                     basis_name: str = "",
                     Ws: str = "Wrp_rpa",
@@ -598,8 +502,6 @@ class QDETResults:
         else:
             basis_name = basis_name
         
-        basis__sigma = self.basis
-
         npdep_to_use = self.npdep
 
         Vc = self.Vc[:,:,self.basis,:,:,:][:,:,:,self.basis,:,:][:,:,:,:,self.basis,:][:,:,:,:,:,self.basis]
@@ -617,11 +519,12 @@ class QDETResults:
             point_group_rep, orbital_symms = self.point_group.compute_rep_on_orbitals(orbitals, orthogonalize=True)
 
         if Ws == 'Bare':
-            heff = self.make_heff_with_eri(eri=Vc, dc=dc, symmetrize=symmetrize,
-                    point_group_rep=point_group_rep, sigma=sigma)
+            h1e = self.compute_h1e_from_hks(eri=Vc, dc=dc, sigma=sigma)
         else:
-            heff = self.make_heff_with_eri(eri=Vc + W, dc=dc, symmetrize=symmetrize,
-                    point_group_rep=point_group_rep, sigma=sigma)
+            h1e = self.compute_h1e_from_hks(eri=Vc + W, dc=dc, sigma=sigma)
+            
+        heff = Heff(h1e, eri, point_group_rep=point_group_rep)
+        heff.symmetrize(**symmetrize)
             
         if run_fci_inplace:
             if not verbose:
@@ -640,12 +543,7 @@ class QDETResults:
             if basis_name:
                 self.write(f"basis_name: {basis_name}")
             self.write(f"nspin: {self.nspin}, double counting: {dc}")
-            if self.projector_type in ('M','B','R'):
-                self.write(f"local_projectors: {self.local_projectors}")
-            if self.projector_type in ('K','M'):
-                self.write(f"ks_projectors: {self.basis}")
-            if self.projector_type == 'K':
-                self.write(f"ks_eigenvalues: {self.egvs[:, self.basis] * hartree_to_ev}")
+            self.write(f"ks_eigenvalues: {self.egvs[:, self.basis] * hartree_to_ev}")
             self.write(f"occupations: {self.occ[:, self.basis]}")
             self.write(f"npdep_to_use: {self.npdep}")
             self.write("===============================================================")
@@ -702,6 +600,7 @@ class QDETResults:
                 return df
         else:
             return heff
+    
     def __read_wfreq_json(self, filename):
         """The function reads parameters from JSON file and stores them in class
         variables.
@@ -726,12 +625,7 @@ class QDETResults:
         else:
             self.ks_projectors = np.array(self.js['input']['cgw_control']['ks_projectors'], dtype=int)
         self.nproj = len(self.ks_projectors)
-        try:
-            self.nproj_sigma
-            self.ks_projectors_sigma
-        except:
-            self.nproj_sigma = self.nproj
-            self.ks_projectors_sigma = self.ks_projectors
+        
         # generate basis from Kohn-Sham projectors
         self.basis = np.array(range(len(self.ks_projectors)))
         # generate pairs of Kohn-Sham indices and mappings
@@ -795,6 +689,3 @@ class QDETResults:
                 occ *= 2
             self.egvs[ispin, :] = egvs[self.ks_projectors - 1]  # -1 because band index start from 1
             self.occ[ispin, :] = occ[self.ks_projectors - 1]
-            if hasattr(self, 'nproj_sigma'):
-                self.egvs_sigma[ispin,:] = egvs[self.ks_projectors_sigma - 1]
-                self.occ_sigma[ispin,:] = occ[self.ks_projectors_sigma - 1]
