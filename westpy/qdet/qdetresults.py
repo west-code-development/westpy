@@ -260,13 +260,12 @@ class QDETResults:
 
     def write(self, *args):
 
-        if self.rank == 0:
-            data = ''
-            for i in args:
-                data += str(i)
-                data += ' '
-            data = data[:-1]
-            print(data)
+        data = ''
+        for i in args:
+            data += str(i)
+            data += ' '
+        data = data[:-1]
+        print(data)
 
     @staticmethod
     def make_index_map(n: int) -> Tuple[int, np.ndarray, np.ndarray]:
@@ -509,10 +508,11 @@ class QDETResults:
 
         if Ws == 'Bare':
             h1e = self.compute_h1e_from_hks(eri=Vc, dc=dc, sigma=sigma)
+            heff = Heff(h1e, eri=Vc, point_group_rep=point_group_rep)
         else:
             h1e = self.compute_h1e_from_hks(eri=Vc + W, dc=dc, sigma=sigma)
+            heff = Heff(h1e, eri=Vc + W, point_group_rep=point_group_rep)
             
-        heff = Heff(h1e, eri, point_group_rep=point_group_rep)
         heff.symmetrize(**symmetrize)
             
         if run_fci_inplace:
