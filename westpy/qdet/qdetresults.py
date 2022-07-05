@@ -14,7 +14,7 @@ from westpy.qdet.symm import PointGroup, PointGroupRep
 from westpy.qdet.west_output import WstatOutput
 
 
-class CGWResults:
+class QDETResults:
 
     ev_thr = 0.001 * ev_to_hartree  # threshold for determining degenerate states
     occ_thr = 0.001  # threshold for determining equal occupations
