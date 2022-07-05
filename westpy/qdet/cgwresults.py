@@ -330,16 +330,6 @@ class CGWResults:
             basis_ += np.argwhere(self.ks_projectors == i)[0].tolist()
         basis_ = np.array(basis_)
 
-        for ispin in range(self.nspin):
-            self.write( ( self.hks[ispin,basis_,:][:,basis_] - self.vxc[ispin,basis_,:][:,basis_] - self.vxx[ispin,basis_,:][:,basis_]\
-                    + self.sigmac_eigen_n_f[ispin,:,:] \
-                    + self.sigmax_n_f[ispin,:,:] - self.qp_energy_n[ispin,:,:] ) * hartree_to_ev )
-            self.write("max|E - ($\epsilon$ + $\Sigma$ - $V_{{xc}}$)| = {:.3f} eV".format(
-                    np.max(np.einsum("ii->i", np.abs(self.hks[ispin,basis_,:][:,basis_] - self.vxc[ispin,basis_,:][:,basis_]\
-                    - self.vxx[ispin,basis_,:][:,basis_] + self.sigmac_eigen_n_f[ispin,:,:] \
-                    + self.sigmax_n_f[ispin,:,:] - self.qp_energy_n[ispin,:,:]) * hartree_to_ev, optimize=True) )
-                ))
-
         return
 
     def write(self, *args):
