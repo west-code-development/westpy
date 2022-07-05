@@ -111,19 +111,13 @@ class QDETResults:
             self.write(f"point group: {self.point_group.name}")
         if self.eps_infty is not None:
             self.write(f"eps_infinity from input: {self.eps_infty}")
-        if self.projector_type in ('M','B','R'):
-            self.write(f"local_projectors: {self.local_projectors}")
-        if self.projector_type in ('K','M'):
-            self.write(f"ks_projectors: {self.ks_projectors}")
+        self.write(f"ks_projectors: {self.ks_projectors}")
         
         self.write("occupations:")
         self.write(self.occ)
-        if self.projector_type == 'K':
-            self.write("max|chi0a - chi0a_ref| = {:.3f}".format(
-                np.max(np.abs(self.compute_chi0a() - self.chi0a_ref))
+        self.write("max|chi0a - chi0a_ref| = {:.3f}".format(
+            np.max(np.abs(self.compute_chi0a() - self.chi0a_ref))
             ))
-        else:
-            self.write(f'projector_type: {self.projector_type}')
         self.write("---------------------------------------------------------------")
 
     def compute_chi0a(self) -> np.ndarray:
@@ -133,8 +127,6 @@ class QDETResults:
             chi0a defined on PDEP basis.
         """
 
-        assert self.projector_type == 'K'
-        
         overlap = self.overlap[..., list(range(self.npdep)) + [-3, -2, -1]]
 
         # Summation over state (SOS) / Adler-Wiser expression
@@ -615,7 +607,6 @@ class QDETResults:
 
         self.cgw_calculation = self.js["input"]["cgw_control"]["cgw_calculation"]
         self.h1e_treatment = self.js["input"]["cgw_control"]["h1e_treatment"]
-        self.projector_type = self.js["input"]["cgw_control"]["projector_type"]
         self.nproj = 0
         
         # read data on Kohn-Sham active space
