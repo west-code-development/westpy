@@ -1,0 +1,9 @@
+{
+  "input_west": {},
+  "wstat_control": {
+    "wstat_calculation": "S",
+    "l_minimize_exx_if_active": true,
+    "n_pdep_eigen": 122,
+    "trev_pdep": 0.01
+  }
+}
