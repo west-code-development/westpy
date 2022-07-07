@@ -40,6 +40,9 @@ class QDETResults:
 
         # read general info from JSON file
         self.__read_wfreq_json(f"{self.path}/west.wfreq.save/wfreq.json")
+
+        # read divergence from wfreq.out
+        self.__read_wfreq_out(f"{self.path}/wfreq.out")
         
         # read occupation numbers and Kohn-Sham eigenvalues
         self.occ = np.zeros([self.nspin, self.nproj])
@@ -568,6 +571,17 @@ class QDETResults:
         else:
             return heff
     
+    def __read_wfreq_out(self, filename):
+        """ Read divergence from wfreq.out file.
+        Args:
+            filename: filename of the wfreq.out file.
+        """
+
+        wfoutput = open(filename).readlines()
+        i = find_index("Divergence =", wfoutput)
+        self.div = parse_one_value(float, wfoutput[i])
+
+
     def __read_wfreq_json(self, filename):
         """The function reads parameters from JSON file and stores them in class
         variables.
