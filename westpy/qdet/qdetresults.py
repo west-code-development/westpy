@@ -23,7 +23,6 @@ class QDETResults:
                  path: str,
                  occ: Optional[np.ndarray] = None,
                  eps_infty: Optional[float] = None,
-                 overlap_basis: Optional[Union[Dict, List[int]]] = None,
                  point_group: Optional[PointGroup] = None):
         """ Parser of constrained GW calculations.
 
@@ -424,16 +423,13 @@ class QDETResults:
 
         return h1e
 
-    def make_heffs(self,
-                    basis_name: str = "",
+    def solve(self,
                     Ws: str = "Wrp_rpa",
                     dc: str = "exact",
                     nelec: Tuple = None,
                     symmetrize: Dict[str, bool] = {},
                     run_fci_inplace: bool = False,
                     nroots: int = 10,
-                    sigma: Optional[List[np.ndarray]] = None,
-                    return_fcires: bool = False,
                     verbose: bool = True) -> Union[pd.DataFrame, Dict[str, Heff]]:
         """ Build effective Hamiltonians for given active space.
 
@@ -441,13 +437,8 @@ class QDETResults:
         effective Hamiltonians for given set of W. Can run FCI calculations in place.
 
         Args:
-            basis_name: name of basis used to distinguish with calculations using different
-                        active spaces. basis_name will be included in the resulting dataframe.
-            basis: list of band indices for orbitals in the active space.
-            Ws: list of names for W.
-            npdep_to_use: # of PDEP basis to use.
+            Ws: approximation to screened interaction.
             dc: scheme for computing double counting.
-            nspin: # of spin channels.
             nelec: # of electrons in each spin-channel
             symmetrize: arguments for symmetrization function of Heff.
             run_fci_inplace: if True, run FCI calculations and return pd.DataFrame that summarize
@@ -493,44 +484,30 @@ class QDETResults:
         heff.symmetrize(**symmetrize)
             
         if run_fci_inplace:
-            if not verbose:
+
+            # determine number of electrons from occupations
+            if nelec == None:
+                nel = np.sum(self.occ[:,self.basis])
+                nelec = (int(round(nel))//2, int(round(nel))//2)
+            
+            # diagonalize effective Hamiltonian
+            fcires = heff.FCI(nelec=nelec, nroots=nroots)
+            
+            if verbose:
                 # mute all self.write functions
                 stdout = sys.stdout
                 sys.stdout = open(os.devnull, 'w')
 
-            columns = ["basis_name", "basis", "nelec", "nspin", "eri", "dc", "npdep"]
-            for i in range(nroots):
-                columns.extend([f"ev{i}", f"mult{i}", f"symm{i}"])
-
-            df = pd.DataFrame(columns=columns)
-
             self.write("===============================================================")
             self.write("Building effective Hamiltonian...")
-            if basis_name:
-                self.write(f"basis_name: {basis_name}")
             self.write(f"nspin: {self.nspin}, double counting: {dc}")
             self.write(f"ks_eigenvalues: {self.egvs[:, self.basis] * hartree_to_ev}")
             self.write(f"occupations: {self.occ[:, self.basis]}")
             self.write(f"npdep_to_use: {self.npdep}")
             self.write("===============================================================")
 
-            if nelec == None:
-                nel = np.sum(self.occ[:,self.basis])
-                nelec = (int(round(nel))//2, int(round(nel))//2)
-
-            data = {
-                "basis_name": basis_name,
-                "basis": self.ks_projectors,
-                "nelec": nelec,
-                "nspin": self.nspin,
-                "eri": Ws,
-                "dc": dc,
-            }
-
             self.write("-----------------------------------------------------")
             self.write("FCI calculation using ERI:", Ws)
-
-            fcires = heff.FCI(nelec=nelec, nroots=nroots)
 
             self.write(f"{'#':>2}  {'ev':>5} {'term':>4} diag[1RDM - 1RDM(GS)]")
             self.write(f"{'':>15}" + " ".join(f"{b:>4}" for b in self.basis))
@@ -545,25 +522,9 @@ class QDETResults:
                 exstring = " ".join(f"{e:>4.1f}" for e in ex)
                 self.write(f"{i:>2}  {ev:.3f} {symbol:>4} {exstring}")
 
-                data.update({
-                    f"ev{i}": ev,
-                    f"mult{i}": mult,
-                    f"symm{i}": symm,
-                })
-
             self.write("-----------------------------------------------------")
 
-            df = df.append(data, ignore_index=True)
-
-            if not verbose:
-                # mute all self.write functions
-                sys.stdout.close()
-                sys.stdout = stdout
-
-            if return_fcires:
-                return fcires
-            else:
-                return df
+            return fcires
         else:
             return heff
     
