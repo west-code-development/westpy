@@ -591,20 +591,20 @@ class QDETResults:
         Args:
             filename: filename of the wfreq JSON output file. 
         """
-        self.js = json.load(open(filename))
-        self.nspin = self.js["system"]["electron"]["nspin"]
-        self.npdep = self.js["input"]["wfreq_control"]["n_pdep_eigen_to_use"]
-        self.omega = self.js["system"]["cell"]["omega"]
-        self.l_enable_lanczos = self.js["input"]["wfreq_control"]["l_enable_lanczos"]
+        js = json.load(open(filename))
+        self.nspin = js["system"]["electron"]["nspin"]
+        self.npdep = js["input"]["wfreq_control"]["n_pdep_eigen_to_use"]
+        self.omega = js["system"]["cell"]["omega"]
+        self.l_enable_lanczos = js["input"]["wfreq_control"]["l_enable_lanczos"]
 
         self.nproj = 0
         
         # read data on Kohn-Sham active space
-        nbndstart, nbndend = np.array(self.js['input']['cgw_control']['ks_projector_range'], dtype=int)
+        nbndstart, nbndend = np.array(js['input']['cgw_control']['ks_projector_range'], dtype=int)
         if nbndstart != 0:
             self.ks_projectors = np.arange(nbndstart, nbndend + 1)
         else:
-            self.ks_projectors = np.array(self.js['input']['cgw_control']['ks_projectors'], dtype=int)
+            self.ks_projectors = np.array(js['input']['cgw_control']['ks_projectors'], dtype=int)
         self.nproj = len(self.ks_projectors)
         
         # generate basis from Kohn-Sham projectors
