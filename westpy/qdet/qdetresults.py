@@ -154,7 +154,7 @@ class QDETResults:
             npdep_to_use: # of PDEP basis to use.
 
         Returns:
-            a dictionary of W (4-index array)
+            screened electron repulsion integrals (4-index array)
         """
         npdep_to_use = self.npdep
 
@@ -163,23 +163,16 @@ class QDETResults:
         chirpa = self.solve_dyson_with_identity_kernel(chi0)
         
         # fully screened potential
-        if Ws.split('_')[0] == 'Wp':
-            # random phase approximation
-            if Ws.split('_')[1] == 'rpa':
-                wps = chirpa
-            # unscreened
-            elif Ws.split('_')[1] == 'zero':
-                wps = (0, np.zeros([npdep_to_use, npdep_to_use]))
+        if Ws == 'full':
+            wps = chirpa
         # partially screened potential
-        elif Ws.split('_')[0] == 'Wrp':
+        elif Ws == 'partial':
             chi0a = self.__compute_chi0a()
             # TODO: Why are not just extracting?
             #chi0a = self.extract(self.chi0a_ref, npdep_to_use=npdep_to_use)
             chi0r = chi0 - chi0a
             
-            # random-phase approximation
-            if Ws.split('_')[1] == 'rpa':
-                wps = self.solve_dyson_with_identity_kernel(chi0r)
+            wps = self.solve_dyson_with_identity_kernel(chi0r)
             
         # compute ERI from W in PDEP basis
         Ws = self.__npdep_to_eri(h=wps[0] if self.eps_infty is None else (1.0 / self.eps_infty - 1.0),
@@ -403,7 +396,7 @@ class QDETResults:
         occ = self.occ[:, self.basis]
         
         # calculate double-counting term
-        if dc == "hf":
+        if dc == 'hf':
             hdc = self.compute_vh_from_eri(eri) + self.compute_vxx_from_eri(eri)
         elif dc == 'exact':
             hdc = self.compute_vh_from_eri(eri) \
@@ -464,7 +457,7 @@ class QDETResults:
             ]
             point_group_rep, orbital_symms = self.point_group.compute_rep_on_orbitals(orbitals, orthogonalize=True)
 
-        if Ws == 'Bare':
+        if Ws == 'bare':
             h1e = self.compute_h1e_from_hks(eri=Vc, dc=dc)
             heff = Heff(h1e, eri=Vc, point_group_rep=point_group_rep)
         else:
