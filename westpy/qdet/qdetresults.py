@@ -41,9 +41,6 @@ class QDETResults:
         # read general info from JSON file
         self.__read_wfreq_json(f"{self.path}/west.wfreq.save/wfreq.json")
         
-        # read data from wfreq.out
-        self.__read_wfreq_out(f"{self.path}/wfreq.out")
-
         # read occupation numbers and Kohn-Sham eigenvalues
         self.occ = np.zeros([self.nspin, self.nproj])
         self.egvs = np.zeros([self.nspin, self.nproj])
