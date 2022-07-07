@@ -24,8 +24,7 @@ class QDETResults:
                  occ: Optional[np.ndarray] = None,
                  eps_infty: Optional[float] = None,
                  overlap_basis: Optional[Union[Dict, List[int]]] = None,
-                 point_group: Optional[PointGroup] = None,
-                 verbose: Optional[bool] = True):
+                 point_group: Optional[PointGroup] = None):
         """ Parser of constrained GW calculations.
 
         Args:
@@ -33,7 +32,6 @@ class QDETResults:
             occ: occupation numbers. Read from pw results if not defined.
             eps_infty: user-defined epsilon infinity.
             point_group: point group of the system.
-            verbose: if True, self.write a summary.
         """
 
         self.path = path
@@ -94,9 +92,6 @@ class QDETResults:
         self.chi0a_ref = np.fromfile(
             "{}/west.wfreq.save/chi0a.dat".format(path), dtype=complex
         ).reshape(self.npdep + 3, self.npdep + 3).T
-
-        if verbose:
-            self.print_summary()
 
     def __str__(self):
         """ Print a summary of QDET calculation. """
