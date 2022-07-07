@@ -64,10 +64,6 @@ class QDETResults:
         # 1 electron Hamiltonian elements
         self.parse_h1e()
 
-        self.qps = np.zeros((self.nspin,self.nproj))
-        for ispin in range(self.nspin):
-            self.qps[ispin,:] = np.einsum("ii->i", self.qp_energy_n[ispin,:,:], optimize=True)
-
         # read bare Coulomb potential Vc from file
         self.Vc = self.parse_eri("/west.wfreq.save/vc.dat")
 
