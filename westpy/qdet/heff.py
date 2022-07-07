@@ -74,7 +74,8 @@ class Heff:
     def has_symm(self):
         return self.point_group_rep is not None
 
-    def FCI(self, nelec: Union[int, Tuple[int, int]], nroots: int = 10, verbose: bool = True) -> Dict:
+    def FCI(self, nelec: Union[int, Tuple[int, int]], nroots: int = 10, verbose:
+            bool = False) -> Dict:
         """ Perform FCI calculations using pyscf package.
 
         Args:
