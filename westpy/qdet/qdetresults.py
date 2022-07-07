@@ -229,20 +229,6 @@ class QDETResults:
             ).reshape(self.nspin, self.nproj, self.nproj)
             setattr(self, h, tmp)
 
-        checklist_cgw = [f"sigmac_n_a",f"sigmac_n_e",f"sigmac_n_f"]
-
-        for h in checklist_cgw:
-            tmp = np.fromfile(
-                f"{self.path}/west.wfreq.save/{h}.dat", dtype=float
-            ).reshape(self.nspin, self.nproj, 3, self.n_spectralf)
-            tmp1 = np.zeros((self.nspin, self.nproj, self.nproj, 3, self.n_spectralf))
-            for i_spectralf in range(self.n_spectralf):
-                for index in range(3):
-                    for ispin in range(self.nspin):
-                        for iproj in range(self.nproj):
-                            tmp1[ispin,iproj,iproj,index,i_spectralf] = tmp[ispin,iproj,index,i_spectralf]
-            setattr(self, h, tmp1*ev_to_hartree) 
-
         basis_ = []
         for i in self.ks_projectors:
             basis_ += np.argwhere(self.ks_projectors == i)[0].tolist()
