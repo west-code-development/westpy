@@ -89,8 +89,6 @@ class Heff:
 
         import pyscf.fci
 
-        print("-----------------------------------------------------")
-        print(f"FCI: nelec = {nelec}, nroots = {nroots}")
         if verbose:
             self.print_symm_info()
 
