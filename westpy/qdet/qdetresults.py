@@ -592,7 +592,6 @@ class QDETResults:
         self.nspin = js["system"]["electron"]["nspin"]
         self.npdep = js["input"]["wfreq_control"]["n_pdep_eigen_to_use"]
         self.omega = js["system"]["cell"]["omega"]
-        self.l_enable_lanczos = js["input"]["wfreq_control"]["l_enable_lanczos"]
 
         self.nproj = 0
         
