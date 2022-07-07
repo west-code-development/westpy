@@ -386,8 +386,7 @@ class QDETResults:
     def compute_h1e_from_hks(self,
                              eri: np.ndarray,
                              dc: str = "exact",
-                             mu: float = 0,
-                             sigma: Optional[List[np.ndarray]] = None) -> np.ndarray:
+                             mu: float = 0) -> np.ndarray:
         """ Compute 1e term of effective Hamiltonian from KS Hamiltonian.
 
         Args:
@@ -449,15 +448,6 @@ class QDETResults:
         basis_indices = self.ks_projectors
         basis_labels = [""] * len(basis_indices)
         
-        # Set name for basis
-        # TODO: unnecessary
-        if not basis_name:
-            idx1, idx2 = basis_indices[0], basis_indices[-1]
-            if np.all(basis_indices == np.arange(idx1, idx2+1)):
-                basis_name = f'{idx1}-{idx2}'
-        else:
-            basis_name = basis_name
-        
         npdep_to_use = self.npdep
 
         Vc = self.Vc[:,:,self.basis,:,:,:][:,:,:,self.basis,:,:][:,:,:,:,self.basis,:][:,:,:,:,:,self.basis]
@@ -475,10 +465,10 @@ class QDETResults:
             point_group_rep, orbital_symms = self.point_group.compute_rep_on_orbitals(orbitals, orthogonalize=True)
 
         if Ws == 'Bare':
-            h1e = self.compute_h1e_from_hks(eri=Vc, dc=dc, sigma=sigma)
+            h1e = self.compute_h1e_from_hks(eri=Vc, dc=dc)
             heff = Heff(h1e, eri=Vc, point_group_rep=point_group_rep)
         else:
-            h1e = self.compute_h1e_from_hks(eri=Vc + W, dc=dc, sigma=sigma)
+            h1e = self.compute_h1e_from_hks(eri=Vc + W, dc=dc)
             heff = Heff(h1e, eri=Vc + W, point_group_rep=point_group_rep)
             
         heff.symmetrize(**symmetrize)
@@ -494,35 +484,32 @@ class QDETResults:
             fcires = heff.FCI(nelec=nelec, nroots=nroots)
             
             if verbose:
-                # mute all self.write functions
-                stdout = sys.stdout
-                sys.stdout = open(os.devnull, 'w')
 
-            self.write("===============================================================")
-            self.write("Building effective Hamiltonian...")
-            self.write(f"nspin: {self.nspin}, double counting: {dc}")
-            self.write(f"ks_eigenvalues: {self.egvs[:, self.basis] * hartree_to_ev}")
-            self.write(f"occupations: {self.occ[:, self.basis]}")
-            self.write(f"npdep_to_use: {self.npdep}")
-            self.write("===============================================================")
+                self.write("===============================================================")
+                self.write("Building effective Hamiltonian...")
+                self.write(f"nspin: {self.nspin}, double counting: {dc}")
+                self.write(f"ks_eigenvalues: {self.egvs[:, self.basis] * hartree_to_ev}")
+                self.write(f"occupations: {self.occ[:, self.basis]}")
+                self.write(f"npdep_to_use: {self.npdep}")
+                self.write("===============================================================")
 
-            self.write("-----------------------------------------------------")
-            self.write("FCI calculation using ERI:", Ws)
+                self.write("-----------------------------------------------------")
+                self.write("FCI calculation using ERI:", Ws)
 
-            self.write(f"{'#':>2}  {'ev':>5} {'term':>4} diag[1RDM - 1RDM(GS)]")
-            self.write(f"{'':>15}" + " ".join(f"{b:>4}" for b in self.basis))
-            ispin = 0
-            self.write(f"{'':>15}" + " ".join(f"{self.egvs[ispin,b]*hartree_to_ev:>4.1f}" for b in self.basis))
-            if self.point_group is not None:
-                self.write(f"{'':>15}" + " ".join(f"{s.partition('(')[0]:>4}" for s in orbital_symms))
-            for i, (ev, mult, symm, ex) in enumerate(zip(
+                self.write(f"{'#':>2}  {'ev':>5} {'term':>4} diag[1RDM - 1RDM(GS)]")
+                self.write(f"{'':>15}" + " ".join(f"{b:>4}" for b in self.basis))
+                ispin = 0
+                self.write(f"{'':>15}" + " ".join(f"{self.egvs[ispin,b]*hartree_to_ev:>4.1f}" for b in self.basis))
+                if self.point_group is not None:
+                    self.write(f"{'':>15}" + " ".join(f"{s.partition('(')[0]:>4}" for s in orbital_symms))
+                for i, (ev, mult, symm, ex) in enumerate(zip(
                     fcires["evs"], fcires["mults"], fcires["symms_maxproj"], fcires["excitations"]
-            )):
-                symbol = f"{int(round(mult))}{symm.partition('(')[0]}"
-                exstring = " ".join(f"{e:>4.1f}" for e in ex)
-                self.write(f"{i:>2}  {ev:.3f} {symbol:>4} {exstring}")
+                )):
+                    symbol = f"{int(round(mult))}{symm.partition('(')[0]}"
+                    exstring = " ".join(f"{e:>4.1f}" for e in ex)
+                    self.write(f"{i:>2}  {ev:.3f} {symbol:>4} {exstring}")
 
-            self.write("-----------------------------------------------------")
+                self.write("-----------------------------------------------------")
 
             return fcires
         else:
