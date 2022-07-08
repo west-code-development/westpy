@@ -90,22 +90,21 @@ class QDETResult:
 
     def __str__(self):
         """ Print a summary of QDET calculation. """
-        self.write("---------------------------------------------------------------")
-        self.write("CGW Results General Info")
-        self.write(f"path: {self.path}")
-        self.write(f"nspin = {self.nspin}, nel = {self.nel}, nproj = {self.nproj}, npdep = {self.npdep}")
+        string = "---------------------------------------------------------------\n"
+        string += "CGW Results General Info\n"
+        string += f"path: {self.path}\n"
+        string += f"nspin = {self.nspin}, nel = {self.nel}, nproj = {self.nproj}, npdep = {self.npdep}\n"
         if self.point_group is not None:
-            self.write(f"point group: {self.point_group.name}")
+            string += f"point group: {self.point_group.name}\n"
         if self.eps_infty is not None:
-            self.write(f"eps_infinity from input: {self.eps_infty}")
-        self.write(f"ks_projectors: {self.ks_projectors}")
+            string += f"eps_infinity from input: {self.eps_infty}\n"
+        string += f"ks_projectors: {self.ks_projectors}\n"
         
-        self.write("occupations:")
-        self.write(self.occ)
-        self.write("max|chi0a - chi0a_ref| = {:.3f}".format(
-            np.max(np.abs(self.__compute_chi0a() - self.chi0a_ref))
-            ))
-        self.write("---------------------------------------------------------------")
+        string += "occupations:\n"
+        string += str(self.occ)+'\n'
+        string += "---------------------------------------------------------------\n"
+        
+        return string
 
     def __compute_chi0a(self) -> np.ndarray:
         """ Compute chi0^a (chi0 projected into active space).
