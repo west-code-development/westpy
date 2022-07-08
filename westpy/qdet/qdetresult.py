@@ -100,8 +100,7 @@ class QDETResult:
             string += f"eps_infinity from input: {self.eps_infty}\n"
         string += f"ks_projectors: {self.ks_projectors}\n"
         
-        string += "occupations:\n"
-        string += str(self.occ)+'\n'
+        string += "occupations:" + str(self.occ)+'\n'
         string += "---------------------------------------------------------------\n"
         
         return string
