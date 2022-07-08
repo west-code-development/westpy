@@ -23,7 +23,8 @@ class QDETResult:
                  path: str,
                  occ: Optional[np.ndarray] = None,
                  eps_infty: Optional[float] = None,
-                 point_group: Optional[PointGroup] = None):
+                 point_group: Optional[PointGroup] = None,
+                 symmetrize: Dict[str, bool] = {}):
         """ Parser of constrained GW calculations.
 
         Args:
@@ -31,6 +32,7 @@ class QDETResult:
             occ: occupation numbers. Read from pw results if not defined.
             eps_infty: user-defined epsilon infinity.
             point_group: point group of the system.
+            symmetrize: arguments for symmetrization function of Heff.
         """
 
         self.path = path
@@ -87,6 +89,27 @@ class QDETResult:
         self.chi0a_ref = np.fromfile(
             "{}/west.wfreq.save/chi0a.dat".format(path), dtype=complex
         ).reshape(self.npdep + 3, self.npdep + 3).T
+        
+        # generate bare electron repulsion integrals (ERI)
+        Vc = self.Vc[:,:,self.basis,:,:,:][:,:,:,self.basis,:,:][:,:,:,:,self.basis,:][:,:,:,:,:,self.basis]
+        # generate screened electron repulsion integrals (ERI)
+        W = self.__compute_Ws()
+        
+        # determine point-group representation
+        if self.point_group is None:
+            point_group_rep = None
+        else:
+            orbitals = [
+                VData(f"{self.path}/west.westpp.save/wfcK000001B{i:06d}.cube", normalize="sqrt")
+                for i in self.ks_projectors
+            ]
+            point_group_rep, orbital_symms = self.point_group.compute_rep_on_orbitals(orbitals, orthogonalize=True)
+
+        # generate effective Hamiltonian
+        h1e = self.compute_h1e_from_hks(eri=Vc + W)
+        self.heff = Heff(h1e, eri=Vc + W, point_group_rep=point_group_rep)
+        
+        self.heff.symmetrize(**symmetrize)
 
     def __str__(self):
         """ Print a summary of QDET calculation. """
@@ -143,7 +166,7 @@ class QDETResult:
         s = list(range(npdep_to_use)) + [-3, -2, -1]
         return m[s, :][:, s]
 
-    def __compute_Ws(self, Ws: str) -> np.ndarray:
+    def __compute_Ws(self) -> np.ndarray:
         """ Compute unconstrained Wp (independent of active space) and
         constrained Wrp of a certain active space.
 
@@ -158,24 +181,13 @@ class QDETResult:
 
         chi0 = self.__extract(self.chi0, self.npdep)
 
-        chirpa = self.solve_dyson_with_identity_kernel(chi0)
+        chi0a = self.__compute_chi0a()
+        # TODO: Why are not just extracting?
+        #chi0a = self.extract(self.chi0a_ref, npdep_to_use=npdep_to_use)
+        chi0r = chi0 - chi0a
         
-        # fully screened potential
-        if Ws == 'full':
-            wps = chirpa
-        # bare Coulomb potential
-        elif Ws == 'bare':
-            wps = (0.0, np.zeros(chirpa[1].shape))
-        # partially screened potential
-        elif Ws == 'partial':
-            chi0a = self.__compute_chi0a()
-            # TODO: Why are not just extracting?
-            #chi0a = self.extract(self.chi0a_ref, npdep_to_use=npdep_to_use)
-            chi0r = chi0 - chi0a
-            
-            wps = self.solve_dyson_with_identity_kernel(chi0r)
+        wps = self.solve_dyson_with_identity_kernel(chi0r)
         
-            
         # compute ERI from W in PDEP basis
         Ws = self.__npdep_to_eri(h=wps[0] if self.eps_infty is None else (1.0 / self.eps_infty - 1.0),
                             B=wps[1])
@@ -380,14 +392,12 @@ class QDETResult:
 
     def compute_h1e_from_hks(self,
                              eri: np.ndarray,
-                             dc: str = "exact",
                              mu: float = 0) -> np.ndarray:
         """ Compute 1e term of effective Hamiltonian from KS Hamiltonian.
 
         Args:
             basis: list of band indices for orbitals in the active space.
             eri: ERI.
-            dc: scheme for computing double counting.
             mu: chemical potential, used to shift the spectrum of resulting effective Hamiltonian.
 
         Returns:
@@ -398,13 +408,10 @@ class QDETResult:
         occ = self.occ[:, self.basis]
         
         # calculate double-counting term
-        if dc == 'hf':
-            hdc = self.compute_vh_from_eri(eri) + self.compute_vxx_from_eri(eri)
-        elif dc == 'exact':
-            hdc = self.compute_vh_from_eri(eri) \
-                + self.vxc[:, self.basis, :][:, :, self.basis] + self.vxx[:, self.basis, :][:, :, self.basis]\
-                - getattr(self,'sigmax_n_e')[:, self.basis, :][:, :, self.basis]\
-                - getattr(self,'sigmac_eigen_n_e')[:, self.basis, :][:, :, self.basis]
+        hdc = self.compute_vh_from_eri(eri) \
+            + self.vxc[:, self.basis, :][:, :, self.basis] + self.vxx[:, self.basis, :][:, :, self.basis]\
+            - getattr(self,'sigmax_n_e')[:, self.basis, :][:, :, self.basis]\
+            - getattr(self,'sigmac_eigen_n_e')[:, self.basis, :][:, :, self.basis]
         else:
             raise ValueError("Unknown double counting scheme")
         
@@ -418,97 +425,59 @@ class QDETResult:
         return h1e
 
     def solve(self,
-                    Ws: str = "Wrp_rpa",
-                    dc: str = "exact",
-                    nelec: Tuple = None,
-                    symmetrize: Dict[str, bool] = {},
-                    run_fci_inplace: bool = False,
-                    nroots: int = 10,
-                    verbose: bool = True) -> Union[pd.DataFrame, Dict[str, Heff]]:
+              nelec: Tuple = None,
+              nroots: int = 10,
+              verbose: bool = True) -> Dict:
         """ Build effective Hamiltonians for given active space.
 
         The highest level function of CGWResults class. Call self.make_heff to build
         effective Hamiltonians for given set of W. Can run FCI calculations in place.
 
         Args:
-            Ws: approximation to screened interaction.
-            dc: scheme for computing double counting.
             nelec: # of electrons in each spin-channel
-            symmetrize: arguments for symmetrization function of Heff.
-            run_fci_inplace: if True, run FCI calculations and return pd.DataFrame that summarize
-                             FCI results, otherwise return a dict of Heff.
             nroots: # of roots for FCI calculations.
-            verbose: if True, self.write detailed info for FCI calculations.
+            verbose: if True, write detailed info for FCI calculations.
         """
         basis_indices = self.ks_projectors
         basis_labels = [""] * len(basis_indices)
         
-        npdep_to_use = self.npdep
+        # determine number of electrons from occupations
+        if nelec == None:
+            nel = np.sum(self.occ[:,self.basis])
+            nelec = (int(round(nel))//2, int(round(nel))//2)
+        
+        # diagonalize effective Hamiltonian
+        fcires = self.heff.FCI(nelec=nelec, nroots=nroots)
+        
+        if verbose:
 
-        Vc = self.Vc[:,:,self.basis,:,:,:][:,:,:,self.basis,:,:][:,:,:,:,self.basis,:][:,:,:,:,:,self.basis]
-        # calculate screened electron repulsion integrals
-        W = self.__compute_Ws(Ws)
+            self.write("===============================================================")
+            self.write("Building effective Hamiltonian...")
+            self.write(f"nspin: {self.nspin}, double counting: {dc}")
+            self.write(f"ks_eigenvalues: {self.egvs[:, self.basis] * hartree_to_ev}")
+            self.write(f"occupations: {self.occ[:, self.basis]}")
+            self.write(f"npdep_to_use: {self.npdep}")
+            self.write("===============================================================")
 
-        # determine point-group representation
-        if self.point_group is None:
-            point_group_rep = None
-        else:
-            orbitals = [
-                VData(f"{self.path}/west.westpp.save/wfcK000001B{i:06d}.cube", normalize="sqrt")
-                for i in self.ks_projectors
-            ]
-            point_group_rep, orbital_symms = self.point_group.compute_rep_on_orbitals(orbitals, orthogonalize=True)
+            self.write("-----------------------------------------------------")
+            self.write("FCI calculation using ERI:", Ws)
 
-        if Ws == 'bare':
-            h1e = self.compute_h1e_from_hks(eri=Vc, dc=dc)
-            heff = Heff(h1e, eri=Vc, point_group_rep=point_group_rep)
-        else:
-            h1e = self.compute_h1e_from_hks(eri=Vc + W, dc=dc)
-            heff = Heff(h1e, eri=Vc + W, point_group_rep=point_group_rep)
-            
-        heff.symmetrize(**symmetrize)
-            
-        if run_fci_inplace:
+            self.write(f"{'#':>2}  {'ev':>5} {'term':>4} diag[1RDM - 1RDM(GS)]")
+            self.write(f"{'':>15}" + " ".join(f"{b:>4}" for b in self.basis))
+            ispin = 0
+            self.write(f"{'':>15}" + " ".join(f"{self.egvs[ispin,b]*hartree_to_ev:>4.1f}" for b in self.basis))
+            if self.point_group is not None:
+                self.write(f"{'':>15}" + " ".join(f"{s.partition('(')[0]:>4}" for s in orbital_symms))
+            for i, (ev, mult, symm, ex) in enumerate(zip(
+                fcires["evs"], fcires["mults"], fcires["symms_maxproj"], fcires["excitations"]
+            )):
+                symbol = f"{int(round(mult))}{symm.partition('(')[0]}"
+                exstring = " ".join(f"{e:>4.1f}" for e in ex)
+                self.write(f"{i:>2}  {ev:.3f} {symbol:>4} {exstring}")
 
-            # determine number of electrons from occupations
-            if nelec == None:
-                nel = np.sum(self.occ[:,self.basis])
-                nelec = (int(round(nel))//2, int(round(nel))//2)
-            
-            # diagonalize effective Hamiltonian
-            fcires = heff.FCI(nelec=nelec, nroots=nroots)
-            
-            if verbose:
+            self.write("-----------------------------------------------------")
 
-                self.write("===============================================================")
-                self.write("Building effective Hamiltonian...")
-                self.write(f"nspin: {self.nspin}, double counting: {dc}")
-                self.write(f"ks_eigenvalues: {self.egvs[:, self.basis] * hartree_to_ev}")
-                self.write(f"occupations: {self.occ[:, self.basis]}")
-                self.write(f"npdep_to_use: {self.npdep}")
-                self.write("===============================================================")
-
-                self.write("-----------------------------------------------------")
-                self.write("FCI calculation using ERI:", Ws)
-
-                self.write(f"{'#':>2}  {'ev':>5} {'term':>4} diag[1RDM - 1RDM(GS)]")
-                self.write(f"{'':>15}" + " ".join(f"{b:>4}" for b in self.basis))
-                ispin = 0
-                self.write(f"{'':>15}" + " ".join(f"{self.egvs[ispin,b]*hartree_to_ev:>4.1f}" for b in self.basis))
-                if self.point_group is not None:
-                    self.write(f"{'':>15}" + " ".join(f"{s.partition('(')[0]:>4}" for s in orbital_symms))
-                for i, (ev, mult, symm, ex) in enumerate(zip(
-                    fcires["evs"], fcires["mults"], fcires["symms_maxproj"], fcires["excitations"]
-                )):
-                    symbol = f"{int(round(mult))}{symm.partition('(')[0]}"
-                    exstring = " ".join(f"{e:>4.1f}" for e in ex)
-                    self.write(f"{i:>2}  {ev:.3f} {symbol:>4} {exstring}")
-
-                self.write("-----------------------------------------------------")
-
-            return fcires
-        else:
-            return heff
+        return fcires
     
     def __read_wfreq_out(self, filename):
         """ Read divergence from wfreq.out file.
