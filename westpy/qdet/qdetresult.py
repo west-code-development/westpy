@@ -412,8 +412,6 @@ class QDETResult:
             + self.vxc[:, self.basis, :][:, :, self.basis] + self.vxx[:, self.basis, :][:, :, self.basis]\
             - getattr(self,'sigmax_n_e')[:, self.basis, :][:, :, self.basis]\
             - getattr(self,'sigmac_eigen_n_e')[:, self.basis, :][:, :, self.basis]
-        else:
-            raise ValueError("Unknown double counting scheme")
         
         # subtract double counting from Kohn-Sham eigenvalues
         h1e = self.hks[:, self.basis, :][:, :, self.basis] - hdc
@@ -453,14 +451,13 @@ class QDETResult:
 
             self.write("===============================================================")
             self.write("Building effective Hamiltonian...")
-            self.write(f"nspin: {self.nspin}, double counting: {dc}")
+            self.write(f"nspin: {self.nspin}")
             self.write(f"ks_eigenvalues: {self.egvs[:, self.basis] * hartree_to_ev}")
             self.write(f"occupations: {self.occ[:, self.basis]}")
             self.write(f"npdep_to_use: {self.npdep}")
             self.write("===============================================================")
 
             self.write("-----------------------------------------------------")
-            self.write("FCI calculation using ERI:", Ws)
 
             self.write(f"{'#':>2}  {'ev':>5} {'term':>4} diag[1RDM - 1RDM(GS)]")
             self.write(f"{'':>15}" + " ".join(f"{b:>4}" for b in self.basis))
