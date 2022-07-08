@@ -164,6 +164,9 @@ class QDETResult:
         # fully screened potential
         if Ws == 'full':
             wps = chirpa
+        # bare Coulomb potential
+        elif Ws == 'bare':
+            wps = (0.0, np.zeros(chirpa[1].shape))
         # partially screened potential
         elif Ws == 'partial':
             chi0a = self.__compute_chi0a()
@@ -172,6 +175,7 @@ class QDETResult:
             chi0r = chi0 - chi0a
             
             wps = self.solve_dyson_with_identity_kernel(chi0r)
+        
             
         # compute ERI from W in PDEP basis
         Ws = self.__npdep_to_eri(h=wps[0] if self.eps_infty is None else (1.0 / self.eps_infty - 1.0),
