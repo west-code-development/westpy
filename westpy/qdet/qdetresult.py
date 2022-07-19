@@ -14,7 +14,7 @@ from westpy.qdet.symm import PointGroup, PointGroupRep
 from westpy.qdet.west_output import WstatOutput
 
 
-class QDETResult:
+class QDETResult(object):
 
     ev_thr = 0.001 * ev_to_hartree  # threshold for determining degenerate states
     occ_thr = 0.001  # threshold for determining equal occupations
@@ -66,34 +66,28 @@ class QDETResult:
         self.parse_h1e()
 
         # read bare Coulomb potential Vc from file
-        self.Vc = self.parse_eri("/west.wfreq.save/vc.dat")
+        Vc = self.parse_eri("/west.wfreq.save/vc.dat")
+        # generate bare electron repulsion integrals (ERI)
+        Vc = Vc[:,:,self.basis,:,:,:][:,:,:,self.basis,:,:][:,:,:,:,self.basis,:][:,:,:,:,:,self.basis]
 
         # braket and overlap
-        self.overlap = np.fromfile(f"{path}/west.wfreq.save/overlap.dat", dtype=float).reshape(
-            self.nspin, self.nproj, self.nproj, self.npdep + 3
-        )
-        braket = np.fromfile(f"{path}/west.wfreq.save/braket.dat", dtype=complex).reshape(
+        overlap = np.fromfile(f"{path}/west.wfreq.save/overlap.dat", dtype=float).reshape(
+            self.nspin, self.nproj, self.nproj, self.npdep + 3)
+        braket_ = np.fromfile(f"{path}/west.wfreq.save/braket.dat", dtype=complex).reshape(
             self.npdep, self.nspin, self.npair).real
-        self.braket_pair = np.einsum("nsi->sin", braket)
-        self.braket = np.zeros([self.nspin, self.nproj, self.nproj, self.npdep])
+        braket_pair = np.einsum("nsi->sin", braket_)
+        braket = np.zeros([self.nspin, self.nproj, self.nproj, self.npdep])
         for ispin, i, j, n in np.ndindex(self.nspin, self.nproj, self.nproj, self.npdep):
-            self.braket[ispin, i, j, n] = self.braket_pair[ispin, self.ijpmap[i, j], n]
+            braket[ispin, i, j, n] = braket_pair[ispin, self.ijpmap[i, j], n]
 
         # Read chi0, compute p, chi
         # note: F -> C order
-        self.chi0 = np.fromfile(
+        chi0 = np.fromfile(
             "{}/west.wfreq.save/chi0.dat".format(path), dtype=complex
         ).reshape(self.npdep + 3, self.npdep + 3).T
 
-        # Read chi0a and other constrained quantities, FOR REFERNCE ONLY
-        self.chi0a_ref = np.fromfile(
-            "{}/west.wfreq.save/chi0a.dat".format(path), dtype=complex
-        ).reshape(self.npdep + 3, self.npdep + 3).T
-        
-        # generate bare electron repulsion integrals (ERI)
-        Vc = self.Vc[:,:,self.basis,:,:,:][:,:,:,self.basis,:,:][:,:,:,:,self.basis,:][:,:,:,:,:,self.basis]
         # generate screened electron repulsion integrals (ERI)
-        W = self.__compute_Ws()
+        W = self.__compute_Ws(chi0, overlap, braket)
         
         # determine point-group representation
         if self.point_group is None:
@@ -106,7 +100,7 @@ class QDETResult:
             point_group_rep, orbital_symms = self.point_group.compute_rep_on_orbitals(orbitals, orthogonalize=True)
 
         # generate effective Hamiltonian
-        h1e = self.compute_h1e_from_hks(eri=Vc + W)
+        h1e = self.compute_h1e_from_hks(eri=Vc + W, braket=braket)
         self.heff = Heff(h1e, eri=Vc + W, point_group_rep=point_group_rep)
         
         self.heff.symmetrize(**symmetrize)
@@ -128,14 +122,14 @@ class QDETResult:
         
         return string
 
-    def __compute_chi0a(self) -> np.ndarray:
+    def __compute_chi0a(self, overlap) -> np.ndarray:
         """ Compute chi0^a (chi0 projected into active space).
 
         Returns:
             chi0a defined on PDEP basis.
         """
 
-        overlap = self.overlap[..., list(range(self.npdep)) + [-3, -2, -1]]
+        overlap_ = overlap[..., list(range(self.npdep)) + [-3, -2, -1]]
 
         # Summation over state (SOS) / Adler-Wiser expression
         chi0a = np.zeros([self.npdep + 3, self.npdep + 3])
@@ -153,7 +147,7 @@ class QDETResult:
                     prefactor = 2 * (fi - fj) / (ei - ej)
                     
                     chi0a += prefactor * np.einsum(
-                        "m,n->mn", overlap[ispin,i,j,:], overlap[ispin,i,j,:]
+                        "m,n->mn", overlap_[ispin,i,j,:], overlap_[ispin,i,j,:]
                     )
         # Note: at this point overlap is in Rydberg unit, eigenvalues is in Hartree unit
         chi0a *= rydberg_to_hartree / self.omega
@@ -166,7 +160,10 @@ class QDETResult:
         s = list(range(npdep_to_use)) + [-3, -2, -1]
         return m[s, :][:, s]
 
-    def __compute_Ws(self) -> np.ndarray:
+    def __compute_Ws(self, 
+            chi0: np.ndarray,
+            overlap: np.ndarray,
+            braket: np.ndarray) -> np.ndarray:
         """ Compute unconstrained Wp (independent of active space) and
         constrained Wrp of a certain active space.
 
@@ -179,18 +176,18 @@ class QDETResult:
         """
         npdep_to_use = self.npdep
 
-        chi0 = self.__extract(self.chi0, self.npdep)
+        chi0_ = self.__extract(chi0, self.npdep)
 
-        chi0a = self.__compute_chi0a()
+        chi0a = self.__compute_chi0a(overlap)
         # TODO: Why are not just extracting?
         #chi0a = self.extract(self.chi0a_ref, npdep_to_use=npdep_to_use)
-        chi0r = chi0 - chi0a
+        chi0r = chi0_ - chi0a
         
         wps = self.solve_dyson_with_identity_kernel(chi0r)
         
         # compute ERI from W in PDEP basis
         Ws = self.__npdep_to_eri(h=wps[0] if self.eps_infty is None else (1.0 / self.eps_infty - 1.0),
-                            B=wps[1])
+                            B=wps[1], braket=braket)
 
         return Ws
 
@@ -288,7 +285,8 @@ class QDETResult:
 
     def __npdep_to_eri(self,
                   h: float,
-                  B: np.ndarray) -> np.ndarray:
+                  B: np.ndarray,
+                  braket: np.ndarray) -> np.ndarray:
         """ Compute ERI of given W (defined by head h and body B) on a basis of KS orbitals.
 
         Args:
@@ -308,7 +306,7 @@ class QDETResult:
         for ispin in range(self.nspin):
             for p, (i, j) in enumerate(pijmap):
                 iproj, jproj, = self.basis[[i, j]]
-                braket_pair_eff[ispin, p, :] = self.braket[ispin, iproj, jproj, :self.npdep]
+                braket_pair_eff[ispin, p, :] = braket[ispin, iproj, jproj, :self.npdep]
         eri_pair = (1/self.omega) * np.einsum(
             "sip,pq,tjq->stij", braket_pair_eff, B.real, braket_pair_eff, optimize=True
         )
@@ -392,6 +390,7 @@ class QDETResult:
 
     def compute_h1e_from_hks(self,
                              eri: np.ndarray,
+                             braket: np.ndarray,
                              mu: float = 0) -> np.ndarray:
         """ Compute 1e term of effective Hamiltonian from KS Hamiltonian.
 
@@ -404,7 +403,7 @@ class QDETResult:
             1e part of effective Hamiltonian.
         """
 
-        braket = self.braket[:, self.basis, :, :][:, :, self.basis, :]
+        braket = braket[:, self.basis, :, :][:, :, self.basis, :]
         occ = self.occ[:, self.basis]
         
         # calculate double-counting term
