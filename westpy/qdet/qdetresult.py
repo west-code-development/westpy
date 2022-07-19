@@ -412,8 +412,6 @@ class QDETResult:
             + self.vxc[:, self.basis, :][:, :, self.basis] + self.vxx[:, self.basis, :][:, :, self.basis]\
             - getattr(self,'sigmax_n_e')[:, self.basis, :][:, :, self.basis]\
             - getattr(self,'sigmac_eigen_n_e')[:, self.basis, :][:, :, self.basis]
-        else:
-            raise ValueError("Unknown double counting scheme")
         
         # subtract double counting from Kohn-Sham eigenvalues
         h1e = self.hks[:, self.basis, :][:, :, self.basis] - hdc
