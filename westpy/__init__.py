@@ -1,5 +1,3 @@
-from __future__ import absolute_import, division, print_function
-
 from westpy.qdet import *
 from westpy.units import * 
 from westpy.utils import * 
@@ -10,7 +8,7 @@ from westpy.dataContainer import *
 from westpy.electronicStructure import * 
 from westpy.session import *
 
-__version__ = '3.1.1'
+__version__ = '4.3.0'
 
 def header() :
    """Prints welcome header."""
@@ -28,11 +26,4 @@ def header() :
    print("WEST version     : ",__version__)
    print("Today            : ", datetime.datetime.today())
 
-try:
-   from mpi4py import MPI
-   comm = MPI.COMM_WORLD
-   rank = comm.rank
-   if rank == 0:
-      header()
-except:
-   header()
+header()

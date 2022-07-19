@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 class DataContainer() : 
    #
    """Class for representing an in-memory data container.

@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 class Atom(object):
    """Class for representing a single atom.
 
@@ -28,4 +26,4 @@ class Atom(object):
       el = element(symbol)
       #
       self.symbol   = el.symbol 
-      self.position = np.array(position, float) * units
+      self.position = np.array(position, dtype="f8") * units

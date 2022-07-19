@@ -1,4 +1,3 @@
-from __future__ import print_function
 
 class Session(object):
     """Class for setting up a session, connected to a remove server via rest APIs.
