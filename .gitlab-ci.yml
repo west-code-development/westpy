@@ -36,7 +36,7 @@ westpy_doc_build:
     - cp /usr/share/zoneinfo/$TZ /etc/localtime
     - conda install -q -y -c conda-forge nbsphinx
     - conda install -q -y sphinx_rtd_theme
-    - conda install -q -y ipython
+    - conda install -q -y jupyter
   script:
     - git clone -b $CI_COMMIT_REF_NAME $CI_REPOSITORY_URL westpy
     - cd westpy
