@@ -38,4 +38,14 @@ class HeffTestCase(unittest.TestCase):
         np.testing.assert_almost_equal(results_['rdm1s'],
                 np.array(self.parameters['rdm1s']))
 
+    def test_permutation_symmetry(self):
+        """
+        Test functions to apply permutation symmetry to h1e and eri.
+        """
+
+        assert np.all(np.isclose(self.heff.h1e,
+            self.heff.apply_permutation_symm_to_h1e(self.heff.h1e)))
+
+        assert np.all(np.isclose(self.heff.eri,
+            self.heff.apply_permutation_symm_to_eri(self.heff.eri), atol=1e-5))
         
