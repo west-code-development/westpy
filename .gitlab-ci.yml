@@ -16,12 +16,14 @@ westpy_build:
     - apt-get install -qq make > /dev/null
     - rm -f /etc/localtime
     - cp /usr/share/zoneinfo/$TZ /etc/localtime
+    - conda init bash
     - conda create -y --name westpy_env python=3.8
+  script:
+    - source ~/.bashrc
     - conda activate westpy_env
     - conda install -q -y -c conda-forge pytest
     - pip install -q --upgrade pip
     - which python
-  script:
     - git clone -b $CI_COMMIT_REF_NAME $CI_REPOSITORY_URL westpy
     - cd westpy
     - git describe --tags --always
