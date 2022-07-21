@@ -25,7 +25,7 @@ westpy_build:
     - git describe --tags --always
     - python3 setup.py install --user --prefix= --record files.txt
 
-westpy_build:
+westpy_test:
   tags: [rcc,docker,node-01]
   stage: test
   image: continuumio/miniconda3:latest
