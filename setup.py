@@ -28,7 +28,9 @@ setup(name='westpy',
           'prompt-toolkit',
           'sphinx', 
           'sphinx_rtd_theme',
-          'py3Dmol'
+          'py3Dmol',
+          'lxml',
+          'pyscf'
       ],
       python_requires='>=3.6, <4',
       zip_safe=True)
