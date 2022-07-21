@@ -3,6 +3,7 @@ variables:
 
 stages:
   - build
+  - test
   - doc
 
 westpy_build:
@@ -15,13 +16,35 @@ westpy_build:
     - apt-get install -qq make > /dev/null
     - rm -f /etc/localtime
     - cp /usr/share/zoneinfo/$TZ /etc/localtime
+    - conda install -q -y -c conda-forge pytest
     - pip install -q --upgrade pip
     - which python
   script:
     - git clone -b $CI_COMMIT_REF_NAME $CI_REPOSITORY_URL westpy
     - cd westpy
     - git describe --tags --always
-    - make
+    - python3 setup.py install --user --prefix= --record files.txt
+
+westpy_build:
+  tags: [rcc,docker,node-01]
+  stage: test
+  image: continuumio/miniconda3:latest
+  before_script:
+    - apt-get update > /dev/null
+    - export TZ="US/Central"
+    - apt-get install -qq make > /dev/null
+    - rm -f /etc/localtime
+    - cp /usr/share/zoneinfo/$TZ /etc/localtime
+    - conda install -q -y -c conda-forge pytest
+    - pip install -q --upgrade pip
+    - which python
+  script:
+    - git clone -b $CI_COMMIT_REF_NAME $CI_REPOSITORY_URL westpy
+    - cd westpy
+    - git describe --tags --always
+    - python3 setup.py install --user --prefix= --record files.txt
+    - cd test-suite
+    - pytest
 
 westpy_doc_build:
   tags: [rcc,docker,node-01]
