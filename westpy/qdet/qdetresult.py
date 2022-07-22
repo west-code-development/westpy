@@ -19,13 +19,15 @@ class QDETResult(object):
     ev_thr = 0.001 * ev_to_hartree  # threshold for determining degenerate states
     occ_thr = 0.001  # threshold for determining equal occupations
 
-    def __init__(self,
-                 path: str,
-                 occ: Optional[np.ndarray] = None,
-                 eps_infty: Optional[float] = None,
-                 point_group: Optional[PointGroup] = None,
-                 symmetrize: Dict[str, bool] = {}):
-        """ Parser of constrained GW calculations.
+    def __init__(
+        self,
+        path: str,
+        occ: Optional[np.ndarray] = None,
+        eps_infty: Optional[float] = None,
+        point_group: Optional[PointGroup] = None,
+        symmetrize: Dict[str, bool] = {},
+    ):
+        """Parser of constrained GW calculations.
 
         Args:
             path: directory where pw, wstat and wfreq calculations are performed.
@@ -44,11 +46,11 @@ class QDETResult(object):
 
         # read divergence from wfreq.out
         self.__read_wfreq_out(f"{self.path}/wfreq.out")
-        
+
         # read occupation numbers and Kohn-Sham eigenvalues
         self.occ = np.zeros([self.nspin, self.nproj])
         self.egvs = np.zeros([self.nspin, self.nproj])
-        
+
         # if occupation is not specified, read occupation from QE pwscf.save
         if occ is None:
             self.__read_pw_xml(f"{path}/pwscf.save/K00001/")
@@ -68,45 +70,60 @@ class QDETResult(object):
         # read bare Coulomb potential Vc from file
         Vc = self.parse_eri("/west.wfreq.save/vc.dat")
         # generate bare electron repulsion integrals (ERI)
-        Vc = Vc[:,:,self.basis,:,:,:][:,:,:,self.basis,:,:][:,:,:,:,self.basis,:][:,:,:,:,:,self.basis]
+        Vc = Vc[:, :, self.basis, :, :, :][:, :, :, self.basis, :, :][
+            :, :, :, :, self.basis, :
+        ][:, :, :, :, :, self.basis]
 
         # braket and overlap
-        overlap = np.fromfile(f"{path}/west.wfreq.save/overlap.dat", dtype=float).reshape(
-            self.nspin, self.nproj, self.nproj, self.npdep + 3)
-        braket_ = np.fromfile(f"{path}/west.wfreq.save/braket.dat", dtype=complex).reshape(
-            self.npdep, self.nspin, self.npair).real
+        overlap = np.fromfile(
+            f"{path}/west.wfreq.save/overlap.dat", dtype=float
+        ).reshape(self.nspin, self.nproj, self.nproj, self.npdep + 3)
+        braket_ = (
+            np.fromfile(f"{path}/west.wfreq.save/braket.dat", dtype=complex)
+            .reshape(self.npdep, self.nspin, self.npair)
+            .real
+        )
         braket_pair = np.einsum("nsi->sin", braket_)
         braket = np.zeros([self.nspin, self.nproj, self.nproj, self.npdep])
-        for ispin, i, j, n in np.ndindex(self.nspin, self.nproj, self.nproj, self.npdep):
+        for ispin, i, j, n in np.ndindex(
+            self.nspin, self.nproj, self.nproj, self.npdep
+        ):
             braket[ispin, i, j, n] = braket_pair[ispin, self.ijpmap[i, j], n]
 
         # Read chi0, compute p, chi
         # note: F -> C order
-        chi0 = np.fromfile(
-            "{}/west.wfreq.save/chi0.dat".format(path), dtype=complex
-        ).reshape(self.npdep + 3, self.npdep + 3).T
+        chi0 = (
+            np.fromfile("{}/west.wfreq.save/chi0.dat".format(path), dtype=complex)
+            .reshape(self.npdep + 3, self.npdep + 3)
+            .T
+        )
 
         # generate screened electron repulsion integrals (ERI)
         W = self.__compute_Ws(chi0, overlap, braket)
-        
+
         # determine point-group representation
         if self.point_group is None:
             point_group_rep = None
         else:
             orbitals = [
-                VData(f"{self.path}/west.westpp.save/wfcK000001B{i:06d}.cube", normalize="sqrt")
+                VData(
+                    f"{self.path}/west.westpp.save/wfcK000001B{i:06d}.cube",
+                    normalize="sqrt",
+                )
                 for i in self.ks_projectors
             ]
-            point_group_rep, orbital_symms = self.point_group.compute_rep_on_orbitals(orbitals, orthogonalize=True)
+            point_group_rep, orbital_symms = self.point_group.compute_rep_on_orbitals(
+                orbitals, orthogonalize=True
+            )
 
         # generate effective Hamiltonian
         h1e = self.compute_h1e_from_hks(eri=Vc + W, braket=braket)
         self.heff = Heff(h1e, eri=Vc + W, point_group_rep=point_group_rep)
-        
+
         self.heff.symmetrize(**symmetrize)
 
     def __str__(self):
-        """ Print a summary of QDET calculation. """
+        """Print a summary of QDET calculation."""
         string = "---------------------------------------------------------------\n"
         string += "CGW Results General Info\n"
         string += f"path: {self.path}\n"
@@ -116,14 +133,14 @@ class QDETResult(object):
         if self.eps_infty is not None:
             string += f"eps_infinity from input: {self.eps_infty}\n"
         string += f"ks_projectors: {self.ks_projectors}\n"
-        
-        string += "occupations:" + str(self.occ)+'\n'
+
+        string += "occupations:" + str(self.occ) + "\n"
         string += "---------------------------------------------------------------\n"
-        
+
         return string
 
     def __compute_chi0a(self, overlap) -> np.ndarray:
-        """ Compute chi0^a (chi0 projected into active space).
+        """Compute chi0^a (chi0 projected into active space).
 
         Returns:
             chi0a defined on PDEP basis.
@@ -145,9 +162,9 @@ class QDETResult(object):
                         continue
 
                     prefactor = 2 * (fi - fj) / (ei - ej)
-                    
+
                     chi0a += prefactor * np.einsum(
-                        "m,n->mn", overlap_[ispin,i,j,:], overlap_[ispin,i,j,:]
+                        "m,n->mn", overlap_[ispin, i, j, :], overlap_[ispin, i, j, :]
                     )
         # Note: at this point overlap is in Rydberg unit, eigenvalues is in Hartree unit
         chi0a *= rydberg_to_hartree / self.omega
@@ -156,15 +173,14 @@ class QDETResult(object):
 
     @staticmethod
     def __extract(m, npdep_to_use: int) -> np.ndarray:
-        """ Helper function to handle macroscopic part of chi0. """
+        """Helper function to handle macroscopic part of chi0."""
         s = list(range(npdep_to_use)) + [-3, -2, -1]
         return m[s, :][:, s]
 
-    def __compute_Ws(self, 
-            chi0: np.ndarray,
-            overlap: np.ndarray,
-            braket: np.ndarray) -> np.ndarray:
-        """ Compute unconstrained Wp (independent of active space) and
+    def __compute_Ws(
+        self, chi0: np.ndarray, overlap: np.ndarray, braket: np.ndarray
+    ) -> np.ndarray:
+        """Compute unconstrained Wp (independent of active space) and
         constrained Wrp of a certain active space.
 
         Args:
@@ -180,51 +196,58 @@ class QDETResult(object):
 
         chi0a = self.__compute_chi0a(overlap)
         # TODO: Why are not just extracting?
-        #chi0a = self.extract(self.chi0a_ref, npdep_to_use=npdep_to_use)
+        # chi0a = self.extract(self.chi0a_ref, npdep_to_use=npdep_to_use)
         chi0r = chi0_ - chi0a
-        
+
         wps = self.solve_dyson_with_identity_kernel(chi0r)
-        
+
         # compute ERI from W in PDEP basis
-        Ws = self.__npdep_to_eri(h=wps[0] if self.eps_infty is None else (1.0 / self.eps_infty - 1.0),
-                            B=wps[1], braket=braket)
+        Ws = self.__npdep_to_eri(
+            h=wps[0] if self.eps_infty is None else (1.0 / self.eps_infty - 1.0),
+            B=wps[1],
+            braket=braket,
+        )
 
         return Ws
 
     def parse_h1e(self):
-        """ Read 1e terms in the KS hamiltonian. """
-        self.s1e = np.fromfile(f"{self.path}/west.wfreq.save/s1e.dat", dtype=float).reshape(
-            self.nspin, self.nspin, self.nproj, self.nproj
-        )
-        
-        checklist = ["kin", "vloc", "vnl", "vh", "vxc", "vxx", "hks"]            
+        """Read 1e terms in the KS hamiltonian."""
+        self.s1e = np.fromfile(
+            f"{self.path}/west.wfreq.save/s1e.dat", dtype=float
+        ).reshape(self.nspin, self.nspin, self.nproj, self.nproj)
+
+        checklist = ["kin", "vloc", "vnl", "vh", "vxc", "vxx", "hks"]
         for h in checklist:
-            setattr(self, h, np.fromfile(
-                f"{self.path}/west.wfreq.save/{h}.dat", dtype=float
-            ).reshape(self.nspin, self.nproj, self.nproj))
+            setattr(
+                self,
+                h,
+                np.fromfile(
+                    f"{self.path}/west.wfreq.save/{h}.dat", dtype=float
+                ).reshape(self.nspin, self.nproj, self.nproj),
+            )
 
         self.parse_sigma()
 
     def parse_sigma(self):
 
-        checklist_cgw = [f"sigmax_n_a",f"sigmax_n_e",f"sigmax_n_f"]
+        checklist_cgw = [f"sigmax_n_a", f"sigmax_n_e", f"sigmax_n_f"]
         for h in checklist_cgw:
             tmp = np.fromfile(
                 f"{self.path}/west.wfreq.save/{h}.dat", dtype=float
             ).reshape(self.nspin, self.nproj, self.nproj)
             setattr(self, h, tmp)
-            
+
         checklist_cgw = [f"qp_energy_n"]
         for h in checklist_cgw:
             tmp1 = np.fromfile(
-                    f"{self.path}/west.wfreq.save/{h}.dat", dtype=float
+                f"{self.path}/west.wfreq.save/{h}.dat", dtype=float
             ).reshape(self.nspin, self.nproj)
             tmp = np.zeros([self.nspin, self.nproj, self.nproj], dtype=float)
             for ispin in range(self.nspin):
-                tmp[ispin, ...] = np.diag(tmp1[ispin, ...]) 
+                tmp[ispin, ...] = np.diag(tmp1[ispin, ...])
             setattr(self, h, tmp)
 
-        checklist_cgw = [f"sigmac_eigen_n_a",f"sigmac_eigen_n_e",f"sigmac_eigen_n_f"]
+        checklist_cgw = [f"sigmac_eigen_n_a", f"sigmac_eigen_n_e", f"sigmac_eigen_n_f"]
         for h in checklist_cgw:
             tmp = np.fromfile(
                 f"{self.path}/west.wfreq.save/{h}.dat", dtype=float
@@ -240,16 +263,16 @@ class QDETResult(object):
 
     def write(self, *args):
 
-        data = ''
+        data = ""
         for i in args:
             data += str(i)
-            data += ' '
+            data += " "
         data = data[:-1]
         print(data)
 
     @staticmethod
     def make_index_map(n: int) -> Tuple[int, np.ndarray, np.ndarray]:
-        """ Helper function to build index maps.
+        """Helper function to build index maps.
 
         Args:
             n: # of orbitals.
@@ -270,7 +293,7 @@ class QDETResult(object):
         return npair, pijmap, ijpmap
 
     def parse_eri(self, fname: str) -> np.ndarray:
-        """ Read ERI (electron repulsion integral, aka four-center integral) from file.
+        """Read ERI (electron repulsion integral, aka four-center integral) from file.
 
         Args:
             fname: filename (in the directory of self.path).
@@ -279,15 +302,15 @@ class QDETResult(object):
             ERI as a 4-index array.
         """
         fpath = f"{self.path}/{fname}"
-        eri_pair = np.fromfile(fpath, dtype=complex).reshape(
-            self.nspin, self.nspin, self.npair, self.npair).real
+        eri_pair = (
+            np.fromfile(fpath, dtype=complex)
+            .reshape(self.nspin, self.nspin, self.npair, self.npair)
+            .real
+        )
         return self.unfold_eri(eri_pair, self.nproj)
 
-    def __npdep_to_eri(self,
-                  h: float,
-                  B: np.ndarray,
-                  braket: np.ndarray) -> np.ndarray:
-        """ Compute ERI of given W (defined by head h and body B) on a basis of KS orbitals.
+    def __npdep_to_eri(self, h: float, B: np.ndarray, braket: np.ndarray) -> np.ndarray:
+        """Compute ERI of given W (defined by head h and body B) on a basis of KS orbitals.
 
         Args:
             h: head.
@@ -305,9 +328,12 @@ class QDETResult(object):
         braket_pair_eff = np.zeros([self.nspin, npair, self.npdep])
         for ispin in range(self.nspin):
             for p, (i, j) in enumerate(pijmap):
-                iproj, jproj, = self.basis[[i, j]]
-                braket_pair_eff[ispin, p, :] = braket[ispin, iproj, jproj, :self.npdep]
-        eri_pair = (1/self.omega) * np.einsum(
+                (
+                    iproj,
+                    jproj,
+                ) = self.basis[[i, j]]
+                braket_pair_eff[ispin, p, :] = braket[ispin, iproj, jproj, : self.npdep]
+        eri_pair = (1 / self.omega) * np.einsum(
             "sip,pq,tjq->stij", braket_pair_eff, B.real, braket_pair_eff, optimize=True
         )
 
@@ -320,7 +346,7 @@ class QDETResult(object):
         return eri
 
     def unfold_eri(self, eri_pair: np.ndarray, n: int) -> np.ndarray:
-        """ Helper function to unfold an ERI defined on orbital paris to 4-index ERI. """
+        """Helper function to unfold an ERI defined on orbital paris to 4-index ERI."""
         nspin = self.nspin
         npair, _, ijpmap = self.make_index_map(n)
         assert eri_pair.shape == (nspin, nspin, npair, npair)
@@ -332,7 +358,7 @@ class QDETResult(object):
 
     @staticmethod
     def solve_dyson_with_identity_kernel(bare: np.ndarray) -> Tuple[float, np.ndarray]:
-        """ Solve Dyson equation between bare and screened quantity.
+        """Solve Dyson equation between bare and screened quantity.
 
         scr = bare + bare @ scr
         bare is Npdep + 3 by Npdep + 3 matrix
@@ -361,24 +387,31 @@ class QDETResult(object):
         k = 1 - f - np.trace(mu @ np.linalg.inv(I - B))
 
         # Lambda: scr11, Theta: Tr(scr00)
-        Lambda = np.linalg.inv(I - B) @ B + 1 / k * np.linalg.inv(I - B) @ mu @ np.linalg.inv(I - B)
+        Lambda = np.linalg.inv(I - B) @ B + 1 / k * np.linalg.inv(
+            I - B
+        ) @ mu @ np.linalg.inv(I - B)
         Theta = (1 - k) / k
 
         return Theta, Lambda
 
     def compute_vh_from_eri(self, eri: np.ndarray) -> np.ndarray:
-        """ Compute VHartree from ERI.
-        
+        """Compute VHartree from ERI.
+
         Args:
             eri: ERI.
 
         Returns:
             VHartree matrix in active space.
         """
-        return np.einsum("stijkl,tkl->sij", eri, self.dm[:, self.basis, :][:, :, self.basis], optimize=True)
+        return np.einsum(
+            "stijkl,tkl->sij",
+            eri,
+            self.dm[:, self.basis, :][:, :, self.basis],
+            optimize=True,
+        )
 
     def compute_vxx_from_eri(self, eri: np.ndarray) -> np.ndarray:
-        """ Compute VEXX from ERI.
+        """Compute VEXX from ERI.
 
         Args:
             eri: ERI.
@@ -386,13 +419,21 @@ class QDETResult(object):
         Returns:
             VEXX matrix in active space.
         """
-        return - 0.5 * self.nspin * np.einsum("ssikjl,skl->sij", eri, self.dm[:, self.basis, :][:, :, self.basis], optimize=True)
+        return (
+            -0.5
+            * self.nspin
+            * np.einsum(
+                "ssikjl,skl->sij",
+                eri,
+                self.dm[:, self.basis, :][:, :, self.basis],
+                optimize=True,
+            )
+        )
 
-    def compute_h1e_from_hks(self,
-                             eri: np.ndarray,
-                             braket: np.ndarray,
-                             mu: float = 0) -> np.ndarray:
-        """ Compute 1e term of effective Hamiltonian from KS Hamiltonian.
+    def compute_h1e_from_hks(
+        self, eri: np.ndarray, braket: np.ndarray, mu: float = 0
+    ) -> np.ndarray:
+        """Compute 1e term of effective Hamiltonian from KS Hamiltonian.
 
         Args:
             basis: list of band indices for orbitals in the active space.
@@ -405,13 +446,16 @@ class QDETResult(object):
 
         braket = braket[:, self.basis, :, :][:, :, self.basis, :]
         occ = self.occ[:, self.basis]
-        
+
         # calculate double-counting term
-        hdc = self.compute_vh_from_eri(eri) \
-            + self.vxc[:, self.basis, :][:, :, self.basis] + self.vxx[:, self.basis, :][:, :, self.basis]\
-            - getattr(self,'sigmax_n_e')[:, self.basis, :][:, :, self.basis]\
-            - getattr(self,'sigmac_eigen_n_e')[:, self.basis, :][:, :, self.basis]
-        
+        hdc = (
+            self.compute_vh_from_eri(eri)
+            + self.vxc[:, self.basis, :][:, :, self.basis]
+            + self.vxx[:, self.basis, :][:, :, self.basis]
+            - getattr(self, "sigmax_n_e")[:, self.basis, :][:, :, self.basis]
+            - getattr(self, "sigmac_eigen_n_e")[:, self.basis, :][:, :, self.basis]
+        )
+
         # subtract double counting from Kohn-Sham eigenvalues
         h1e = self.hks[:, self.basis, :][:, :, self.basis] - hdc
         # subtract chemical potential from diagonal terms
@@ -421,11 +465,10 @@ class QDETResult(object):
 
         return h1e
 
-    def solve(self,
-              nelec: Tuple = None,
-              nroots: int = 10,
-              verbose: bool = True) -> Dict:
-        """ Build effective Hamiltonians for given active space.
+    def solve(
+        self, nelec: Tuple = None, nroots: int = 10, verbose: bool = True
+    ) -> Dict:
+        """Build effective Hamiltonians for given active space.
 
         The highest level function of CGWResults class. Call self.make_heff to build
         effective Hamiltonians for given set of W. Can run FCI calculations in place.
@@ -437,36 +480,53 @@ class QDETResult(object):
         """
         basis_indices = self.ks_projectors
         basis_labels = [""] * len(basis_indices)
-        
+
         # determine number of electrons from occupations
         if nelec == None:
-            nel = np.sum(self.occ[:,self.basis])
-            nelec = (int(round(nel))//2, int(round(nel))//2)
-        
+            nel = np.sum(self.occ[:, self.basis])
+            nelec = (int(round(nel)) // 2, int(round(nel)) // 2)
+
         # diagonalize effective Hamiltonian
         fcires = self.heff.FCI(nelec=nelec, nroots=nroots)
-        
+
         if verbose:
 
-            self.write("===============================================================")
+            self.write(
+                "==============================================================="
+            )
             self.write("Building effective Hamiltonian...")
             self.write(f"nspin: {self.nspin}")
             self.write(f"ks_eigenvalues: {self.egvs[:, self.basis] * hartree_to_ev}")
             self.write(f"occupations: {self.occ[:, self.basis]}")
             self.write(f"npdep_to_use: {self.npdep}")
-            self.write("===============================================================")
+            self.write(
+                "==============================================================="
+            )
 
             self.write("-----------------------------------------------------")
 
             self.write(f"{'#':>2}  {'ev':>5} {'term':>4} diag[1RDM - 1RDM(GS)]")
             self.write(f"{'':>15}" + " ".join(f"{b:>4}" for b in self.basis))
             ispin = 0
-            self.write(f"{'':>15}" + " ".join(f"{self.egvs[ispin,b]*hartree_to_ev:>4.1f}" for b in self.basis))
+            self.write(
+                f"{'':>15}"
+                + " ".join(
+                    f"{self.egvs[ispin,b]*hartree_to_ev:>4.1f}" for b in self.basis
+                )
+            )
             if self.point_group is not None:
-                self.write(f"{'':>15}" + " ".join(f"{s.partition('(')[0]:>4}" for s in orbital_symms))
-            for i, (ev, mult, symm, ex) in enumerate(zip(
-                fcires["evs"], fcires["mults"], fcires["symms_maxproj"], fcires["excitations"]
-            )):
+                self.write(
+                    f"{'':>15}"
+                    + " ".join(f"{s.partition('(')[0]:>4}" for s in orbital_symms)
+                )
+            for i, (ev, mult, symm, ex) in enumerate(
+                zip(
+                    fcires["evs"],
+                    fcires["mults"],
+                    fcires["symms_maxproj"],
+                    fcires["excitations"],
+                )
+            ):
                 symbol = f"{int(round(mult))}{symm.partition('(')[0]}"
                 exstring = " ".join(f"{e:>4.1f}" for e in ex)
                 self.write(f"{i:>2}  {ev:.3f} {symbol:>4} {exstring}")
@@ -474,9 +534,9 @@ class QDETResult(object):
             self.write("-----------------------------------------------------")
 
         return fcires
-    
+
     def __read_wfreq_out(self, filename):
-        """ Read divergence from wfreq.out file.
+        """Read divergence from wfreq.out file.
         Args:
             filename: filename of the wfreq.out file.
         """
@@ -485,12 +545,11 @@ class QDETResult(object):
         i = find_index("Divergence =", wfoutput)
         self.div = parse_one_value(float, wfoutput[i])
 
-
     def __read_wfreq_json(self, filename):
         """The function reads parameters from JSON file and stores them in class
         variables.
         Args:
-            filename: filename of the wfreq JSON output file. 
+            filename: filename of the wfreq JSON output file.
         """
         js = json.load(open(filename))
         self.nspin = js["system"]["electron"]["nspin"]
@@ -498,15 +557,19 @@ class QDETResult(object):
         self.omega = js["system"]["cell"]["omega"]
 
         self.nproj = 0
-        
+
         # read data on Kohn-Sham active space
-        nbndstart, nbndend = np.array(js['input']['cgw_control']['ks_projector_range'], dtype=int)
+        nbndstart, nbndend = np.array(
+            js["input"]["cgw_control"]["ks_projector_range"], dtype=int
+        )
         if nbndstart != 0:
             self.ks_projectors = np.arange(nbndstart, nbndend + 1)
         else:
-            self.ks_projectors = np.array(js['input']['cgw_control']['ks_projectors'], dtype=int)
+            self.ks_projectors = np.array(
+                js["input"]["cgw_control"]["ks_projectors"], dtype=int
+            )
         self.nproj = len(self.ks_projectors)
-        
+
         # generate basis from Kohn-Sham projectors
         self.basis = np.array(range(len(self.ks_projectors)))
         # generate pairs of Kohn-Sham indices and mappings
@@ -515,7 +578,7 @@ class QDETResult(object):
         return
 
     def __read_pw_xml(self, path):
-        """ Read Kohn-Sham eigenvalues and occupations from Quantum Espresso
+        """Read Kohn-Sham eigenvalues and occupations from Quantum Espresso
         XML files and store it in class variables.
         Args:
             path: directory that contains the eigenval.xml or set of
@@ -524,9 +587,9 @@ class QDETResult(object):
 
         for ispin in range(self.nspin):
             if self.nspin == 1:
-                xmlroot = etree.parse(path+"eigenval.xml")
+                xmlroot = etree.parse(path + "eigenval.xml")
             else:
-                xmlroot = etree.parse(path+"eigenval{ispin+1}.xml")
+                xmlroot = etree.parse(path + "eigenval{ispin+1}.xml")
             egvsleaf = xmlroot.find("./EIGENVALUES")
             nbnd = int(egvsleaf.attrib["size"])
             egvs = np.fromstring(egvsleaf.text, sep=" ")
@@ -535,5 +598,7 @@ class QDETResult(object):
             assert egvs.shape == (nbnd,) and occ.shape == (nbnd,)
             if self.nspin == 1:
                 occ *= 2
-            self.egvs[ispin, :] = egvs[self.ks_projectors - 1]  # -1 because band index start from 1
+            self.egvs[ispin, :] = egvs[
+                self.ks_projectors - 1
+            ]  # -1 because band index start from 1
             self.occ[ispin, :] = occ[self.ks_projectors - 1]
