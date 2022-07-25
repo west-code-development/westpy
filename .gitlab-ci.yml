@@ -72,7 +72,7 @@ westpy_lint:
     - conda install -q -y -c conda-forge pytest
     - pip install -q --upgrade pip
     - which python
-    - pip install -q -y black
+    - pip install -q black
     - git clone -b $CI_COMMIT_REF_NAME $CI_REPOSITORY_URL westpy
     - cd westpy
     - git describe --tags --always
