@@ -77,7 +77,6 @@ westpy_lint:
     - cd westpy
     - git describe --tags --always
     - pip install .
-    - cd test-suite
     - black --check --diff --color westpy
 
 westpy_doc_build:
