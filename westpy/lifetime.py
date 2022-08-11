@@ -63,7 +63,7 @@ def radiative_lifetime(westpp_file,ispin,band1,band2,n,e_zpl):
       im = westpp_json['output']['D'][label_k]['dipole'][itrans]['im']
       #
       for i in range(3):
-         rr[i] += np.sqrt(re[i]**2 + im[i]**2) * wk * / e_diff
+         rr[i] += np.sqrt(re[i]**2 + im[i]**2) * wk / e_diff
    #
    rr_sq = sum(rr**2)
    #

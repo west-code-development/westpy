@@ -5,7 +5,7 @@ Installation
 ============
 
 The recommendend installation method for **WESTpy** is via python install. 
-The software is tested for python version 3.x and has the following dependencies: 
+The software is tested for Python version 3.x and has the following dependencies:
 
    - ``numpy``
    - ``scipy``
@@ -38,5 +38,5 @@ or simply execute:
     $ cd westpy 
     $ make
 
-If the name of your Python compiler is not standard, you can edit the varyable **PYT** in the file **Makefile**.  
+If the name of your Python interpreter is not standard, you can edit the varyable **PYT** in the file **Makefile**.
 
