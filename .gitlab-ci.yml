@@ -18,6 +18,7 @@ westpy_build:
     - pip install -q --upgrade pip
     - which python
   script:
+    - rm -rf westpy
     - git clone -b $CI_COMMIT_REF_NAME $CI_REPOSITORY_URL westpy
     - cd westpy
     - git describe --tags --always
@@ -34,10 +35,12 @@ westpy_doc_build:
     - apt-get install -qq pandoc > /dev/null
     - rm -f /etc/localtime
     - cp /usr/share/zoneinfo/$TZ /etc/localtime
-    - conda install -q -y -c conda-forge nbsphinx
-    - conda install -q -y sphinx_rtd_theme
-    - conda install -q -y ipython
+    - pip install -q --upgrade pip
+    - pip install -q nbsphinx
+    - pip install -q sphinx_rtd_theme
+    - pip install -q ipython
   script:
+    - rm -rf westpy
     - git clone -b $CI_COMMIT_REF_NAME $CI_REPOSITORY_URL westpy
     - cd westpy
     - git describe --tags --always

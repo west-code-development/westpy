@@ -8,7 +8,7 @@ Overview
 Features: 
 
    - Guided generation of input files for ground state density functional theory calculations (Qbox, QuantumEspresso) 
-   - *Guided generation of input filed for WEST*
+   - *Guided generation of input files for WEST*
    - Plot of DOS, *LDOS*, *full-frequency self-energy*
 
 .. seealso::
