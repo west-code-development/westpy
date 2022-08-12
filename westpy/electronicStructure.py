@@ -153,7 +153,7 @@ class ElectronicStructure() :
          ax = fig.add_subplot(1,1,1)
          for energyKey in energyKeys :
             for s in ss :
-               dosPlot = ax.plot(energyAxis,dosAxis[energyKey][s-1],label=energyKey+" @ (s="+str(s)+")")
+               dosPlot = ax.plot(energyAxis,dosAxis[energyKey][s-1],label=f"{energyKey} @ (s={s})")
          #
          plt.xlim([energyRange[0],energyRange[1]])
          plt.ylim([0,np.max(ymax[:])])
