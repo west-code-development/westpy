@@ -120,7 +120,9 @@ class ElectronicStructure() :
          ymax = []
          for energyKey in energyKeys :
             #
-            dosAxis[energyKey] = np.zeros ( (len(ss),npte) )
+            dosAxis[energyKey] = {}
+            for s in ss :
+               dosAxis[energyKey][s] = np.zeros(npte)
             #
             for dataPoint in self.dc.coll :
                for s in ss :
@@ -140,9 +142,10 @@ class ElectronicStructure() :
                            we = weight
                         #
                         for ix in range(npte) :
-                           dosAxis[energyKey][s-1][ix] += gaussian( energyAxis[ix], mu, si ) * we
+                           dosAxis[energyKey][s][ix] += gaussian( energyAxis[ix], mu, si ) * we
             #
-            ymax.append( np.max(dosAxis[energyKey][:]) )
+            for s in ss :
+               ymax.append( np.max(dosAxis[energyKey][s]) )
          #
          print("Requested (emin,emax) : ", energyRange[0],energyRange[1])
          print("Detected  (emin,emax) : ", np.min(emin), np.max(emax))
@@ -153,7 +156,7 @@ class ElectronicStructure() :
          ax = fig.add_subplot(1,1,1)
          for energyKey in energyKeys :
             for s in ss :
-               dosPlot = ax.plot(energyAxis,dosAxis[energyKey][s-1],label=f"{energyKey} @ (s={s})")
+               dosPlot = ax.plot(energyAxis,dosAxis[energyKey][s],label=f"{energyKey} @ (s={s})")
          #
          plt.xlim([energyRange[0],energyRange[1]])
          plt.ylim([0,np.max(ymax[:])])
