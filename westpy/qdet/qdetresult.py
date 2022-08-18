@@ -22,7 +22,7 @@ class QDETResult(object):
     def __init__(
         self,
         filename: str,
-        occ: np.ndarray
+        occ: np.ndarray,
         point_group: Optional[PointGroup] = None,
         symmetrize: Dict[str, bool] = {},
     ):
@@ -36,10 +36,10 @@ class QDETResult(object):
         """
         self.filename = filename
         self.occ = occ
-        
+
         # read basic parameters from JSON file
         self.nspin, self.npair, self.basis = self.__read_parameters_from_JSON(filename)
-        
+
         # read one- and two-body terms from JSON file
         self.h1e, self.eri = self.__read_matrix_elements_from_JSON(filename)
 
@@ -77,30 +77,30 @@ class QDETResult(object):
         string += "---------------------------------------------------------------\n"
 
         return string
-    
+
     def __read_parameters_from_JSON(filename):
         """
         Read basic calculation parameters from JSON file.
         """
 
-        with open(filename, 'r') as f:
+        with open(filename, "r") as f:
             raw_ = json.load(f)
 
         npair = len(indexmap)
-        nspin = int(raw_['system']['electron']['nspin'])
-        bands = np.array(raw_['input']['wfreq_control']['qp_bands'], dtype=int)
+        nspin = int(raw_["system"]["electron"]["nspin"])
+        bands = np.array(raw_["input"]["wfreq_control"]["qp_bands"], dtype=int)
 
         return nspin, nspin, bands
-        
+
     def __read_matrix_elements_from_JSON(filename):
         """
         Read one-body and two-body terms from JSON file.
         """
 
-        with open(filename, 'r') as f:
+        with open(filename, "r") as f:
             raw_ = json.load(f)
-        
-        indexmap = np.array(raw_['output']['Q']['indexmap'], dtype=int)
+
+        indexmap = np.array(raw_["output"]["Q"]["indexmap"], dtype=int)
 
         # allocate one- and two-body terms in basis of pairs of KS states
         eri_pair = np.zeros((self.nspin, self.nspin, self.npair, self.npair))
@@ -108,27 +108,29 @@ class QDETResult(object):
 
         # read one-body terms from file
         for ispin in range(nspin):
-            string1 = 'K' + format(ispin + 1, '06b')
-            h1e_pair[ispin, :] = np.array(raw_['qdet']['h1e'][string1], dtype=float)
+            string1 = "K" + format(ispin + 1, "06b")
+            h1e_pair[ispin, :] = np.array(raw_["qdet"]["h1e"][string1], dtype=float)
 
         # read two-body terms from file
         for ispin1 in range(nspin):
-            string1 = 'K' + format(ispin1 + 1, '06b')
+            string1 = "K" + format(ispin1 + 1, "06b")
             for ispin2 in range(nspin):
-                string2 = 'K' + format(ispin2 + 1, '06b')
-                
+                string2 = "K" + format(ispin2 + 1, "06b")
+
                 for ipair in range(npair):
-                    string3 = 'pair' + format(ipar + 1, '06b')
-                    eri_pair[ispin1, ispin2, ipair, :] = np.array(raw_['qdet']['eri'][string1][string2][string3], dtype=float)
-        
+                    string3 = "pair" + format(ipar + 1, "06b")
+                    eri_pair[ispin1, ispin2, ipair, :] = np.array(
+                        raw_["qdet"]["eri"][string1][string2][string3], dtype=float
+                    )
+
         # unfold one-body terms from pair basis to Kohn-Sham basis
         h1e = np.zeros((nspin, len(bands), len(bands)))
 
         for ispin in range(nspin):
             for ipair in range(len(indexmap)):
                 i, j = indexmap[ipair]
-                h1e[i-1, j-1] = h1e_pair[ipair]
-        
+                h1e[i - 1, j - 1] = h1e_pair[ipair]
+
         # unfold two-body terms from pair to Kohn-Sham basis
         eri = np.zeros((nspin, nspin, len(bands), len(bands)))
         for ispin in range(nspin):
@@ -137,8 +139,10 @@ class QDETResult(object):
                     i, j = indexmap[ipair]
                     for jpair in range(len(indexmap)):
                         k, l = indexmap[jpair]
-                        eri[ispin, jspin, i-1, j-1, k-1, l-1] = eri_pair[ipair, jpair]
-        
+                        eri[ispin, jspin, i - 1, j - 1, k - 1, l - 1] = eri_pair[
+                            ipair, jpair
+                        ]
+
         return h1e, eri
 
     def write(self, *args):
@@ -217,4 +221,3 @@ class QDETResult(object):
             self.write("-----------------------------------------------------")
 
         return fcires
-
