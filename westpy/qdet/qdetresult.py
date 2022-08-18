@@ -87,14 +87,14 @@ class QDETResult(object):
         Read basic calculation parameters from JSON file.
         """
 
-        with open(filename, 'r') as f:
+        with open(filename, "r") as f:
             raw_ = json.load(f)
         
         indexmap = np.array(raw_['output']['Q']['indexmap'], dtype=int)
 
         npair = len(indexmap)
-        nspin = int(raw_['system']['electron']['nspin'])
-        bands = np.array(raw_['input']['wfreq_control']['qp_bands'], dtype=int)
+        nspin = int(raw_["system"]["electron"]["nspin"])
+        bands = np.array(raw_["input"]["wfreq_control"]["qp_bands"], dtype=int)
 
         return nspin, npair, bands
 
@@ -119,10 +119,10 @@ class QDETResult(object):
         Read one-body and two-body terms from JSON file.
         """
 
-        with open(filename, 'r') as f:
+        with open(filename, "r") as f:
             raw_ = json.load(f)
-        
-        indexmap = np.array(raw_['output']['Q']['indexmap'], dtype=int)
+
+        indexmap = np.array(raw_["output"]["Q"]["indexmap"], dtype=int)
 
         # allocate one- and two-body terms in basis of pairs of KS states
         eri_pair = np.zeros((self.nspin, self.nspin, self.npair, self.npair))
@@ -145,8 +145,6 @@ class QDETResult(object):
         
         # unfold one-body terms from pair basis to Kohn-Sham basis
         h1e = np.zeros((self.nspin, len(self.basis), len(self.basis)))
-        print('h1e.shape=', h1e.shape)
-        print('h1e_pair.shape=', h1e_pair.shape)
         for ispin in range(self.nspin):
             for ipair in range(len(indexmap)):
                 i, j = indexmap[ipair]
@@ -208,7 +206,6 @@ class QDETResult(object):
                 nelec = (int(nel1), int(nel2))
 
         # diagonalize effective Hamiltonian
-        print('nelec=', nelec)
         fcires = self.heff.FCI(nelec=nelec, nroots=nroots)
 
         if verbose:
@@ -248,4 +245,3 @@ class QDETResult(object):
             self.write("-----------------------------------------------------")
 
         return fcires
-
