@@ -22,7 +22,6 @@ class QDETResult(object):
     def __init__(
         self,
         filename: str,
-        occ: np.ndarray,
         point_group: Optional[PointGroup] = None,
         symmetrize: Dict[str, bool] = {},
     ):
@@ -35,15 +34,18 @@ class QDETResult(object):
             symmetrize: arguments for symmetrization function of Heff.
         """
         self.filename = filename
-        self.occ = occ
 
         # read basic parameters from JSON file
         self.nspin, self.npair, self.basis = self.__read_parameters_from_JSON(filename)
+
+        # read occupation from file
+        self.occupation = self.__read_occupation_from_JSON(filename)
 
         # read one- and two-body terms from JSON file
         self.h1e, self.eri = self.__read_matrix_elements_from_JSON(filename)
 
         # determine point-group representation
+        self.point_group = point_group
         if self.point_group is None:
             point_group_rep = None
         else:
@@ -57,6 +59,8 @@ class QDETResult(object):
             point_group_rep, orbital_symms = self.point_group.compute_rep_on_orbitals(
                 orbitals, orthogonalize=True
             )
+        self.h1e = self.h1e / hartree_to_ev
+        self.eri = self.eri / hartree_to_ev
 
         # generate effective Hamiltonian
         self.heff = Heff(self.h1e, self.eri, point_group_rep=point_group_rep)
@@ -73,12 +77,12 @@ class QDETResult(object):
             string += f"point group: {self.point_group.name}\n"
         string += f"ks_projectors: {self.basis}\n"
 
-        string += "occupations:" + str(self.occ) + "\n"
+        string += "occupations:" + str(self.occupation) + "\n"
         string += "---------------------------------------------------------------\n"
 
         return string
 
-    def __read_parameters_from_JSON(filename):
+    def __read_parameters_from_JSON(self, filename):
         """
         Read basic calculation parameters from JSON file.
         """
@@ -86,13 +90,32 @@ class QDETResult(object):
         with open(filename, "r") as f:
             raw_ = json.load(f)
 
+        indexmap = np.array(raw_["output"]["Q"]["indexmap"], dtype=int)
+
         npair = len(indexmap)
         nspin = int(raw_["system"]["electron"]["nspin"])
         bands = np.array(raw_["input"]["wfreq_control"]["qp_bands"], dtype=int)
 
-        return nspin, nspin, bands
+        return nspin, npair, bands
 
-    def __read_matrix_elements_from_JSON(filename):
+    def __read_occupation_from_JSON(self, filename):
+        """
+        Read DFT occupation from JSON file.
+        """
+        with open(filename, "r") as f:
+            raw_ = json.load(f)
+
+        occ_ = np.zeros((self.nspin, len(self.basis)))
+
+        for ispin in range(self.nspin):
+            string1 = "K" + format(ispin + 1, "06d")
+            occ_[ispin, :] = np.array(
+                raw_["output"]["Q"][string1]["occupation"], dtype=float
+            )
+
+        return occ_
+
+    def __read_matrix_elements_from_JSON(self, filename):
         """
         Read one-body and two-body terms from JSON file.
         """
@@ -107,42 +130,72 @@ class QDETResult(object):
         h1e_pair = np.zeros((self.nspin, self.npair))
 
         # read one-body terms from file
-        for ispin in range(nspin):
-            string1 = "K" + format(ispin + 1, "06b")
+        for ispin in range(self.nspin):
+            string1 = "K" + format(ispin + 1, "06d")
             h1e_pair[ispin, :] = np.array(raw_["qdet"]["h1e"][string1], dtype=float)
 
         # read two-body terms from file
-        for ispin1 in range(nspin):
-            string1 = "K" + format(ispin1 + 1, "06b")
-            for ispin2 in range(nspin):
-                string2 = "K" + format(ispin2 + 1, "06b")
+        for ispin1 in range(self.nspin):
+            string1 = "K" + format(ispin1 + 1, "06d")
+            for ispin2 in range(self.nspin):
+                string2 = "K" + format(ispin2 + 1, "06d")
 
-                for ipair in range(npair):
-                    string3 = "pair" + format(ipar + 1, "06b")
+                for ipair in range(self.npair):
+                    string3 = "pair" + format(ipair + 1, "06d")
                     eri_pair[ispin1, ispin2, ipair, :] = np.array(
                         raw_["qdet"]["eri"][string1][string2][string3], dtype=float
                     )
 
         # unfold one-body terms from pair basis to Kohn-Sham basis
-        h1e = np.zeros((nspin, len(bands), len(bands)))
-
-        for ispin in range(nspin):
+        h1e = np.zeros((self.nspin, len(self.basis), len(self.basis)))
+        for ispin in range(self.nspin):
             for ipair in range(len(indexmap)):
                 i, j = indexmap[ipair]
-                h1e[i - 1, j - 1] = h1e_pair[ipair]
+                h1e[ispin, i - 1, j - 1] = h1e_pair[ispin, ipair]
+                h1e[ispin, j - 1, i - 1] = h1e_pair[ispin, ipair]
 
         # unfold two-body terms from pair to Kohn-Sham basis
-        eri = np.zeros((nspin, nspin, len(bands), len(bands)))
-        for ispin in range(nspin):
-            for jspin in range(nspin):
+        eri = np.zeros(
+            (
+                self.nspin,
+                self.nspin,
+                len(self.basis),
+                len(self.basis),
+                len(self.basis),
+                len(self.basis),
+            )
+        )
+        for ispin in range(self.nspin):
+            for jspin in range(self.nspin):
                 for ipair in range(len(indexmap)):
                     i, j = indexmap[ipair]
                     for jpair in range(len(indexmap)):
                         k, l = indexmap[jpair]
                         eri[ispin, jspin, i - 1, j - 1, k - 1, l - 1] = eri_pair[
-                            ipair, jpair
+                            ispin, jspin, ipair, jpair
+                        ]
+                        eri[ispin, jspin, i - 1, j - 1, l - 1, k - 1] = eri_pair[
+                            ispin, jspin, ipair, jpair
+                        ]
+                        eri[ispin, jspin, j - 1, i - 1, k - 1, l - 1] = eri_pair[
+                            ispin, jspin, ipair, jpair
+                        ]
+                        eri[ispin, jspin, j - 1, i - 1, l - 1, k - 1] = eri_pair[
+                            ispin, jspin, ipair, jpair
                         ]
 
+                        eri[ispin, jspin, k - 1, l - 1, i - 1, j - 1] = eri_pair[
+                            ispin, jspin, ipair, jpair
+                        ]
+                        eri[ispin, jspin, k - 1, l - 1, j - 1, i - 1] = eri_pair[
+                            ispin, jspin, ipair, jpair
+                        ]
+                        eri[ispin, jspin, l - 1, k - 1, i - 1, j - 1] = eri_pair[
+                            ispin, jspin, ipair, jpair
+                        ]
+                        eri[ispin, jspin, l - 1, k - 1, j - 1, i - 1] = eri_pair[
+                            ispin, jspin, ipair, jpair
+                        ]
         return h1e, eri
 
     def write(self, *args):
@@ -172,8 +225,13 @@ class QDETResult(object):
 
         # determine number of electrons from occupations
         if nelec == None:
-            nel = np.sum(self.occ)
-            nelec = (int(round(nel)) // 2, int(round(nel)) // 2)
+            if self.nspin == 1:
+                nel = np.sum(self.occupation)
+                nelec = (int(round(nel)) // 2, int(round(nel)) // 2)
+            else:
+                nel1 = np.sum(self.occupation[0, :])
+                nel2 = np.sum(self.occupation[1, :])
+                nelec = (int(nel1), int(nel2))
 
         # diagonalize effective Hamiltonian
         fcires = self.heff.FCI(nelec=nelec, nroots=nroots)
@@ -185,7 +243,7 @@ class QDETResult(object):
             )
             self.write("Building effective Hamiltonian...")
             self.write(f"nspin: {self.nspin}")
-            self.write(f"occupations: {self.occ[:]}")
+            self.write(f"occupations: {self.occupation[:]}")
             self.write(
                 "==============================================================="
             )
@@ -195,12 +253,6 @@ class QDETResult(object):
             self.write(f"{'#':>2}  {'ev':>5} {'term':>4} diag[1RDM - 1RDM(GS)]")
             self.write(f"{'':>15}" + " ".join(f"{b:>4}" for b in self.basis))
             ispin = 0
-            self.write(
-                f"{'':>15}"
-                + " ".join(
-                    f"{self.egvs[ispin,b]*hartree_to_ev:>4.1f}" for b in self.basis
-                )
-            )
             if self.point_group is not None:
                 self.write(
                     f"{'':>15}"
