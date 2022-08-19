@@ -1,22 +1,22 @@
 class Atom(object):
    """Class for representing a single atom.
 
-   :param symbol: chemical symbol 
+   :param symbol: chemical symbol
    :type symbol: string
    :param position: position
-   :type position: 3-dim tuple 
-   :param units: Units, optional  
-   :type units: "Bohr" or "Angstrom" 
-   
+   :type position: 3-dim tuple
+   :param units: Units, optional
+   :type units: "Bohr" or "Angstrom"
+
    :Example:
 
-   >>> from westpy import * 
+   >>> from westpy import *
    >>> atom = Atom("Si",(0.,0.,0.))
 
-   .. note:: Positions are set in a.u. by default. If you set units=Angstrom a coversion to a.u. will be made.  
- 
+   .. note:: Positions are set in a.u. by default. If you set units=Angstrom a conversion to a.u. will be made.
+
    """
-   from westpy.units import Bohr 
+   from westpy.units import Bohr
    #
    def __init__(self, symbol='X', position=(0, 0, 0), units=Bohr) :
       #
@@ -25,5 +25,5 @@ class Atom(object):
       #
       el = element(symbol)
       #
-      self.symbol   = el.symbol 
+      self.symbol   = el.symbol
       self.position = np.array(position, dtype="f8") * units

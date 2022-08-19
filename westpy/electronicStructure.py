@@ -81,8 +81,8 @@ class ElectronicStructure() :
 
       :param kk: list of k-points
       :type kk: list of int
-      :param ss: list of spin channels
-      :type ss: list of int (must be [1], [2], or [1,2])
+      :param ss: list of spin channels (must be [1], [2], or [1,2])
+      :type ss: list of int
       :param energyKeys: energy keys
       :type energyKeys: list of string (needs to match the available keys)
       :param sigma: standard deviation of gaussian (eV), optional
