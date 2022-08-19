@@ -2,273 +2,277 @@
 """ Set of utilities."""
 
 def extractFileNamefromUrl(url):
-   """Extracts a file name from url. 
+    """Extracts a file name from url.
 
-   :param url: url
-   :type url: string
-   :returns: file name 
-   :rtype: string
+    :param url: url
+    :type url: string
+    :returns: file name
+    :rtype: string
 
-   :Example:
+    :Example:
 
-   >>> from westpy import * 
-   >>> extractFileNamefromUrl("http://www.west-code.org/database/gw100/xyz/CH4.xyz")
-   """
-   #
-   fname = None 
-   my_url = url[:-1] if url.endswith('/') else url
-   if my_url.find('/'):
-      fname = my_url.rsplit('/', 1)[1]
-   return fname 
-    
+    >>> from westpy import *
+    >>> extractFileNamefromUrl("http://www.west-code.org/database/gw100/xyz/CH4.xyz")
+    """
+    #
+    fname = None
+    my_url = url[:-1] if url.endswith('/') else url
+    if my_url.find('/'):
+        fname = my_url.rsplit('/', 1)[1]
+    return fname
+
 
 def download(url,fname=None):
-   """Downloads a file from url. 
+    """Downloads a file from url.
 
-   :param url: url
-   :type url: string
-   :param fname: file name, optional 
-   :type fname: string
+    :param url: url
+    :type url: string
+    :param fname: file name, optional
+    :type fname: string
 
-   :Example:
+    :Example:
 
-   >>> from westpy import * 
-   >>> download("http://www.west-code.org/database/gw100/xyz/CH4.xyz")
+    >>> from westpy import *
+    >>> download("http://www.west-code.org/database/gw100/xyz/CH4.xyz")
 
-   .. note:: The file will be downloaded in the current directory. 
-   """
-   #
-   if fname is None :
-      fname = extractFileNamefromUrl(url)
-   #
-   from requests import get
-   # open in binary mode
-   with open(fname, "wb") as file:
-       # get request
-       response = get(url)
-       # write to file
-       file.write(response.content)
-       #
-       print("Downloaded file: ", fname, ", from url: ", url)
+    .. note:: The file will be downloaded in the current directory.
+    """
+    #
+    if fname is None :
+        fname = extractFileNamefromUrl(url)
+    #
+    from requests import get
+    # open in binary mode
+    with open(fname, "wb") as file:
+        # get request
+        response = get(url)
+        # write to file
+        file.write(response.content)
+        #
+        print("Downloaded file: ", fname, ", from url: ", url)
 
 
 def bool2str( logical ):
-   """Converts a boolean type into a string .TRUE. or .FALSE. . 
+    """Converts a boolean type into a string .TRUE. or .FALSE. .
 
-   :param logical: logical  
-   :type logical: boolean
-   :returns: .TRUE. or .FALSE.
-   :rtype: string 
+    :param logical: logical
+    :type logical: boolean
+    :returns: .TRUE. or .FALSE.
+    :rtype: string
 
-   :Example:
+    :Example:
 
-   >>> from westpy import * 
-   >>> t = bool2str(True)
-   >>> f = bool2str(False)
-   >>> print(t,f) 
-   .TRUE. .FALSE.
-   """
-   #
-   if( logical ) : 
-      return ".TRUE."
-   else : 
-      return ".FALSE."
+    >>> from westpy import *
+    >>> t = bool2str(True)
+    >>> f = bool2str(False)
+    >>> print(t,f)
+    .TRUE. .FALSE.
+    """
+    #
+    if logical :
+        return ".TRUE."
+    else :
+        return ".FALSE."
+
 
 def writeJsonFile(fname,data):
-   """Writes data to file using the JSON format. 
+    """Writes data to file using the JSON format.
 
-   :param fname: file name
-   :type fname: string
-   :param data: data
-   :type data: dict/list
+    :param fname: file name
+    :type fname: string
+    :param data: data
+    :type data: dict/list
 
-   :Example:
+    :Example:
 
-   >>> from westpy import * 
-   >>> data = {}
-   >>> data["mass"] = 1.0
-   >>> writeJsonFile("mass.json",data) 
+    >>> from westpy import *
+    >>> data = {}
+    >>> data["mass"] = 1.0
+    >>> writeJsonFile("mass.json",data)
 
-   .. note:: The file will be generated in the current directory. 
-   """
-   #
-   import json 
-   #
-   with open(fname, 'w') as file:
-      json.dump(data, file, indent=2)
-      #
-      print("")
-      print("File written : ", fname )  
+    .. note:: The file will be generated in the current directory.
+    """
+    #
+    import json
+    #
+    with open(fname, 'w') as file:
+        json.dump(data, file, indent=2)
+        #
+        print("")
+        print("File written : ", fname )
+
 
 def readJsonFile(fname):
-   """Reads data from file using the JSON format. 
+    """Reads data from file using the JSON format.
 
-   :param fname: file name
-   :type fname: string
-   :returns: data 
-   :rtype: dict/list
+    :param fname: file name
+    :type fname: string
+    :returns: data
+    :rtype: dict/list
 
-   :Example:
+    :Example:
 
-   >>> from westpy import * 
-   >>> data = readJsonFile("mass.json") 
+    >>> from westpy import *
+    >>> data = readJsonFile("mass.json")
 
-   .. note:: The file will be read from the current directory. 
-   """
-   #
-   import json 
-   #
-   with open(fname, 'r') as file:
-      data = json.load(file)
-      #
-      print("")
-      print("File read : ", fname )
-   return data  
+    .. note:: The file will be read from the current directory.
+    """
+    #
+    import json
+    #
+    with open(fname, 'r') as file:
+        data = json.load(file)
+        #
+        print("")
+        print("File read : ", fname )
+    return data
+
 
 def convertYaml2Json(fyml,fjson):
-   """Converts the file from YAML to JSON. 
+    """Converts the file from YAML to JSON.
 
-   :param fyml: Name of YAML file 
-   :type fyml: string
-   :param fjson: Name of JSON file 
-   :type fjson: string
+    :param fyml: Name of YAML file
+    :type fyml: string
+    :param fjson: Name of JSON file
+    :type fjson: string
 
-   :Example:
+    :Example:
 
-   >>> from westpy import * 
-   >>> convertYaml2Json("file.yml","file.json") 
+    >>> from westpy import *
+    >>> convertYaml2Json("file.yml","file.json")
 
-   .. note:: The file fjon will be created, fyml will not be overwritten. 
-   """
-   #
-   import yaml, json 
-   from westpy import writeJsonFile
-   #
-   data = yaml.load(open(fyml))
-   writeJsonFile(fjson,data)
+    .. note:: The file fjon will be created, fyml will not be overwritten.
+    """
+    #
+    import yaml, json
+    from westpy import writeJsonFile
+    #
+    data = yaml.load(open(fyml))
+    writeJsonFile(fjson,data)
+
 
 def listLinesWithKeyfromOnlineText(url,key):
-   """List lines from text file located at url, with key.
+    """List lines from text file located at url, with key.
 
-   :param url: url
-   :type url: string
-   :param key: key word
-   :type key: string
-   :returns: list of lines
-   :rtype: list
+    :param url: url
+    :type url: string
+    :param key: key word
+    :type key: string
+    :returns: list of lines
+    :rtype: list
 
-   :Example:
+    :Example:
 
-   >>> from westpy import * 
-   >>> url = "http://www.quantum-simulation.org/potentials/sg15_oncv/upf/Si_ONCV_PBE-1.1.upf"
-   >>> key = "z_valence"
-   >>> l = listLinesWithKeyfromOnlineText(url,key)
-   >>> print(l) 
-   ['       z_valence="    4.00"'] 
+    >>> from westpy import *
+    >>> url = "http://www.quantum-simulation.org/potentials/sg15_oncv/upf/Si_ONCV_PBE-1.1.upf"
+    >>> key = "z_valence"
+    >>> l = listLinesWithKeyfromOnlineText(url,key)
+    >>> print(l)
+    ['       z_valence="    4.00"']
 
-   .. note:: Can be used to grep values from a UPF file.
-   """
-   #
-   from urllib.request import urlopen
-   import re
-   data = urlopen(url) # parse the data
-   greplist = []
-   for line in data :
-      if( key in str(line) ) : 
-         greplist.append(line)
-   return greplist
+    .. note:: Can be used to grep values from a UPF file.
+    """
+    #
+    from urllib.request import urlopen
+    import re
+    data = urlopen(url) # parse the data
+    greplist = []
+    for line in data :
+        if key in str(line) :
+            greplist.append(line)
+    return greplist
 
-#
-# list values from XML file located at url, with key  
-#
+
 def listValuesWithKeyFromOnlineXML(url,key):
-   """List values from XML file located at url, with key.
+    """List values from XML file located at url, with key.
 
-   :param url: url
-   :type url: string
-   :param key: key word
-   :type key: string
-   :returns: list of values
-   :rtype: list
+    :param url: url
+    :type url: string
+    :param key: key word
+    :type key: string
+    :returns: list of values
+    :rtype: list
 
-   :Example:
+    :Example:
 
-   >>> from westpy import * 
-   >>> url = "http://www.quantum-simulation.org/potentials/sg15_oncv/xml/Si_ONCV_PBE-1.1.xml"
-   >>> key = "valence_charge"
-   >>> l = listLinesWithKeyfromOnlineXML(url,key)
-   >>> print(l) 
-   ['4'] 
+    >>> from westpy import *
+    >>> url = "http://www.quantum-simulation.org/potentials/sg15_oncv/xml/Si_ONCV_PBE-1.1.xml"
+    >>> key = "valence_charge"
+    >>> l = listLinesWithKeyfromOnlineXML(url,key)
+    >>> print(l)
+    ['4']
 
-   .. note:: Can be used to grep values from a XML file.
-   """
-   #
-   from urllib.request import urlopen
-   import xml.etree.ElementTree as ET
-   tree = ET.parse(urlopen(url)) # parse the data
-   root = tree.getroot()
-   xml_values = [str(xml_val.text).strip() for xml_val in root.iter(key)] #get values
-   return xml_values
+    .. note:: Can be used to grep values from a XML file.
+    """
+    #
+    from urllib.request import urlopen
+    import xml.etree.ElementTree as ET
+    tree = ET.parse(urlopen(url)) # parse the data
+    root = tree.getroot()
+    xml_values = [str(xml_val.text).strip() for xml_val in root.iter(key)] #get values
+    return xml_values
 
 
 def gaussian(x, mu, sig):
-   """return normal distribution at point x.
+    """return normal distribution at point x.
 
-   :math:`f(x;\\mu,\\sigma) = \\frac{1}{\\sigma\sqrt{2\\pi}}e^{-\\frac{(x-\\mu)^2}{2\\sigma^2}}`
+    :math:`f(x;\\mu,\\sigma) = \\frac{1}{\\sigma\sqrt{2\\pi}}e^{-\\frac{(x-\\mu)^2}{2\\sigma^2}}`
 
-   :param x: x
-   :type x: float
-   :param mu: :math:`\\mu`
-   :type mu: float
-   :param sigma: :math:`\\sigma`
-   :type sigma: float
-   :returns: :math:`f(x;\\mu,\\sigma)`
-   :rtype: float
+    :param x: x
+    :type x: float
+    :param mu: :math:`\\mu`
+    :type mu: float
+    :param sigma: :math:`\\sigma`
+    :type sigma: float
+    :returns: :math:`f(x;\\mu,\\sigma)`
+    :rtype: float
 
-   :Example:
+    :Example:
 
-   >>> from westpy import * 
-   >>> gaussian(1.0,2.0,3.0)
-   """
-   import numpy as np
-   return 1./(np.sqrt(2.*np.pi)*sig)*np.exp(-np.power((x - mu)/sig, 2.)/2)
+    >>> from westpy import *
+    >>> gaussian(1.0,2.0,3.0)
+    """
+    import numpy as np
+    return 1./(np.sqrt(2.*np.pi)*sig)*np.exp(-np.power((x - mu)/sig, 2.)/2)
 
 
 def _putline(*args):
     """
-    Generate a line to be written to a cube file where 
+    Generate a line to be written to a cube file where
     the first field is an int and the remaining fields are floats.
-    
+
     params:
         *args: first arg is formatted as int and remaining as floats
-    
+
     returns: formatted string to be written to file with trailing newline
     """
     s = "{0:^ 8d}".format(args[0])
     s += "".join("{0:< 12.6f}".format(arg) for arg in args[1:])
     return s + "\n"
 
+
 def _getline(cube):
     """
-    Read a line from cube file where first field is an int 
+    Read a line from cube file where first field is an int
     and the remaining fields are floats.
-    
+
     params:
         cube: file object of the cube file
-    
+
     returns: (int, list<float>)
     """
     l = cube.readline().strip().split()
     return int(l[0]), map(float, l[1:])
 
+
 def read_cube(fname):
-    """ 
+    """
     Read cube file into numpy array
-    
-    params:
-        fname: filename of cube file
-        
-    returns: (data: np.array, metadata: dict)
+
+    :param fname: filename of cube file
+    :type fname: string
+    :returns: (data, metadata)
+    :rtype: (np.array, dict)
     """
     import numpy as np
     meta = {}
@@ -291,15 +295,16 @@ def read_cube(fname):
 
 def read_imcube(rfname, ifname = ""):
     """
-    Convenience function to read in two cube files at once, 
-    where one contains the real part and the other contains the 
+    Convenience function to read in two cube files at once,
+    where one contains the real part and the other contains the
     imag part. If only one filename given, other filename is inferred.
-    
-    params:
-        rfname: filename of cube file of real part
-        ifname: optional, filename of cube file of imag part
-        
-    returns: np.array (real part + j*imag part)
+
+    :param rfname: filename of cube file of real part
+    :type rfname: string
+    :param ifname: optional, filename of cube file of imag part
+    :type fname: string
+    :returns: (data, metadata), where data is (real part + j*imag part)
+    :rtype: (np.array, dict)
     """
     import numpy as np
     ifname = ifname or rfname.replace('real', 'imag')
@@ -313,20 +318,20 @@ def read_imcube(rfname, ifname = ""):
     return fin, re[1]
 
 
-
 def write_cube(data, meta, fname):
     """
     Write volumetric data to cube file along
-    
-    params:
-        data: volumetric data consisting real values
-        meta: dict containing metadata with following keys: 
-              - atoms: list of atoms in the form (mass, [position])
-              - org: origin
-              - xvec,yvec,zvec: lattice vector basis
-        fname: filename of cubefile (existing files overwritten)
-    
-    returns: None
+
+    :param data: volumetric data consisting real values
+    :type data: list of float
+    :param meta: dict containing metadata with following keys:
+
+        - atoms: list of atoms in the form (mass, [position])
+        - org: origin
+        - xvec,yvec,zvec: lattice vector basis
+    :type meta: dict
+    :param fname: filename of cubefile (existing files overwritten)
+    :type fname: string
     """
     with open(fname, "w") as cube:
         # first two lines are comments
@@ -346,23 +351,26 @@ def write_cube(data, meta, fname):
                         cube.write("\n")
                     cube.write(" {0: .5E}".format(data[i,j,k]))
 
+
 def write_imcube(data, meta, rfname, ifname=""):
     """
-    Convenience function to write two cube files from complex valued 
+    Convenience function to write two cube files from complex valued
     volumetric data, one for the real part and one for the imaginary part.
     Data about atoms, origin and lattice vectors are kept same for both.
     If only one filename given, other filename is inferred.
-    
-    params: 
-        data: volumetric data consisting complex values
-        meta: dict containing metadata with following keys
-              - atoms: list of atoms in the form (mass, [position])
-              - org: origin
-              - xvec,yvec,zvec: lattice vector basis
-        rfname: filename of cube file containing real part
-        ifname: optional, filename of cube file containing imag part
-        
-    returns: None
+
+    :param data: volumetric data consisting complex values
+    :type data: list of complex
+    :param meta: dict containing metadata with following keys:
+
+        - atoms: list of atoms in the form (mass, [position])
+        - org: origin
+        - xvec,yvec,zvec: lattice vector basis
+    :type meta: dict
+    :param rfname: filename of cubefile containing real part
+    :type rfname: string
+    :param ifname: optional, filename of cubefile containing imag part
+    :type ifname: string
     """
     ifname = ifname or rfname.replace('real', 'imag')
     _debug("writing data to files", rfname, "and", ifname)
