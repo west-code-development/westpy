@@ -159,7 +159,7 @@ class Heff:
         res = {
             "nstates": nstates,
             "evs_au": evs,
-            "evs": (evs - evs[0]) * ( eV**(-1)/Hartree ),
+            "evs": (evs - evs[0]) * (eV ** (-1) / Hartree),
             "evcs": evcs,
             "mults": np.array(
                 [

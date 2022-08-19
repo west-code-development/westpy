@@ -10,7 +10,7 @@ except:
     pass
 from scipy.linalg import fractional_matrix_power
 
-from .misc import VData
+from .vdata import VData
 
 
 class PointGroupOperation:

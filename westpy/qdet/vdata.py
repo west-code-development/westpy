@@ -3,6 +3,7 @@ import numpy as np
 from six import string_types
 from copy import deepcopy
 from pyscf.fci import cistring
+from westpy import Angstrom
 
 
 class Atom(object):
@@ -42,7 +43,7 @@ class Atom(object):
 
             assert isinstance(ase_atom, ASEAtom)
             self.symbol = ase_atom.symbol
-            self.abs_coord = ase_atom.position * angstrom_to_bohr
+            self.abs_coord = ase_atom.position * Angstrom
         else:
             assert isinstance(symbol, string_types)
             assert bool(cry_coord is None) != bool(abs_coord is None)
@@ -112,7 +113,7 @@ class Cell(object):
             if np.all(lattice == np.zeros([3, 3])):
                 self.update_lattice(None)
             else:
-                self.update_lattice(lattice * angstrom_to_bohr)
+                self.update_lattice(lattice * Angstrom)
 
             self._atoms = list(Atom(cell=self, ase_atom=atom) for atom in ase_cell)
 
@@ -206,9 +207,9 @@ class VData:
             content = open(filename, "r").readlines()
             self.comments = content[0].strip() + " // " + content[1].strip()
 
-            self.dx = float(content[3].split()[1]) * bohr_to_angstrom
-            self.dy = float(content[4].split()[2]) * bohr_to_angstrom
-            self.dz = float(content[5].split()[3]) * bohr_to_angstrom
+            self.dx = float(content[3].split()[1]) / Angstrom
+            self.dy = float(content[4].split()[2]) / Angstrom
+            self.dz = float(content[5].split()[3]) / Angstrom
 
             # currently only positive values (bohr) are supported
             assert all(d > 0 for d in [self.dx, self.dy, self.dz])
@@ -231,9 +232,9 @@ class VData:
                     self.data = data.copy()
                 self.nx, self.ny, self.nz = self.data.shape
 
-                self.dx = self.cell.R[(0, 0)] / self.nx * bohr_to_angstrom
-                self.dy = self.cell.R[(0, 0)] / self.ny * bohr_to_angstrom
-                self.dz = self.cell.R[(0, 0)] / self.nz * bohr_to_angstrom
+                self.dx = self.cell.R[(0, 0)] / self.nx / Angstrom
+                self.dy = self.cell.R[(0, 0)] / self.ny / Angstrom
+                self.dz = self.cell.R[(0, 0)] / self.nz / Angstrom
 
             elif funct is not None:
                 # analytical expression is given as function

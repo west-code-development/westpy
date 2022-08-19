@@ -13,10 +13,6 @@ from westpy.qdet.symm import PointGroup, PointGroupRep
 
 
 class QDETResult(object):
-
-    ev_thr = 0.001 * ev_to_hartree  # threshold for determining degenerate states
-    occ_thr = 0.001  # threshold for determining equal occupations
-
     def __init__(
         self,
         filename: str,
@@ -44,21 +40,22 @@ class QDETResult(object):
         self.h1e, self.eri = self.__read_matrix_elements_from_JSON(filename)
 
         # determine point-group representation
-        
+
         self.point_group = point_group
         if self.point_group is None:
-            point_group_rep = None
+            self.point_group_rep = None
         else:
-            orbitals = [ VData(entry, normalize="sqrt") for entry in wfc_filenames ]
-            point_group_rep, orbital_symms = self.point_group.compute_rep_on_orbitals(
-                orbitals, orthogonalize=True
-            )
-        
-        self.h1e = self.h1e / ( eV**(-1)/Hartree )
-        self.eri = self.eri / ( eV**(-1)/Hartree )
+            orbitals = [VData(entry, normalize="sqrt") for entry in wfct_filenames]
+            (
+                self.point_group_rep,
+                self.orbital_symms,
+            ) = self.point_group.compute_rep_on_orbitals(orbitals, orthogonalize=True)
+
+        self.h1e = self.h1e / (eV ** (-1) / Hartree)
+        self.eri = self.eri / (eV ** (-1) / Hartree)
 
         # generate effective Hamiltonian
-        self.heff = Heff(self.h1e, self.eri, point_group_rep=point_group_rep)
+        self.heff = Heff(self.h1e, self.eri, point_group_rep=self.point_group_rep)
 
         self.heff.symmetrize(**symmetrize)
 
@@ -251,7 +248,7 @@ class QDETResult(object):
             if self.point_group is not None:
                 self.write(
                     f"{'':>15}"
-                    + " ".join(f"{s.partition('(')[0]:>4}" for s in orbital_symms)
+                    + " ".join(f"{s.partition('(')[0]:>4}" for s in self.orbital_symms)
                 )
             for i, (ev, mult, symm, ex) in enumerate(
                 zip(

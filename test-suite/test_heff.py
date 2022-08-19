@@ -25,7 +25,7 @@ class HeffTestCase(unittest.TestCase):
         """
         results_ = self.heff.FCI(nelec=(1,1))
         # test excitation energies
-        np.testing.assert_almost_equal(results_['evs'], self.parameters['evs'])
+        np.testing.assert_almost_equal(results_['evs'], self.parameters['evs'], decimal=4)
 
         evcs_ = np.array(self.parameters['evcs'])
         results_['evcs'] = np.asarray(results_['evcs'])
