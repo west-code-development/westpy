@@ -6,12 +6,10 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import json
 import copy
-from lxml import etree
-from westpy.qdet.misc import find_indices, parse_one_value, find_index
-from westpy.qdet.misc import VData, rydberg_to_hartree, ev_to_hartree, hartree_to_ev
+from westpy import eV, Hartree
+from westpy.qdet.vdata import VData
 from westpy.qdet.heff import Heff
 from westpy.qdet.symm import PointGroup, PointGroupRep
-from westpy.qdet.west_output import WstatOutput
 
 
 class QDETResult(object):
@@ -23,6 +21,7 @@ class QDETResult(object):
         self,
         filename: str,
         point_group: Optional[PointGroup] = None,
+        wfct_filenames: Optional[list] = None,
         symmetrize: Dict[str, bool] = {},
     ):
         """Parser for Quantum Defect Embedding Theory (QDET) calculations.
@@ -45,22 +44,18 @@ class QDETResult(object):
         self.h1e, self.eri = self.__read_matrix_elements_from_JSON(filename)
 
         # determine point-group representation
+        
         self.point_group = point_group
         if self.point_group is None:
             point_group_rep = None
         else:
-            orbitals = [
-                VData(
-                    f"{self.path}/west.westpp.save/wfcK000001B{i:06d}.cube",
-                    normalize="sqrt",
-                )
-                for i in self.ks_projectors
-            ]
+            orbitals = [ VData(entry, normalize="sqrt") for entry in wfc_filenames ]
             point_group_rep, orbital_symms = self.point_group.compute_rep_on_orbitals(
                 orbitals, orthogonalize=True
             )
-        self.h1e = self.h1e / hartree_to_ev
-        self.eri = self.eri / hartree_to_ev
+        
+        self.h1e = self.h1e / ( eV**(-1)/Hartree )
+        self.eri = self.eri / ( eV**(-1)/Hartree )
 
         # generate effective Hamiltonian
         self.heff = Heff(self.h1e, self.eri, point_group_rep=point_group_rep)

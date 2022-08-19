@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Dict, Tuple, Union
 import numpy as np
-from .misc import hartree_to_ev
+from westpy import Hartree, eV
 from .symm import PointGroupRep
 
 # Note that some functions in this file requires PySCF or Qiskit to execute. The imports commands are written
@@ -159,7 +159,7 @@ class Heff:
         res = {
             "nstates": nstates,
             "evs_au": evs,
-            "evs": (evs - evs[0]) * hartree_to_ev,
+            "evs": (evs - evs[0]) * ( eV**(-1)/Hartree ),
             "evcs": evcs,
             "mults": np.array(
                 [
