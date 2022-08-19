@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 class ElectronicStructure() :
    """Class for representing an electronic structure calculation.
    

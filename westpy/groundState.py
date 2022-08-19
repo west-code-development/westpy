@@ -1,4 +1,3 @@
-from __future__ import print_function
 import requests
 import json
 from ast import literal_eval

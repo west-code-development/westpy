@@ -17,8 +17,11 @@ __pycache__
 
 # Installer logs
 pip-log.txt
+files.txt
 
 .*.swp
+
+*.xyz
 
 .DS_Store
 

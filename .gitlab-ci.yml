@@ -1,80 +1,46 @@
 variables:
- GIT_STRATEGY: none
+  GIT_STRATEGY: none
 
 stages:
- - build
- - doc
+  - build
+  - doc
 
 westpy_build:
- tags: [rcc,docker,node-01]
- stage: build
- image: ubuntu:latest
- before_script:
-   - echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
-   - apt-get update > /dev/null
-   - apt-get install -qq apt-utils > /dev/null
-   - apt-get install -qq dialog apt-utils -y > /dev/null
-   - apt-get install -qq build-essential > /dev/null
-   - apt-get install -qq pkg-config > /dev/null
-   - apt-get install -qq libpng-dev > /dev/null
-   - apt-get install -qq pandoc > /dev/null
-   - apt-get install -qq wget git > /dev/null
-   - export PY_DIR="/opt/anaconda"
-   - cd /opt
-   - wget https://repo.continuum.io/archive/Anaconda3-5.2.0-Linux-x86_64.sh
-   - /bin/bash /opt/Anaconda3-5.2.0-Linux-x86_64.sh -b -p $PY_DIR
-   - export PATH=$PY_DIR/bin:$PATH
-   - conda upgrade conda
-   - conda upgrade scipy numpy matplotlib scikit-learn
-   - conda update --prefix $PY_DIR anaconda
-   - which python
- script:
-   - git clone -b $CI_COMMIT_REF_NAME $CI_REPOSITORY_URL westpy
-   - cd westpy
-   - git describe
-   - make
-   
-   
+  tags: [rcc,docker,node-01]
+  stage: build
+  image: continuumio/miniconda3:latest
+  before_script:
+    - apt-get update > /dev/null
+    - export TZ="US/Central"
+    - apt-get install -qq make > /dev/null
+    - rm -f /etc/localtime
+    - cp /usr/share/zoneinfo/$TZ /etc/localtime
+    - pip install -q --upgrade pip
+    - which python
+  script:
+    - git clone -b $CI_COMMIT_REF_NAME $CI_REPOSITORY_URL westpy
+    - cd westpy
+    - git describe --tags --always
+    - make
+
 westpy_doc_build:
- tags: [rcc,docker,node-01]
- stage: doc
- image: debian:7
- before_script:
-   - echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
-   - apt-get update > /dev/null
-   - apt-get install -qq build-essential > /dev/null
-   - apt-get install -qq apt-utils > /dev/null
-   - apt-get install -qq wget git > /dev/null
-   - apt-get -qq install vim > /dev/null 
-   - apt-get -qq install zlib1g-dev > /dev/null
-   - apt-get -qq install libssl-dev > /dev/null
-   - export TZ="US/Central"
-   - rm -f /etc/localtime
-   - cp  /usr/share/zoneinfo/$TZ  /etc/localtime
-   - apt-get install -qq texlive-latex-base > /dev/null
-   - apt-get install -qq latex2html > /dev/null
-   - apt-get install -qq pandoc > /dev/null
-   - cd /opt
-   - export PY_VERSION="3.5.4"
-   - wget https://www.python.org/ftp/python/$PY_VERSION/Python-$PY_VERSION.tgz
-   - tar -xzf Python-$PY_VERSION.tgz
-   - cd Python-$PY_VERSION 
-   - export PY_DIR="/opt/python"
-   - ./configure --prefix $PY_DIR
-   - make 
-   - make install
-   - ln -s $PY_DIR/bin/python3.5 $PY_DIR/bin/python
-   - export PATH=$PY_DIR/bin:$PATH
-   - wget https://bootstrap.pypa.io/get-pip.py
-   - which python
-   - python get-pip.py
-   - pip install nbsphinx
-   - pip install sphinx_rtd_theme
-   - pip install ipython
- script:
-   - git clone -b $CI_COMMIT_REF_NAME $CI_REPOSITORY_URL westpy
-   - cd westpy
-   - git describe
-   - cd doc
-   - make html
-   - ls _build/html
+  tags: [rcc,docker,node-01]
+  stage: doc
+  image: continuumio/miniconda3:latest
+  before_script:
+    - apt-get update > /dev/null
+    - export TZ="US/Central"
+    - apt-get install -qq make > /dev/null
+    - apt-get install -qq pandoc > /dev/null
+    - rm -f /etc/localtime
+    - cp /usr/share/zoneinfo/$TZ /etc/localtime
+    - conda install -q -y -c conda-forge nbsphinx
+    - conda install -q -y sphinx_rtd_theme
+    - conda install -q -y jupyter
+  script:
+    - git clone -b $CI_COMMIT_REF_NAME $CI_REPOSITORY_URL westpy
+    - cd westpy
+    - git describe --tags --always
+    - cd doc
+    - make html
+    - ls _build/html
