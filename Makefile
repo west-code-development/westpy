@@ -1,10 +1,10 @@
 PYT=python3
 
-install: 
+install:
 	${PYT} setup.py install --user --prefix= --record files.txt
 
-clean: 
+clean:
 	rm -rf westpy.egg-info
 	rm -rf dist
 	rm -rf build
-	rm files.txt
+	rm -f files.txt

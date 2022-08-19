@@ -32,7 +32,7 @@ Contents
     :ref:`installation`
       Instructions on how to install the **WESTpy** package.
 
-    :ref:`Tutorial`
+    :ref:`tutorial`
       Compact demonstration of usage of **WESTpy** for pre- and post-processing WEST calculations.
 
     :ref:`manual`
