@@ -46,6 +46,7 @@ westpy_test:
     - conda activate westpy_env
     - conda install -q -y -c conda-forge pytest
     - pip install -q --upgrade pip
+    - pip install ase
     - which python
     - git clone -b $CI_COMMIT_REF_NAME $CI_REPOSITORY_URL westpy
     - cd westpy
