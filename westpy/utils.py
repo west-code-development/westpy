@@ -141,7 +141,7 @@ def convertYaml2Json(fyml,fjson):
     >>> from westpy import *
     >>> convertYaml2Json("file.yml","file.json")
 
-    .. note:: The file fjon will be created, fyml will not be overwritten.
+    .. note:: The file fjson will be created, fyml will not be overwritten.
     """
     #
     import yaml, json
@@ -202,7 +202,7 @@ def listValuesWithKeyFromOnlineXML(url,key):
     >>> print(l)
     ['4']
 
-    .. note:: Can be used to grep values from a XML file.
+    .. note:: Can be used to grep values from an XML file.
     """
     #
     from urllib.request import urlopen
@@ -376,3 +376,53 @@ def write_imcube(data, meta, rfname, ifname=""):
     _debug("writing data to files", rfname, "and", ifname)
     write_cube(data.real, meta, rfname)
     write_cube(data.imag, meta, ifname)
+
+
+def wfreq2df(fname='wfreq.json', dfKeys=['eks','eqpLin','eqpSec','sigmax','sigmac_eks','sigmac_eqpLin','sigmac_eqpSec','vxcl','vxcnl','hf']):
+    """
+    Loads the wfreq JSON output into a pandas dataframe.
+
+    :param fname: filename of JSON output file
+    :type fname: string
+    :param dfKeys: energy keys to be added to dataframe
+    :type dfKeys: list of string
+    :returns: (dataframe, data)
+    :rtype: (pd.DataFrame, dict)
+    """
+    #
+    import json
+    #
+    with open(fname) as file:
+        data = json.load(file)
+    #
+    import numpy as np
+    import pandas as pd
+    #
+    # build dataframe
+    #
+    cols = ['k','s','n'] + dfKeys
+    df = pd.DataFrame(columns=cols)
+    #
+    # insert data into dataframe
+    #
+    j = 0
+    for s in range(1,data['system']['electron']['nspin']+1):
+        for k in data['system']['bzsamp']['k']:
+            kindex = f"K{k['id']+(s-1)*len(data['system']['bzsamp']['k']):06d}"
+            for i, n in enumerate(data['output']['Q']['bandmap']):
+                d = data['output']['Q'][kindex]
+                row = [k['id'],s,n]
+                for key in dfKeys:
+                    if 're' in d[key]:
+                        row.append(d[key]['re'][i])
+                    else:
+                        row.append(d[key][i])
+                df.loc[j] = row
+                j += 1
+    #
+    # cast columns k, s, n to int
+    #
+    for col in ['k','s','n']:
+        df[col] = df[col].apply(np.int64)
+
+    return df, data
