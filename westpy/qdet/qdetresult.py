@@ -266,9 +266,9 @@ class QDETResult(object):
 
             # remove keys that are confusing to the user and are no longer
             # needed
-            fcires.pop('excitations', None)
+            fcires.pop("excitations", None)
             if self.point_group is None:
-                fcires.pop('symms_maxproj', None)
-                fcires.pop('symms_full', None)
+                fcires.pop("symms_maxproj", None)
+                fcires.pop("symms_full", None)
 
         return fcires
