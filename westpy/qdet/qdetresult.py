@@ -268,7 +268,7 @@ class QDETResult(object):
             # needed
             fcires.pop('excitations', None)
             if self.point_group is None:
-                fcires.pop('symms_maxprojs', None)
+                fcires.pop('symms_maxproj', None)
                 fcires.pop('symms_full', None)
 
         return fcires
