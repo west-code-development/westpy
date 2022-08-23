@@ -4,13 +4,6 @@ from six import string_types
 from copy import deepcopy
 from pyscf.fci import cistring
 
-ev_to_hartree = 3.67494e-02
-ev_to_rydberg = 7.34989e-02
-hartree_to_ev = 2.72113e01
-rydberg_to_hartree = 5.00000e-01
-angstrom_to_bohr = 1.88973e00
-bohr_to_angstrom = 5.29177e-01
-
 
 def visualize_correlated_state(evcs, norb, nelec, cutoff=10 ** (-3)):
     """Visualizes the Slater determinants that contribute to a given many-body
