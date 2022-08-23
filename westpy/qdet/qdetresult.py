@@ -264,4 +264,11 @@ class QDETResult(object):
 
             self.write("-----------------------------------------------------")
 
+            # remove keys that are confusing to the user and are no longer
+            # needed
+            fcires.pop('excitations', None)
+            if self.point_group is None:
+                fcires.pop('symms_maxprojs', None)
+                fcires.pop('symms_full', None)
+
         return fcires

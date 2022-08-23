@@ -195,20 +195,6 @@ class Heff:
         res["excitations"] = np.array(
             [np.diag(res["rdm1s"][i] - res["rdm1s"][0]) for i in range(nstates)]
         )
-        res["maxexs"] = []
-        for i in range(nstates):
-            imin = np.argmin(res["excitations"][i])
-            imax = np.argmax(res["excitations"][i])
-            omin = res["excitations"][i][imin]
-            omax = res["excitations"][i][imax]
-            if omin < -0.5 and omax > 0.5:
-                res["maxexs"].append(
-                    f"{imin}->{imax}({res['rdm1s'][i,imin,imin]:.1f}, {res['rdm1s'][i,imax,imax]:.1f})"
-                )
-            elif omin > -0.2 and omax < 0.2:
-                res["maxexs"].append("GS")
-            else:
-                res["maxexs"].append("?")
 
         # analyze point group symmetries
         if self.has_symm:
