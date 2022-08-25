@@ -30,7 +30,13 @@ class Atom(object):
     ]
 
     def __init__(
-        self, cell=None, ase_atom=None, symbol=None, cry_coord=None, abs_coord=None, **kwargs
+        self,
+        cell=None,
+        ase_atom=None,
+        symbol=None,
+        cry_coord=None,
+        abs_coord=None,
+        **kwargs
     ):
         # assert isinstance(cell, Cell)
         self.cell = cell
@@ -60,7 +66,7 @@ class Atom(object):
 
     @property
     def cry_coord(self):
-        if self.cell is not None: 
+        if self.cell is not None:
             if self.cell.isperiodic:
                 return self.abs_coord @ self.cell.G.T / (2 * np.pi)
 
@@ -70,4 +76,6 @@ class Atom(object):
             if self.cell.isperiodic:
                 self.abs_coord = cry_coord @ self.cell.R
             else:
-                raise ValueError("Crystal coordinate not defined for non-periodic system.")
+                raise ValueError(
+                    "Crystal coordinate not defined for non-periodic system."
+                )

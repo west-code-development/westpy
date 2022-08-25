@@ -173,7 +173,7 @@ class Geometry(object):
         """
         from westpy import Atom
 
-        self.atoms.append(Atom(symbol=symbol, position=np.array(position)*units))
+        self.atoms.append(Atom(symbol=symbol, position=np.array(position) * units))
         self.isSet["atoms"] = True
 
     #
@@ -203,7 +203,8 @@ class Geometry(object):
                     frac_coord[0] * self.cell["a1"]
                     + frac_coord[1] * self.cell["a2"]
                     + frac_coord[2] * self.cell["a3"]
-                )*Bohr,
+                )
+                * Bohr,
             )
         )
         self.isSet["atoms"] = True
@@ -225,11 +226,13 @@ class Geometry(object):
             if decode:
                 self.addAtom(
                     symbol=symbol.decode("utf-8"),
-                    np.array([float(x), float(y), float(z)])*Angstrom,
+                    abs_coord=np.array([float(x), float(y), float(z)]) * Angstrom,
                 )
             else:
-                self.addAtom(symbol=symbol, np.array([float(x), float(y),
-                    float(z)])*Angstrom)
+                self.addAtom(
+                    symbol=symbol,
+                    abs_coord=np.array([float(x), float(y), float(z)]) * Angstrom,
+                )
 
     #
     def addAtomsFromXYZFile(self, fname):
