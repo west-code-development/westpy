@@ -6,7 +6,7 @@ class Geometry(object):
     >>> from westpy import *
     >>> geom = Geometry()
     >>> geom.setCell( (1,0,0), (0,1,0), (0,0,1) )
-    >>> geom.addAtom( "Si", (0,0,0) )
+    >>> geom.addAtom( symbol="Si", abs_coord=(0,0,0) )
     >>> geom.addSpecies( "Si", "http://www.quantum-simulation.org/potentials/sg15_oncv/upf/Si_ONCV_PBE-1.1.upf" )
 
     .. note:: Vectors are set in a.u. by default. If you set units=Angstrom a coversion to a.u. will be made.
@@ -169,11 +169,11 @@ class Geometry(object):
 
         >>> from westpy import *
         >>> geom = Geometry()
-        >>> geom.addAtom( "Si", (0,0,0) )
+        >>> geom.addAtom( position="Si", abs_coord=(0,0,0) )
         """
         from westpy import Atom
 
-        self.atoms.append(Atom(symbol, position, units))
+        self.atoms.append(Atom(symbol=symbol, position=np.array(position)*units))
         self.isSet["atoms"] = True
 
     #
@@ -198,13 +198,12 @@ class Geometry(object):
 
         self.atoms.append(
             Atom(
-                symbol,
-                tuple(
+                symbol=symbol,
+                abs_coord=np.asarray(
                     frac_coord[0] * self.cell["a1"]
                     + frac_coord[1] * self.cell["a2"]
                     + frac_coord[2] * self.cell["a3"]
-                ),
-                units=Bohr,
+                )*Bohr,
             )
         )
         self.isSet["atoms"] = True
@@ -225,12 +224,12 @@ class Geometry(object):
             symbol, x, y, z = line.split()[:4]
             if decode:
                 self.addAtom(
-                    symbol.decode("utf-8"),
-                    (float(x), float(y), float(z)),
-                    units=Angstrom,
+                    symbol=symbol.decode("utf-8"),
+                    np.array([float(x), float(y), float(z)])*Angstrom,
                 )
             else:
-                self.addAtom(symbol, (float(x), float(y), float(z)), units=Angstrom)
+                self.addAtom(symbol=symbol, np.array([float(x), float(y),
+                    float(z)])*Angstrom)
 
     #
     def addAtomsFromXYZFile(self, fname):
