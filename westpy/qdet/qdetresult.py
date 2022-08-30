@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import json
 import copy
+from IPython.display import display
 from westpy import eV, Hartree
 from westpy import VData
 from westpy.qdet.heff import Heff

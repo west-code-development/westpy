@@ -29,7 +29,8 @@ setup(name='westpy',
           'sphinx', 
           'sphinx_rtd_theme',
           'py3Dmol',
-          'pyscf'
+          'pyscf',
+          'ipython'
       ],
       python_requires='>=3.6, <4',
       zip_safe=True)
