@@ -242,21 +242,28 @@ class QDETResult(object):
             )
             # generate character for each state
             char_ = []
-            for i in range(fcires['evs'].shape[0]):
-                char_.append(f"{int(round(fcires['mults'][i]))}{fcires['symms_maxproj'][i].partition('(')[0]}")
+            for i in range(fcires["evs"].shape[0]):
+                char_.append(
+                    f"{int(round(fcires['mults'][i]))}{fcires['symms_maxproj'][i].partition('(')[0]}"
+                )
             # generate dataframe dictionary
-            df_dict = {'E [eV]': ['{:.3f}'.format(x) for x in fcires['evs']], 
-                        'char': char_}
+            df_dict = {
+                "E [eV]": ["{:.3f}".format(x) for x in fcires["evs"]],
+                "char": char_,
+            }
             # append occupation difference for each orbital in the active space
             for i in range(self.basis.shape[0]):
-                inter_ = fcires['rdm1s'].diagonal(axis1=1, axis2=2)[:,i] - fcires['rdm1s'].diagonal(axis1=1, axis2=2)[:,0]
+                inter_ = (
+                    fcires["rdm1s"].diagonal(axis1=1, axis2=2)[:, i]
+                    - fcires["rdm1s"].diagonal(axis1=1, axis2=2)[:, 0]
+                )
                 df_dict[str(self.basis[i])] = ["{:.1f}".format(x) for x in inter_]
             # initialize dataframe
             dataframe = pd.DataFrame(df_dict)
             # add titles
-            format_ = [('', 'E [eV]'), ('', 'char')]
+            format_ = [("", "E [eV]"), ("", "char")]
             for i in range(self.basis.shape[0]):
-                format_.append(('diag[1RDM - 1RDM(GS)]', str(self.basis[i])))
+                format_.append(("diag[1RDM - 1RDM(GS)]", str(self.basis[i])))
             dataframe.columns = pd.MultiIndex.from_tuples(format_)
             display(dataframe)
             self.write("-----------------------------------------------------")
