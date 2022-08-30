@@ -7,7 +7,7 @@ import pandas as pd
 import json
 import copy
 from westpy import eV, Hartree
-from westpy.qdet.vdata import VData
+from westpy import VData
 from westpy.qdet.heff import Heff
 from westpy.qdet.symm import PointGroup, PointGroupRep
 
