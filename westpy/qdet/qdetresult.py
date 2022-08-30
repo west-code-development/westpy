@@ -135,7 +135,7 @@ class QDETResult(object):
                 for ipair in range(self.npair):
                     string3 = "pair" + format(ipair + 1, "06d")
                     eri_pair[ispin1, ispin2, ipair, :] = np.array(
-                        raw_["qdet"]["eri"][string1][string2][string3], dtype=float
+                        raw_["qdet"]["eri_w"][string1][string2][string3], dtype=float
                     )
 
         # unfold one-body terms from pair basis to Kohn-Sham basis
