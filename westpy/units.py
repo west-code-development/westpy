@@ -20,6 +20,7 @@ def set_units():
        - Rydberg, Ry
        - Hartree, Ha
        - eV
+       - Joule
 
     .. note:: **westpy** operates in Rydberg atomic units.
     """
@@ -59,6 +60,9 @@ def set_units():
     AU["Ha"] = AU["Hartree"]
     AU["eV"] = (
         sp.e / sp.m_e / sp.e**4 * (4.0 * sp.pi * sp.epsilon_0 * sp.hbar) ** 2 / 2.0
+    )
+    AU["Joule"] = (
+        32.0 * sp.pi**2 * sp.epsilon_0**2 * sp.hbar**2 / sp.m_e / sp.e**4
     )
     #
     return AU

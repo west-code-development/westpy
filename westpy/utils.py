@@ -144,7 +144,7 @@ def convertYaml2Json(fyml, fjson):
     >>> from westpy import *
     >>> convertYaml2Json("file.yml","file.json")
 
-    .. note:: The file fjon will be created, fyml will not be overwritten.
+    .. note:: The file fjson will be created, fyml will not be overwritten.
     """
     #
     import yaml, json
@@ -207,7 +207,7 @@ def listValuesWithKeyFromOnlineXML(url, key):
     >>> print(l)
     ['4']
 
-    .. note:: Can be used to grep values from a XML file.
+    .. note:: Can be used to grep values from an XML file.
     """
     #
     from urllib.request import urlopen
