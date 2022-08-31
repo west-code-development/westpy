@@ -1,5 +1,6 @@
 """ Set of utilities."""
 
+
 def extractFileNamefromUrl(url):
     """Extracts a file name from url.
 
@@ -329,7 +330,6 @@ def read_imcube(rfname, ifname=""):
     return fin, re[1]
 
 
-
 def write_cube(data, meta, fname):
     """
     Write volumetric data to cube file along
@@ -390,7 +390,21 @@ def write_imcube(data, meta, rfname, ifname=""):
     write_cube(data.imag, meta, ifname)
 
 
-def wfreq2df(fname='wfreq.json', dfKeys=['eks','eqpLin','eqpSec','sigmax','sigmac_eks','sigmac_eqpLin','sigmac_eqpSec','vxcl','vxcnl','hf']):
+def wfreq2df(
+    fname="wfreq.json",
+    dfKeys=[
+        "eks",
+        "eqpLin",
+        "eqpSec",
+        "sigmax",
+        "sigmac_eks",
+        "sigmac_eqpLin",
+        "sigmac_eqpSec",
+        "vxcl",
+        "vxcnl",
+        "hf",
+    ],
+):
     """
     Loads the wfreq JSON output into a pandas dataframe.
 
@@ -403,30 +417,32 @@ def wfreq2df(fname='wfreq.json', dfKeys=['eks','eqpLin','eqpSec','sigmax','sigma
     """
     #
     import json
+
     #
     with open(fname) as file:
         data = json.load(file)
     #
     import numpy as np
     import pandas as pd
+
     #
     # build dataframe
     #
-    cols = ['k','s','n'] + dfKeys
+    cols = ["k", "s", "n"] + dfKeys
     df = pd.DataFrame(columns=cols)
     #
     # insert data into dataframe
     #
     j = 0
-    for s in range(1,data['system']['electron']['nspin']+1):
-        for k in data['system']['bzsamp']['k']:
+    for s in range(1, data["system"]["electron"]["nspin"] + 1):
+        for k in data["system"]["bzsamp"]["k"]:
             kindex = f"K{k['id']+(s-1)*len(data['system']['bzsamp']['k']):06d}"
-            for i, n in enumerate(data['output']['Q']['bandmap']):
-                d = data['output']['Q'][kindex]
-                row = [k['id'],s,n]
+            for i, n in enumerate(data["output"]["Q"]["bandmap"]):
+                d = data["output"]["Q"][kindex]
+                row = [k["id"], s, n]
                 for key in dfKeys:
-                    if 're' in d[key]:
-                        row.append(d[key]['re'][i])
+                    if "re" in d[key]:
+                        row.append(d[key]["re"][i])
                     else:
                         row.append(d[key][i])
                 df.loc[j] = row
@@ -434,7 +450,7 @@ def wfreq2df(fname='wfreq.json', dfKeys=['eks','eqpLin','eqpSec','sigmax','sigma
     #
     # cast columns k, s, n to int
     #
-    for col in ['k','s','n']:
+    for col in ["k", "s", "n"]:
         df[col] = df[col].apply(np.int64)
 
     return df, data

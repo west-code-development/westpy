@@ -1,5 +1,10 @@
+import numpy as np
+from six import string_types
+from westpy import Angstrom
+
+
 class Atom(object):
-   """Class for representing a single atom.
+    """Class for representing a single atom.
 
     An atom can be initialized by and exported to an ASE Atom object.
 
@@ -13,16 +18,6 @@ class Atom(object):
 
     Extra attributes can be attached to an atom.
     """
-
-    _extra_attr_to_print = [
-        "velocity",
-        "force",
-        "freezed",
-        "ghost",
-        "Aiso",
-        "Adip",
-        "V",
-    ]
 
     def __init__(
         self,
