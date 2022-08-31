@@ -13,9 +13,15 @@ Marco Govoni (Argonne National Laboratory and University of Chicago)
 
 Developers
 ----------
-  - Christian Vorwerk (University of Chicago)
   - Nan Sheng (University of Chicago)
+  - Christian Vorwerk (University of Chicago)
+  - Han Yang (University of Chicago)
+  - Victor Yu (Argonne National Laboratory)
+
+Former Developers
+-----------------
+
+  - Lan Huang (Argonne National Laboratory)
   - He Ma (University of Chicago)
   - Aditya Tanikanti (University of Chicago)
-  - Han Yang (University of Chicago)
   - Huihuo Zheng (Argonne National Laboratory)

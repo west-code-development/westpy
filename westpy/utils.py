@@ -1,6 +1,5 @@
 """ Set of utilities."""
 
-
 def extractFileNamefromUrl(url):
     """Extracts a file name from url.
 
@@ -188,9 +187,6 @@ def listLinesWithKeyfromOnlineText(url, key):
     return greplist
 
 
-#
-# list values from XML file located at url, with key
-#
 def listValuesWithKeyFromOnlineXML(url, key):
     """List values from XML file located at url, with key.
 
@@ -281,10 +277,10 @@ def read_cube(fname):
     """
     Read cube file into numpy array
 
-    params:
-        fname: filename of cube file
-
-    returns: (data: np.array, metadata: dict)
+    :param fname: filename of cube file
+    :type fname: string
+    :returns: (data, metadata)
+    :rtype: (np.array, dict)
     """
     import numpy as np
 
@@ -313,11 +309,12 @@ def read_imcube(rfname, ifname=""):
     where one contains the real part and the other contains the
     imag part. If only one filename given, other filename is inferred.
 
-    params:
-        rfname: filename of cube file of real part
-        ifname: optional, filename of cube file of imag part
-
-    returns: np.array (real part + j*imag part)
+    :param rfname: filename of cube file of real part
+    :type rfname: string
+    :param ifname: optional, filename of cube file of imag part
+    :type fname: string
+    :returns: (data, metadata), where data is (real part + j*imag part)
+    :rtype: (np.array, dict)
     """
     import numpy as np
 
@@ -332,19 +329,21 @@ def read_imcube(rfname, ifname=""):
     return fin, re[1]
 
 
+
 def write_cube(data, meta, fname):
     """
     Write volumetric data to cube file along
 
-    params:
-        data: volumetric data consisting real values
-        meta: dict containing metadata with following keys:
-              - atoms: list of atoms in the form (mass, [position])
-              - org: origin
-              - xvec,yvec,zvec: lattice vector basis
-        fname: filename of cubefile (existing files overwritten)
+    :param data: volumetric data consisting real values
+    :type data: list of float
+    :param meta: dict containing metadata with following keys:
 
-    returns: None
+        - atoms: list of atoms in the form (mass, [position])
+        - org: origin
+        - xvec,yvec,zvec: lattice vector basis
+    :type meta: dict
+    :param fname: filename of cubefile (existing files overwritten)
+    :type fname: string
     """
     with open(fname, "w") as cube:
         # first two lines are comments
@@ -372,18 +371,70 @@ def write_imcube(data, meta, rfname, ifname=""):
     Data about atoms, origin and lattice vectors are kept same for both.
     If only one filename given, other filename is inferred.
 
-    params:
-        data: volumetric data consisting complex values
-        meta: dict containing metadata with following keys
-              - atoms: list of atoms in the form (mass, [position])
-              - org: origin
-              - xvec,yvec,zvec: lattice vector basis
-        rfname: filename of cube file containing real part
-        ifname: optional, filename of cube file containing imag part
+    :param data: volumetric data consisting complex values
+    :type data: list of complex
+    :param meta: dict containing metadata with following keys:
 
-    returns: None
+        - atoms: list of atoms in the form (mass, [position])
+        - org: origin
+        - xvec,yvec,zvec: lattice vector basis
+    :type meta: dict
+    :param rfname: filename of cubefile containing real part
+    :type rfname: string
+    :param ifname: optional, filename of cubefile containing imag part
+    :type ifname: string
     """
     ifname = ifname or rfname.replace("real", "imag")
     _debug("writing data to files", rfname, "and", ifname)
     write_cube(data.real, meta, rfname)
     write_cube(data.imag, meta, ifname)
+
+
+def wfreq2df(fname='wfreq.json', dfKeys=['eks','eqpLin','eqpSec','sigmax','sigmac_eks','sigmac_eqpLin','sigmac_eqpSec','vxcl','vxcnl','hf']):
+    """
+    Loads the wfreq JSON output into a pandas dataframe.
+
+    :param fname: filename of JSON output file
+    :type fname: string
+    :param dfKeys: energy keys to be added to dataframe
+    :type dfKeys: list of string
+    :returns: (dataframe, data)
+    :rtype: (pd.DataFrame, dict)
+    """
+    #
+    import json
+    #
+    with open(fname) as file:
+        data = json.load(file)
+    #
+    import numpy as np
+    import pandas as pd
+    #
+    # build dataframe
+    #
+    cols = ['k','s','n'] + dfKeys
+    df = pd.DataFrame(columns=cols)
+    #
+    # insert data into dataframe
+    #
+    j = 0
+    for s in range(1,data['system']['electron']['nspin']+1):
+        for k in data['system']['bzsamp']['k']:
+            kindex = f"K{k['id']+(s-1)*len(data['system']['bzsamp']['k']):06d}"
+            for i, n in enumerate(data['output']['Q']['bandmap']):
+                d = data['output']['Q'][kindex]
+                row = [k['id'],s,n]
+                for key in dfKeys:
+                    if 're' in d[key]:
+                        row.append(d[key]['re'][i])
+                    else:
+                        row.append(d[key][i])
+                df.loc[j] = row
+                j += 1
+    #
+    # cast columns k, s, n to int
+    #
+    for col in ['k','s','n']:
+        df[col] = df[col].apply(np.int64)
+
+    return df, data

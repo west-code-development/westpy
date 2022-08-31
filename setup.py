@@ -30,7 +30,8 @@ setup(name='westpy',
           'sphinx_rtd_theme',
           'py3Dmol',
           'pyscf',
-          'ipython'
+          'ipython',
+	  'pandas'
       ],
       python_requires='>=3.6, <4',
       zip_safe=True)

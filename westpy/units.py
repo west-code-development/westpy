@@ -63,5 +63,4 @@ def set_units():
     #
     return AU
 
-
 globals().update(set_units())

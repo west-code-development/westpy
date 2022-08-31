@@ -1,10 +1,5 @@
-import numpy as np
-from six import string_types
-from westpy import Angstrom
-
-
 class Atom(object):
-    """An atom in a specific cell.
+   """Class for representing a single atom.
 
     An atom can be initialized by and exported to an ASE Atom object.
 
