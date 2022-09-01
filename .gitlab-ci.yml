@@ -6,9 +6,8 @@ stages:
   - test
   - doc
 
-westpy_build:
+default:
   tags: [rcc,docker,node-01]
-  stage: build
   image: continuumio/miniconda3:latest
   before_script:
     - apt-get update > /dev/null
@@ -18,86 +17,48 @@ westpy_build:
     - cp /usr/share/zoneinfo/$TZ /etc/localtime
     - conda init bash
     - conda create -y --name westpy_env python=3.8
-  script:
     - source ~/.bashrc
     - conda activate westpy_env
     - conda install -q -y -c conda-forge pytest
     - pip install -q --upgrade pip
     - which python
-    - git clone -b $CI_COMMIT_REF_NAME $CI_REPOSITORY_URL westpy
-    - cd westpy
-    - git describe --tags --always
+
+.git_clone: &git_clone
+  - rm -rf westpy
+  - git clone -b $CI_COMMIT_REF_NAME $CI_REPOSITORY_URL westpy
+  - cd westpy
+  - git describe --tags --always
+
+westpy_build:
+  stage: build
+  script:
+    - *git_clone
     - pip install .
 
 westpy_test:
-  tags: [rcc,docker,node-01]
   stage: test
-  image: continuumio/miniconda3:latest
-  before_script:
-    - apt-get update > /dev/null
-    - export TZ="US/Central"
-    - apt-get install -qq make > /dev/null
-    - rm -f /etc/localtime
-    - cp /usr/share/zoneinfo/$TZ /etc/localtime
-    - conda init bash
-    - conda create -y --name westpy_env python=3.8
   script:
-    - source ~/.bashrc
-    - conda activate westpy_env
-    - conda install -q -y -c conda-forge pytest
-    - pip install -q --upgrade pip
-    - pip install ase
-    - which python
-    - git clone -b $CI_COMMIT_REF_NAME $CI_REPOSITORY_URL westpy
-    - cd westpy
-    - git describe --tags --always
+    - pip install -q ase
+    - *git_clone
     - pip install .
     - cd test-suite
     - pytest
 
 westpy_lint:
-  tags: [rcc,docker,node-01]
   stage: test
-  image: continuumio/miniconda3:latest
-  before_script:
-    - apt-get update > /dev/null
-    - export TZ="US/Central"
-    - apt-get install -qq make > /dev/null
-    - rm -f /etc/localtime
-    - cp /usr/share/zoneinfo/$TZ /etc/localtime
-    - conda init bash
-    - conda create -y --name westpy_env python=3.8
   script:
-    - source ~/.bashrc
-    - conda activate westpy_env
-    - conda install -q -y -c conda-forge pytest
-    - pip install -q --upgrade pip
-    - which python
     - pip install -q black
-    - git clone -b $CI_COMMIT_REF_NAME $CI_REPOSITORY_URL westpy
-    - cd westpy
-    - git describe --tags --always
-    - pip install .
+    - *git_clone
     - black --check --diff --color westpy
 
 westpy_doc_build:
-  tags: [rcc,docker,node-01]
   stage: doc
-  image: continuumio/miniconda3:latest
-  before_script:
-    - apt-get update > /dev/null
-    - export TZ="US/Central"
-    - apt-get install -qq make > /dev/null
+  script:
     - apt-get install -qq pandoc > /dev/null
-    - rm -f /etc/localtime
-    - cp /usr/share/zoneinfo/$TZ /etc/localtime
     - conda install -q -y -c conda-forge nbsphinx
     - conda install -q -y sphinx_rtd_theme
     - conda install -q -y jupyter
-  script:
-    - git clone -b $CI_COMMIT_REF_NAME $CI_REPOSITORY_URL westpy
-    - cd westpy
-    - git describe --tags --always
+    - *git_clone
     - cd doc
     - make html
     - ls _build/html

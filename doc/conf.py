@@ -1,6 +1,6 @@
 import sys
 import os
-import shlex
+import json
 
 import sphinx_rtd_theme
 from unittest.mock import MagicMock
@@ -16,6 +16,9 @@ class Mock(MagicMock):
 
 MOCK_MODULES = ['pymongo', 'gridfs', 'mpi4py']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
+
+with open('../VERSION.json', 'r') as file:
+    data = json.load(file)
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -55,8 +58,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'westpy'
-copyright = u'2021, Marco Govoni'
+project = data['name']
+copyright = u'2022, Marco Govoni'
 author = u'Marco Govoni'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -64,7 +67,7 @@ author = u'Marco Govoni'
 # built documents.
 #
 # The short X.Y version.
-version = '5.1.0'
+version = data['version']
 # The full version, including alpha/beta/rc tags.
 release = version
 

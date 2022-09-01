@@ -13,12 +13,12 @@ class SymmetryTestCase(unittest.TestCase):
                 str(Path('./data').resolve() / 'wfcK000001B000128.cube')]
 
         self.orbitals = [VData(entry, normalize='sqrt') for entry in filenames]
-        
+
         # generate Point Group
         sq3 = np.sqrt(3)
-        
+
         origin = 27 * np.array([0.48731000, 0.48731000, 0.48731000])
-        
+
         self.point_group = PointGroup( name = 'C3v',
                 operations = {
                     'E': PointGroupOperation(T=np.eye(4)),
@@ -28,14 +28,14 @@ class SymmetryTestCase(unittest.TestCase):
                     'Cv_2': PointGroupReflection(normal=(0, -1, 1), origin=origin),
                     'Cv_3': PointGroupReflection(normal=(-1, 0, 1),origin=origin)},
                 ctable = {
-                    'A1': [1,1,1,1,1,1],                                                        
-                    'A2': [1,1,1,-1,-1,-1],                                                     
-                    'E': [2,-1,-1,0,0,0]}) 
+                    'A1': [1,1,1,1,1,1],
+                    'A2': [1,1,1,-1,-1,-1],
+                    'E': [2,-1,-1,0,0,0]})
 
         # read reference data to dictionary
         with open(str(Path('./data/symm_ref.json').resolve()), 'r') as f:
             self.ref_data = json.load(f)
-    
+
     def test_point_group_rep(self):
         """
         Test whether point group representation for set of orbitals is correct.
@@ -55,7 +55,7 @@ class SymmetryTestCase(unittest.TestCase):
 
         orbital_symms = self.point_group.compute_rep_on_orbitals(self.orbitals,
                 orthogonalize=True)[1]
-        
+
         for i in range(len(orbital_symms)):
             self.assertEqual(orbital_symms[i], self.ref_data['orbital_symms'][i])
 
