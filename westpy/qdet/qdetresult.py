@@ -1,11 +1,8 @@
-from typing import Dict, List, Tuple, Optional, Union
-import sys
-import os
+from typing import Dict, Optional, Tuple
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import json
-import copy
 from IPython.display import display
 from westpy import eV, Hartree
 from westpy import VData

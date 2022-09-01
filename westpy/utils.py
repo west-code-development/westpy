@@ -147,7 +147,7 @@ def convertYaml2Json(fyml, fjson):
     .. note:: The file fjson will be created, fyml will not be overwritten.
     """
     #
-    import yaml, json
+    import yaml
     from westpy import writeJsonFile
 
     #
@@ -178,7 +178,6 @@ def listLinesWithKeyfromOnlineText(url, key):
     """
     #
     from urllib.request import urlopen
-    import re
 
     data = urlopen(url)  # parse the data
     greplist = []
