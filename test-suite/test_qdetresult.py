@@ -9,7 +9,7 @@ class QDETResultTestCase(unittest.TestCase):
         # generate and store QDETResult object
         self.path = str(Path('./data').resolve() / 'wfreq.json')
         self.qdetresult = QDETResult(filename=self.path)
-        
+
         # read and store reference data from JSON
         ref_path = str(Path('./data').resolve() / 'ref.json')
         with open(ref_path, 'r') as f:
@@ -26,7 +26,7 @@ class QDETResultTestCase(unittest.TestCase):
         self.assertListEqual(self.qdetresult.basis.tolist(), [87, 122, 123, 126, 127, 128])
         self.assertEqual(self.qdetresult.npair, 21)
         self.assertEqual(self.qdetresult.occupation.tolist(), [[2.0, 2.0, 2.0, 2.0, 1.0, 1.0]])
-    
+
     def test_h1e(self):
         """
         Test QDET one-body terms.
@@ -46,7 +46,7 @@ class QDETResultTestCase(unittest.TestCase):
         """
         solution = self.qdetresult.solve()
 
-        np.testing.assert_almost_equal(solution['evs'], np.array([0.0, 0.43604111, 0.436138, 1.25034936, 
+        np.testing.assert_almost_equal(solution['evs'], np.array([0.0, 0.43604111, 0.436138, 1.25034936,
             1.94063497, 1.94070084, 2.93681169, 2.93688193, 4.66194716, 5.07277312]), decimal=4)
 
 

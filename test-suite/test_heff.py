@@ -18,7 +18,7 @@ class HeffTestCase(unittest.TestCase):
         """
         self.assertEqual(self.heff.nspin, 1)
         self.assertEqual(self.heff.norb, 7)
-    
+
     def test_FCI(self):
         """
         Test FCI solution of the effective Hamiltonian.
@@ -34,7 +34,7 @@ class HeffTestCase(unittest.TestCase):
 
         np.testing.assert_almost_equal(results_['mults'],
                 np.array(self.parameters['mults']))
-       
+
         np.testing.assert_almost_equal(results_['rdm1s'],
                 np.array(self.parameters['rdm1s']))
 
@@ -48,4 +48,4 @@ class HeffTestCase(unittest.TestCase):
 
         assert np.all(np.isclose(self.heff.eri,
             self.heff.apply_permutation_symm_to_eri(self.heff.eri), atol=1e-5))
-        
+
