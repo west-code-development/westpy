@@ -13,8 +13,17 @@ The software is tested for Python version 3.x and has the following dependencies
    - ``pyyaml``
    - ``datetime``
    - ``requests``
-   - ``mendeleev`` 
-   - ``signac`` 
+   - ``mendeleev``
+   - ``signac``
+   - ``setuptools``
+   - ``urllib3``
+   - ``prompt-toolkit``
+   - ``sphinx``
+   - ``sphinx_rtd_theme``
+   - ``py3Dmol``
+   - ``pyscf``
+   - ``ipython``
+   - ``pandas``
 
 The dependencies will all be installed automatically, following instructions reported below.  
 
