@@ -1,4 +1,3 @@
-import re
 import numpy as np
 from six import string_types
 from copy import deepcopy

@@ -1,6 +1,5 @@
 import unittest
 from westpy.qdet import QDETResult, Heff
-from pathlib import Path
 import numpy as np
 import json
 

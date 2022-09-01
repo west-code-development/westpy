@@ -35,7 +35,9 @@ setup(name='westpy',
           'py3Dmol',
           'pyscf',
           'ipython',
-          'pandas'
+          'pandas',
+          'six',
+          'ase'
       ],
       python_requires='>=3.6, <4',
       zip_safe=True)

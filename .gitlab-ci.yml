@@ -38,7 +38,6 @@ westpy_build:
 westpy_test:
   stage: test
   script:
-    - pip install -q ase
     - *git_clone
     - pip install .
     - cd test-suite
