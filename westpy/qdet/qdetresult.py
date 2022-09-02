@@ -237,32 +237,22 @@ class QDETResult(object):
             self.write(
                 "==============================================================="
             )
-            # generate character for each state
-            char_ = []
-            for i in range(fcires["evs"].shape[0]):
-                char_.append(
-                    f"{int(round(fcires['mults'][i]))}{fcires['symms_maxproj'][i].partition('(')[0]}"
-                )
-            # generate dataframe dictionary
-            df_dict = {
-                "E [eV]": ["{:.3f}".format(x) for x in fcires["evs"]],
-                "char": char_,
-            }
-            # append occupation difference for each orbital in the active space
-            for i in range(self.basis.shape[0]):
-                inter_ = (
-                    fcires["rdm1s"].diagonal(axis1=1, axis2=2)[:, i]
-                    - fcires["rdm1s"].diagonal(axis1=1, axis2=2)[:, 0]
-                )
-                df_dict[str(self.basis[i])] = ["{:.1f}".format(x) for x in inter_]
-            # initialize dataframe
-            dataframe = pd.DataFrame(df_dict)
-            # add titles
-            format_ = [("", "E [eV]"), ("", "char")]
-            for i in range(self.basis.shape[0]):
-                format_.append(("diag[1RDM - 1RDM(GS)]", str(self.basis[i])))
-            dataframe.columns = pd.MultiIndex.from_tuples(format_)
-            display(dataframe)
+            # header
+            header_ = [("", "E [eV]"), ("", "char")]
+            for b in self.basis :
+                header_.append(("diag[1RDM - 1RDM(GS)]", f"{b}"))
+            df = pd.DataFrame(columns=pd.MultiIndex.from_tuples(header_))
+            # formatting float
+            pd.options.display.float_format = '{:,.3f}'.format
+            # data
+            for ie, energy in enumerate(fcires["evs"]):
+                row = [energy]
+                row.append(f"{int(round(fcires['mults'][ie]))}{fcires['symms_maxproj'][ie].partition('(')[0]}")
+                for ib, b in enumerate(self.basis) :
+                    row.append(fcires["excitations"][ie,ib])
+                df.loc[ie] = row
+            # display
+            display(df)
             self.write("-----------------------------------------------------")
 
             # remove keys that are confusing to the user and are no longer
