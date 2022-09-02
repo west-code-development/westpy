@@ -239,17 +239,19 @@ class QDETResult(object):
             )
             # header
             header_ = [("", "E [eV]"), ("", "char")]
-            for b in self.basis :
+            for b in self.basis:
                 header_.append(("diag[1RDM - 1RDM(GS)]", f"{b}"))
             df = pd.DataFrame(columns=pd.MultiIndex.from_tuples(header_))
             # formatting float
-            pd.options.display.float_format = '{:,.3f}'.format
+            pd.options.display.float_format = "{:,.3f}".format
             # data
             for ie, energy in enumerate(fcires["evs"]):
                 row = [energy]
-                row.append(f"{int(round(fcires['mults'][ie]))}{fcires['symms_maxproj'][ie].partition('(')[0]}")
-                for ib, b in enumerate(self.basis) :
-                    row.append(fcires["excitations"][ie,ib])
+                row.append(
+                    f"{int(round(fcires['mults'][ie]))}{fcires['symms_maxproj'][ie].partition('(')[0]}"
+                )
+                for ib, b in enumerate(self.basis):
+                    row.append(fcires["excitations"][ie, ib])
                 df.loc[ie] = row
             # display
             display(df)
