@@ -3,7 +3,7 @@
 Tutorials
 =========
 
-These tutorials demonstrate how to utilize core features of **westpy**. 
+These tutorials demonstrate how to utilize core features of **westpy**.
 
 Contents:
 

@@ -1,5 +1,5 @@
-
 """ Set of utilities."""
+
 
 def extractFileNamefromUrl(url):
     """Extracts a file name from url.
@@ -16,13 +16,13 @@ def extractFileNamefromUrl(url):
     """
     #
     fname = None
-    my_url = url[:-1] if url.endswith('/') else url
-    if my_url.find('/'):
-        fname = my_url.rsplit('/', 1)[1]
+    my_url = url[:-1] if url.endswith("/") else url
+    if my_url.find("/"):
+        fname = my_url.rsplit("/", 1)[1]
     return fname
 
 
-def download(url,fname=None):
+def download(url, fname=None):
     """Downloads a file from url.
 
     :param url: url
@@ -38,10 +38,11 @@ def download(url,fname=None):
     .. note:: The file will be downloaded in the current directory.
     """
     #
-    if fname is None :
+    if fname is None:
         fname = extractFileNamefromUrl(url)
     #
     from requests import get
+
     # open in binary mode
     with open(fname, "wb") as file:
         # get request
@@ -52,7 +53,7 @@ def download(url,fname=None):
         print("Downloaded file: ", fname, ", from url: ", url)
 
 
-def bool2str( logical ):
+def bool2str(logical):
     """Converts a boolean type into a string .TRUE. or .FALSE. .
 
     :param logical: logical
@@ -69,13 +70,13 @@ def bool2str( logical ):
     .TRUE. .FALSE.
     """
     #
-    if logical :
+    if logical:
         return ".TRUE."
-    else :
+    else:
         return ".FALSE."
 
 
-def writeJsonFile(fname,data):
+def writeJsonFile(fname, data):
     """Writes data to file using the JSON format.
 
     :param fname: file name
@@ -94,12 +95,13 @@ def writeJsonFile(fname,data):
     """
     #
     import json
+
     #
-    with open(fname, 'w') as file:
+    with open(fname, "w") as file:
         json.dump(data, file, indent=2)
         #
         print("")
-        print("File written : ", fname )
+        print("File written : ", fname)
 
 
 def readJsonFile(fname):
@@ -119,16 +121,17 @@ def readJsonFile(fname):
     """
     #
     import json
+
     #
-    with open(fname, 'r') as file:
+    with open(fname, "r") as file:
         data = json.load(file)
         #
         print("")
-        print("File read : ", fname )
+        print("File read : ", fname)
     return data
 
 
-def convertYaml2Json(fyml,fjson):
+def convertYaml2Json(fyml, fjson):
     """Converts the file from YAML to JSON.
 
     :param fyml: Name of YAML file
@@ -144,14 +147,15 @@ def convertYaml2Json(fyml,fjson):
     .. note:: The file fjson will be created, fyml will not be overwritten.
     """
     #
-    import yaml, json
+    import yaml
     from westpy import writeJsonFile
+
     #
     data = yaml.load(open(fyml))
-    writeJsonFile(fjson,data)
+    writeJsonFile(fjson, data)
 
 
-def listLinesWithKeyfromOnlineText(url,key):
+def listLinesWithKeyfromOnlineText(url, key):
     """List lines from text file located at url, with key.
 
     :param url: url
@@ -174,16 +178,16 @@ def listLinesWithKeyfromOnlineText(url,key):
     """
     #
     from urllib.request import urlopen
-    import re
-    data = urlopen(url) # parse the data
+
+    data = urlopen(url)  # parse the data
     greplist = []
-    for line in data :
-        if key in str(line) :
+    for line in data:
+        if key in str(line):
             greplist.append(line)
     return greplist
 
 
-def listValuesWithKeyFromOnlineXML(url,key):
+def listValuesWithKeyFromOnlineXML(url, key):
     """List values from XML file located at url, with key.
 
     :param url: url
@@ -207,9 +211,10 @@ def listValuesWithKeyFromOnlineXML(url,key):
     #
     from urllib.request import urlopen
     import xml.etree.ElementTree as ET
-    tree = ET.parse(urlopen(url)) # parse the data
+
+    tree = ET.parse(urlopen(url))  # parse the data
     root = tree.getroot()
-    xml_values = [str(xml_val.text).strip() for xml_val in root.iter(key)] #get values
+    xml_values = [str(xml_val.text).strip() for xml_val in root.iter(key)]  # get values
     return xml_values
 
 
@@ -233,7 +238,10 @@ def gaussian(x, mu, sig):
     >>> gaussian(1.0,2.0,3.0)
     """
     import numpy as np
-    return 1./(np.sqrt(2.*np.pi)*sig)*np.exp(-np.power((x - mu)/sig, 2.)/2)
+
+    return (
+        1.0 / (np.sqrt(2.0 * np.pi) * sig) * np.exp(-np.power((x - mu) / sig, 2.0) / 2)
+    )
 
 
 def _putline(*args):
@@ -275,15 +283,17 @@ def read_cube(fname):
     :rtype: (np.array, dict)
     """
     import numpy as np
+
     meta = {}
-    with open(fname, 'r') as cube:
-        cube.readline(); cube.readline()  # ignore comments
-        natm, meta['org'] = _getline(cube)
-        nx, meta['xvec'] = _getline(cube)
-        ny, meta['yvec'] = _getline(cube)
-        nz, meta['zvec'] = _getline(cube)
-        meta['atoms'] = [_getline(cube) for i in range(natm)]
-        data = np.zeros((nx*ny*nz))
+    with open(fname, "r") as cube:
+        cube.readline()
+        cube.readline()  # ignore comments
+        natm, meta["org"] = _getline(cube)
+        nx, meta["xvec"] = _getline(cube)
+        ny, meta["yvec"] = _getline(cube)
+        nz, meta["zvec"] = _getline(cube)
+        meta["atoms"] = [_getline(cube) for i in range(natm)]
+        data = np.zeros((nx * ny * nz))
         idx = 0
         for line in cube:
             for val in line.strip().split():
@@ -293,7 +303,7 @@ def read_cube(fname):
     return data, meta
 
 
-def read_imcube(rfname, ifname = ""):
+def read_imcube(rfname, ifname=""):
     """
     Convenience function to read in two cube files at once,
     where one contains the real part and the other contains the
@@ -307,14 +317,15 @@ def read_imcube(rfname, ifname = ""):
     :rtype: (np.array, dict)
     """
     import numpy as np
-    ifname = ifname or rfname.replace('real', 'imag')
+
+    ifname = ifname or rfname.replace("real", "imag")
     _debug("reading from files", rfname, "and", ifname)
     re, im = read_cube(rfname), read_cube(ifname)
-    fin = np.zeros(re[0].shape, dtype='complex128')
+    fin = np.zeros(re[0].shape, dtype="complex128")
     if re[1] != im[1]:
         _debug("warning: meta data mismatch, real part metadata retained")
     fin += re[0]
-    fin += 1j*im[0]
+    fin += 1j * im[0]
     return fin, re[1]
 
 
@@ -336,20 +347,20 @@ def write_cube(data, meta, fname):
     with open(fname, "w") as cube:
         # first two lines are comments
         cube.write(" Cubefile created by cubetools.py\n  source: none\n")
-        natm = len(meta['atoms'])
+        natm = len(meta["atoms"])
         nx, ny, nz = data.shape
-        cube.write(_putline(natm, *meta['org'])) # 3rd line #atoms and origin
-        cube.write(_putline(nx, *meta['xvec']))
-        cube.write(_putline(ny, *meta['yvec']))
-        cube.write(_putline(nz, *meta['zvec']))
-        for atom_mass, atom_pos in meta['atoms']:
-            cube.write(_putline(atom_mass, *atom_pos)) #skip the newline
+        cube.write(_putline(natm, *meta["org"]))  # 3rd line #atoms and origin
+        cube.write(_putline(nx, *meta["xvec"]))
+        cube.write(_putline(ny, *meta["yvec"]))
+        cube.write(_putline(nz, *meta["zvec"]))
+        for atom_mass, atom_pos in meta["atoms"]:
+            cube.write(_putline(atom_mass, *atom_pos))  # skip the newline
         for i in range(nx):
             for j in range(ny):
                 for k in range(nz):
-                    if (i or j or k) and k%6==0:
+                    if (i or j or k) and k % 6 == 0:
                         cube.write("\n")
-                    cube.write(" {0: .5E}".format(data[i,j,k]))
+                    cube.write(" {0: .5E}".format(data[i, j, k]))
 
 
 def write_imcube(data, meta, rfname, ifname=""):
@@ -372,13 +383,27 @@ def write_imcube(data, meta, rfname, ifname=""):
     :param ifname: optional, filename of cubefile containing imag part
     :type ifname: string
     """
-    ifname = ifname or rfname.replace('real', 'imag')
+    ifname = ifname or rfname.replace("real", "imag")
     _debug("writing data to files", rfname, "and", ifname)
     write_cube(data.real, meta, rfname)
     write_cube(data.imag, meta, ifname)
 
 
-def wfreq2df(fname='wfreq.json', dfKeys=['eks','eqpLin','eqpSec','sigmax','sigmac_eks','sigmac_eqpLin','sigmac_eqpSec','vxcl','vxcnl','hf']):
+def wfreq2df(
+    fname="wfreq.json",
+    dfKeys=[
+        "eks",
+        "eqpLin",
+        "eqpSec",
+        "sigmax",
+        "sigmac_eks",
+        "sigmac_eqpLin",
+        "sigmac_eqpSec",
+        "vxcl",
+        "vxcnl",
+        "hf",
+    ],
+):
     """
     Loads the wfreq JSON output into a pandas dataframe.
 
@@ -391,30 +416,32 @@ def wfreq2df(fname='wfreq.json', dfKeys=['eks','eqpLin','eqpSec','sigmax','sigma
     """
     #
     import json
+
     #
     with open(fname) as file:
         data = json.load(file)
     #
     import numpy as np
     import pandas as pd
+
     #
     # build dataframe
     #
-    cols = ['k','s','n'] + dfKeys
+    cols = ["k", "s", "n"] + dfKeys
     df = pd.DataFrame(columns=cols)
     #
     # insert data into dataframe
     #
     j = 0
-    for s in range(1,data['system']['electron']['nspin']+1):
-        for k in data['system']['bzsamp']['k']:
+    for s in range(1, data["system"]["electron"]["nspin"] + 1):
+        for k in data["system"]["bzsamp"]["k"]:
             kindex = f"K{k['id']+(s-1)*len(data['system']['bzsamp']['k']):06d}"
-            for i, n in enumerate(data['output']['Q']['bandmap']):
-                d = data['output']['Q'][kindex]
-                row = [k['id'],s,n]
+            for i, n in enumerate(data["output"]["Q"]["bandmap"]):
+                d = data["output"]["Q"][kindex]
+                row = [k["id"], s, n]
                 for key in dfKeys:
-                    if 're' in d[key]:
-                        row.append(d[key]['re'][i])
+                    if "re" in d[key]:
+                        row.append(d[key]["re"][i])
                     else:
                         row.append(d[key][i])
                 df.loc[j] = row
@@ -422,7 +449,7 @@ def wfreq2df(fname='wfreq.json', dfKeys=['eks','eqpLin','eqpSec','sigmax','sigma
     #
     # cast columns k, s, n to int
     #
-    for col in ['k','s','n']:
+    for col in ["k", "s", "n"]:
         df[col] = df[col].apply(np.int64)
 
     return df, data

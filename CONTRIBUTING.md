@@ -4,6 +4,8 @@
 
 ## Developers
 
+- Nan Sheng (University of Chicago)
+- Christian Vorwerk (University of Chicago)
 - Han Yang (University of Chicago)
 - Victor Yu (Argonne National Laboratory)
 

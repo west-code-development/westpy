@@ -1,11 +1,15 @@
 from setuptools import setup
 from setuptools import find_packages
+import json
 
 with open('README.md', 'r') as fh:
     long_description = fh.read()
 
+with open('VERSION.json', 'r') as file:
+    data = json.load(file)
+
 setup(name='westpy',
-      version='5.1.0',
+      version=data['version'],
       packages=find_packages(),
       description='Python analysis tools for WEST',
       long_description=long_description,
@@ -29,7 +33,12 @@ setup(name='westpy',
           'sphinx',
           'sphinx_rtd_theme',
           'py3Dmol',
-          'pandas'
+          'pyscf',
+          'ipython',
+          'pandas',
+          'six',
+          'ase',
+          'qiskit_nature'
       ],
       python_requires='>=3.6, <4',
       zip_safe=True)
