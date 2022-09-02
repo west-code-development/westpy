@@ -390,16 +390,28 @@ class Heff:
         Returns:
             Qiskit FermionicOperator instance
         """
-        from qiskit.chemistry.qmolecule import QMolecule
-        from qiskit.chemistry import FermionicOperator
+        from qiskit_nature.properties.second_quantization.electronic import (
+            ElectronicEnergy,
+        )
+        from qiskit_nature.properties.second_quantization.electronic.bases import (
+            ElectronicBasis,
+        )
+        from qiskit_nature.properties.second_quantization.electronic.integrals import (
+            TwoBodyElectronicIntegrals,
+        )
 
         if self.nspin == 1:
             h1e = self.h1e.copy()
             for i in range(self.norb):
                 h1e[i, i] += mu
             h1 = np.bmat([[h1e, np.zeros_like(h1e)], [np.zeros_like(h1e), h1e]])
-            # h2 = QMolecule.twoe_to_spin(np.einsum('ijkl->ljik', self.eri))  # worked for a older version
-            h2 = QMolecule.twoe_to_spin(self.eri)
-            return FermionicOperator(h1=h1, h2=h2)
+            # worked for older versions of qiskit
+            # h2 = QMolecule.twoe_to_spin(np.einsum('ijkl->ljik', self.eri))
+            # h2 = QMolecule.twoe_to_spin(self.eri)
+            h2 = TwoBodyElectronicIntegrals(
+                ElectronicBasis.MO,
+                (self.eri, None, None, None),
+            ).to_spin()
+            return ElectronicEnergy.from_raw_integrals(ElectronicBasis.SO, h1, h2)
         else:
             raise NotImplementedError

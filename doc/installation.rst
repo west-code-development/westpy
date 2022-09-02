@@ -24,6 +24,9 @@ The software is tested for Python version 3.x and has the following dependencies
    - ``pyscf``
    - ``ipython``
    - ``pandas``
+   - ``six``
+   - ``ase``
+   - ``qiskit_nature``
 
 The dependencies will all be installed automatically, following instructions reported below.
 

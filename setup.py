@@ -37,7 +37,8 @@ setup(name='westpy',
           'ipython',
           'pandas',
           'six',
-          'ase'
+          'ase',
+          'qiskit_nature'
       ],
       python_requires='>=3.6, <4',
       zip_safe=True)
