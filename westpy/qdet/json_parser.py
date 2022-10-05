@@ -31,7 +31,7 @@ def read_qp_energies(filename: str):
     with open(filename, "r") as f:
         raw_ = json.load(f)
 
-    npair, nspin, bands = read_parameters_from_JSON(filename)
+    npair, nspin, bands = read_parameters(filename)
 
     if nspin == 1:
         qp_energies = np.array(raw_["output"]["Q"]["K000001"]["eqpSec"])
@@ -53,7 +53,7 @@ def read_occupation(filename: str):
     with open(filename, "r") as f:
         raw_ = json.load(f)
 
-    npair, nspin, bands = read_parameters_from_JSON(filename)
+    npair, nspin, bands = read_parameters(filename)
 
     occ_ = np.zeros((nspin, len(basis)))
 
@@ -77,7 +77,7 @@ def read_matrix_elements(filename: str, string: str = "eri_w"):
     with open(filename, "r") as f:
         raw_ = json.load(f)
 
-    npair, nspin, bands = read_parameters_from_JSON(filename)
+    npair, nspin, bands = read_parameters(filename)
 
     indexmap = np.array(raw_["output"]["Q"]["indexmap"], dtype=int)
 
