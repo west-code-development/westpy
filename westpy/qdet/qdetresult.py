@@ -8,11 +8,7 @@ from westpy import eV, Hartree
 from westpy import VData
 from westpy.qdet.heff import Heff
 from westpy.qdet.symm import PointGroup, PointGroupRep
-from westpy.qdet.json_parser import (
-    __read_parameters,
-    __read_occupation,
-    __read_matrix_elements,
-)
+from westpy.qdet.json_parser import read_parameters, read_occupation, read_matrix_elements
 
 
 class QDETResult(object):

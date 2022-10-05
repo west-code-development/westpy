@@ -1,7 +1,7 @@
 import json
 
 
-def __read_parameters(filename: str):
+def read_parameters(filename: str):
     """Read basic calculation parameters from JSON file.
 
     Argument:
@@ -20,7 +20,7 @@ def __read_parameters(filename: str):
     return nspin, npair, bands
 
 
-def __read_qp_energies(filename: str):
+def read_qp_energies(filename: str):
     """Read QP energies from JSON file.
 
     Argument:
@@ -43,7 +43,7 @@ def __read_qp_energies(filename: str):
     return qp_energies
 
 
-def __read_occupation(filename: str):
+def read_occupation(filename: str):
     """Read DFT occupation from JSON file.
 
     Argument:
@@ -65,7 +65,7 @@ def __read_occupation(filename: str):
     return occ_
 
 
-def __read_matrix_elements(filename: str, string: str = "eri_w"):
+def read_matrix_elements(filename: str, string: str = "eri_w"):
     """Read one-body and two-body terms from JSON file.
 
     Arguments:

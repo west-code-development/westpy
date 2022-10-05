@@ -5,12 +5,7 @@ from pyscf.fci.cistring import make_strings, num_strings
 from pyscf.fci.spin_op import spin_square
 from pyscf.fci.addons import transform_ci_for_orbital_rotation
 
-from westpy.qdet.json_parser import (
-    __read_parameters,
-    __read_occupation,
-    __read_matrix_elements,
-    __read_qp_energies,
-)
+from westpy.qdet.json_parser import read_parameters, read_occupation, read_matrix_elements, read_qp_energies
 
 
 class eBSE:
