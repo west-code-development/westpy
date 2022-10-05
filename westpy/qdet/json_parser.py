@@ -55,7 +55,7 @@ def read_occupation(filename: str):
 
     npair, nspin, bands = read_parameters(filename)
 
-    occ_ = np.zeros((nspin, len(basis)))
+    occ_ = np.zeros((nspin, len(bands)))
 
     for ispin in range(nspin):
         string1 = "K" + format(ispin + 1, "06d")
@@ -103,7 +103,7 @@ def read_matrix_elements(filename: str, string: str = "eri_w"):
                 )
 
     # unfold one-body terms from pair basis to Kohn-Sham basis
-    h1e = np.zeros((nspin, len(basis), len(basis)))
+    h1e = np.zeros((nspin, len(bands), len(bands)))
     for ispin in range(nspin):
         for ipair in range(len(indexmap)):
             i, j = indexmap[ipair]
@@ -115,10 +115,10 @@ def read_matrix_elements(filename: str, string: str = "eri_w"):
         (
             nspin,
             nspin,
-            len(basis),
-            len(basis),
-            len(basis),
-            len(basis),
+            len(bands),
+            len(bands),
+            len(bands),
+            len(bands),
         )
     )
     for ispin in range(nspin):
