@@ -8,7 +8,11 @@ from westpy import eV, Hartree
 from westpy import VData
 from westpy.qdet.heff import Heff
 from westpy.qdet.symm import PointGroup, PointGroupRep
-from westpy.qdet.json_parser import read_parameters, read_occupation, read_matrix_elements
+from westpy.qdet.json_parser import (
+    read_parameters,
+    read_occupation,
+    read_matrix_elements,
+)
 
 
 class QDETResult(object):
@@ -30,13 +34,13 @@ class QDETResult(object):
         self.filename = filename
 
         # read basic parameters from JSON file
-        self.nspin, self.npair, self.basis = __read_parameters(filename)
+        self.nspin, self.npair, self.basis = read_parameters(filename)
 
         # read occupation from file
-        self.occupation = __read_occupation(filename)
+        self.occupation = read_occupation(filename)
 
         # read one- and two-body terms from JSON file
-        self.h1e, self.eri = __read_matrix_elements(filename)
+        self.h1e, self.eri = read_matrix_elements(filename)
 
         # determine point-group representation
 

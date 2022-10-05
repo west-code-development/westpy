@@ -5,7 +5,12 @@ from pyscf.fci.cistring import make_strings, num_strings
 from pyscf.fci.spin_op import spin_square
 from pyscf.fci.addons import transform_ci_for_orbital_rotation
 
-from westpy.qdet.json_parser import read_parameters, read_occupation, read_matrix_elements, read_qp_energies
+from westpy.qdet.json_parser import (
+    read_parameters,
+    read_occupation,
+    read_matrix_elements,
+    read_qp_energies,
+)
 
 
 class eBSE:
@@ -13,17 +18,17 @@ class eBSE:
 
         self.filename = filename
         # read QDET active space from file
-        self.basis = __read_parameters(self.filename)[2]
+        self.basis = read_parameters(self.filename)[2]
         # read QP energies and occupation from file
-        self.qp_energies = __read_qp_energies(self.filename)
-        self.occ = __read_occupation(self.filename)
+        self.qp_energies = read_qp_energies(self.filename)
+        self.occ = read_occupation(self.filename)
 
         # TODO: add assert to make sure that all dimensions are correct
         # make global arrays
         # TODO: add assert to make sure that occupations don't violate Aufbau
         # principle
-        self.v = __read_matrix_elements(self.filename, string="v_c")
-        self.w = __read_matrix_elements(self.filename, string="eri_w_full")
+        self.v = read_matrix_elements(self.filename, string="v_c")
+        self.w = read_matrix_elements(self.filename, string="eri_w_full")
 
         self.spin_flip = spin_flip_
 
