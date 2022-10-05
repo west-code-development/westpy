@@ -1,4 +1,5 @@
 import json
+import numpy as np
 
 
 def read_parameters(filename: str):
