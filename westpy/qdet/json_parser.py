@@ -37,7 +37,7 @@ def read_qp_energies(filename: str):
         qp_energies = np.array(raw_["output"]["Q"]["K000001"]["eqpSec"])
 
     elif nspin == 2:
-        qp_energies = np.zeros(len(bands), 2)
+        qp_energies = np.zeros((len(bands), 2))
         qp_energies[:, 0] = np.array(raw_["output"]["Q"]["K000001"]["eqpSec"])
         qp_energies[:, 1] = np.array(raw_["output"]["Q"]["K000002"]["eqpSec"])
 
@@ -140,16 +140,16 @@ def read_matrix_elements(filename: str, string: str = "eri_w"):
                         ispin, jspin, ipair, jpair
                     ]
 
-                    eri[ispin, jspin, k - 1, l - 1, i - 1, j - 1] = eri_pair[
+                    eri[jspin, ispin, k - 1, l - 1, i - 1, j - 1] = eri_pair[
                         ispin, jspin, ipair, jpair
                     ]
-                    eri[ispin, jspin, k - 1, l - 1, j - 1, i - 1] = eri_pair[
+                    eri[jspin, ispin, k - 1, l - 1, j - 1, i - 1] = eri_pair[
                         ispin, jspin, ipair, jpair
                     ]
-                    eri[ispin, jspin, l - 1, k - 1, i - 1, j - 1] = eri_pair[
+                    eri[jspin, ispin, l - 1, k - 1, i - 1, j - 1] = eri_pair[
                         ispin, jspin, ipair, jpair
                     ]
-                    eri[ispin, jspin, l - 1, k - 1, j - 1, i - 1] = eri_pair[
+                    eri[jspin, ispin, l - 1, k - 1, j - 1, i - 1] = eri_pair[
                         ispin, jspin, ipair, jpair
                     ]
     return h1e, eri

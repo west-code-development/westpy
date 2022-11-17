@@ -27,8 +27,8 @@ class eBSE:
         # make global arrays
         # TODO: add assert to make sure that occupations don't violate Aufbau
         # principle
-        self.v = read_matrix_elements(self.filename, string="v_c")
-        self.w = read_matrix_elements(self.filename, string="eri_w_full")
+        self.v = read_matrix_elements(self.filename, string="eri_w")[1]
+        self.w = read_matrix_elements(self.filename, string="eri_w_full")[1]
 
         self.spin_flip = spin_flip_
 
@@ -43,7 +43,7 @@ class eBSE:
         # get size of single-particle space
         self.n_orbitals = self.basis.shape[0]
         # get number of electrons
-        self.n_elec = [int(np.sum(occ_[0])), int(np.sum(occ_[1]))]
+        self.n_elec = [int(np.sum(self.occ[0])), int(np.sum(self.occ[1]))]
 
         # create mapping between transitions and single-particle indices
         self.smap = self.get_smap()
@@ -96,17 +96,17 @@ class eBSE:
             v, c, m = self.smap[s][:]
             if not self.spin_flip:
                 if self.spin_pol:
-                    bse_hamiltonian[s, s] += self.qp_energy[c, m] - self.qp_energy[v, m]
+                    bse_hamiltonian[s, s] += self.qp_energies[c, m] - self.qp_energies[v, m]
                 else:
-                    bse_hamiltonian[s, s] += self.qp_energy[c] - self.qp_energy[v]
+                    bse_hamiltonian[s, s] += self.qp_energies[c] - self.qp_energies[v]
             else:
                 m_prime = 1 - m
                 if self.spin_pol:
                     bse_hamiltonian[s, s] += (
-                        self.qp_energy[c, m_prime] - self.qp_energy[v, m]
+                        self.qp_energies[c, m_prime] - self.qp_energies[v, m]
                     )
                 else:
-                    bse_hamiltonian[s, s] += self.qp_energy[c] - self.qp_energy[v]
+                    bse_hamiltonian[s, s] += self.qp_energies[c] - self.qp_energies[v]
 
             # add direct and exchange terms
             for s2 in range(self.n_tr):
