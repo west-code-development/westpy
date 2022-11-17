@@ -4,6 +4,7 @@ import json
 from pyscf.fci.cistring import make_strings, num_strings
 from pyscf.fci.spin_op import spin_square
 from pyscf.fci.addons import transform_ci_for_orbital_rotation
+from pyscf.fci import  direct_uhf
 
 from westpy.qdet.json_parser import (
     read_parameters,
@@ -13,8 +14,19 @@ from westpy.qdet.json_parser import (
 )
 
 
-class eBSE:
-    def __init__(self, filename, spin_flip_=False):
+class eBSEResult:
+    def __init__(
+            self, 
+            filename: str, 
+            spin_flip_: bool=False):
+        """Parser for embedded Bethe-Salpeter Equation (eBSE) calculations.
+
+        Args:
+            filename (str): name of the JSON file that contains the output of the
+            WEST calculation.
+            spin_flip (boolean): trigger for spin-conserving (False) or
+            spin-flip (True) calculation. 
+        """
 
         self.filename = filename
         # read QDET active space from file
@@ -32,18 +44,10 @@ class eBSE:
 
         self.spin_flip = spin_flip_
 
-        # check number of dimensions of matrix elements to see whether
-        # spin-polarized DFT calculation was employed or not
-        # TODO: check for right number of dimension and shape
-        if self.v.ndim == 4:
-            self.spin_pol = False
-        elif self.v.ndim == 6:
-            self.spin_pol = True
-
         # get size of single-particle space
         self.n_orbitals = self.basis.shape[0]
         # get number of electrons
-        self.n_elec = [int(np.sum(self.occ[0])), int(np.sum(self.occ[1]))]
+        self.nelec = [int(np.sum(occ_[0])), int(np.sum(occ_[1]))]
 
         # create mapping between transitions and single-particle indices
         self.smap = self.get_smap()
@@ -51,10 +55,15 @@ class eBSE:
 
         # create mapping between transitions and FCI vectors
         self.cmap, self.jwstring = self.get_map_transitions_to_cistrings()
-
-        # initialize eigenvalues and eigenvectors to None
-        self.eigvals = None
-        self.eigvecs = None
+    
+    def write(self, *args):
+        
+        data = ""
+        for i in args:
+            data += str(i)
+            data += " "
+        data = data[:-1]
+        print(data)
 
     def get_smap(self):
         # maps from a transition index s to the KS indices
@@ -85,9 +94,11 @@ class eBSE:
 
         return np.asarray(smap_)
 
-    def solve(self):
+    def solve(self, verbose=True):
         # solve embedded BSE, return eigenvalues and -vectors
-
+        
+        # initialize dictionary for results
+        results = {}
         # allocate BSE Hamiltonian
         bse_hamiltonian = np.zeros((self.n_tr, self.n_tr))
 
@@ -95,18 +106,12 @@ class eBSE:
         for s in range(self.n_tr):
             v, c, m = self.smap[s][:]
             if not self.spin_flip:
-                if self.spin_pol:
-                    bse_hamiltonian[s, s] += self.qp_energies[c, m] - self.qp_energies[v, m]
-                else:
-                    bse_hamiltonian[s, s] += self.qp_energies[c] - self.qp_energies[v]
+                bse_hamiltonian[s, s] += self.qp_energy[c, m] - self.qp_energy[v, m]
             else:
                 m_prime = 1 - m
-                if self.spin_pol:
-                    bse_hamiltonian[s, s] += (
-                        self.qp_energies[c, m_prime] - self.qp_energies[v, m]
+                bse_hamiltonian[s, s] += (
+                    self.qp_energy[c, m_prime] - self.qp_energy[v, m]
                     )
-                else:
-                    bse_hamiltonian[s, s] += self.qp_energies[c] - self.qp_energies[v]
 
             # add direct and exchange terms
             for s2 in range(self.n_tr):
@@ -116,32 +121,62 @@ class eBSE:
                 # -------------------------------
                 if not self.spin_flip:
                     if m == m2:
-                        if self.spin_pol:
-                            bse_hamiltonian[s, s2] += (
-                                self.v[m, m, v, c, v2, c2] - self.w[m, m, v, v2, c, c2]
-                            )
-                        else:
-                            bse_hamiltonian[s, s2] += (
-                                self.v[v, c, v2, c2] - self.w[v, v2, c, c2]
+                        bse_hamiltonian[s, s2] += (
+                            self.v[m, m, v, c, v2, c2] - self.w[m, m, v, v2, c, c2]
                             )
                     else:
-                        if self.spin_pol:
-                            bse_hamiltonian[s, s2] += self.v[m, m2, v, c, v2, c2]
-                        else:
-                            bse_hamiltonian[s, s2] += self.v[v, c, v2, c2]
+                        bse_hamiltonian[s, s2] += self.v[m, m2, v, c, v2, c2]
                 # -------------------------------
                 # spin-flip BSE calculation
                 # -------------------------------
                 elif self.spin_flip:
                     if m == m2:
-                        if self.spin_pol:
-                            bse_hamiltonian[s, s2] += -self.w[m, 1 - m, v, v2, c, c2]
-                        else:
-                            bse_hamiltonian[s, s2] += -self.w[v, v2, c, c2]
+                        bse_hamiltonian[s, s2] += -self.w[m, 1 - m, v, v2, c, c2]
 
         # diagonalize Hamiltonian
-        self.eigvals = np.linalg.eigh(bse_hamiltonian)[0]
-        self.eigvecs = np.linalg.eigh(bse_hamiltonian)[1]
+        evs_, evcs_ = np.linalg.eigh(bse_hamiltonian)
+        results['evs_au'] = evc_*( eV ** (-1) / Hartree)
+        results['evs'] = evs_ - evs_[0]
+        results['evcs'] = evcs_
+
+        # store density matrix and multiplicty
+        results['rdm1s'] = self.generate_density_matrix()
+        results['mults'] = np.array([ self.get_spin(i)[1] for i in
+            range(len(evs_))])
+        # get occupation difference relative to the groundstate
+        results['excitations'] = np.array([np.diag(results['rdm1s'][i] -
+            results['rdm1s'][0]) for i in range(len(evs_))])
+
+        # write summary to screen
+        if verbose:
+            self.write(
+                "==============================================================="
+            )
+            self.write("Solving eBSE Hamiltonian...")
+            self.write(
+                "==============================================================="
+            )
+            # header
+            header_ = [("", "E [eV]"), ("", "char")]
+            for b in self.basis:
+                header_.append(("diag[1RDM - 1RDM(GS)]", f"{b}"))
+            df = pd.DataFrame(columns=pd.MultiIndex.from_tuples(header_))
+            # formatting float
+            pd.options.display.float_format = "{:,.3f}".format
+            # data
+            for ie, energy in enumerate(results["evs"]):
+                row = [energy]
+                row.append(
+                    f"{int(round(results['mults'][ie]))}"
+                )
+                for ib, b in enumerate(self.basis):
+                    row.append(results["excitations"][ie, ib])
+                df.loc[ie] = row
+            # display
+            display(df)
+            self.write("-----------------------------------------------------")
+            
+
 
     def get_cistring(self, s):
         # determine cistring for the up- and down-component of a given
@@ -176,13 +211,13 @@ class eBSE:
         # generate all possible cistrings
         if not self.spin_flip:
             cistring_ = [
-                make_strings(range(self.n_orbitals), self.n_elec[0]),
-                make_strings(range(self.n_orbitals), self.n_elec[1]),
+                make_strings(range(self.n_orbitals), self.nelec[0]),
+                make_strings(range(self.n_orbitals), self.nelec[1]),
             ]
         else:
             cistring_ = [
-                make_strings(range(self.n_orbitals), self.n_elec[0] - 1),
-                make_strings(range(self.n_orbitals), self.n_elec[1] + 1),
+                make_strings(range(self.n_orbitals), self.nelec[0] - 1),
+                make_strings(range(self.n_orbitals), self.nelec[1] + 1),
             ]
 
         # allocate map
@@ -205,10 +240,10 @@ class eBSE:
             # definition is in my notes
             # TODO: put derivation in repo so it does not get lost...
             if self.spin_flip:
-                jwstring_[s] = (-1) ** (self.n_elec[1] + self.smap[s][0])
+                jwstring_[s] = (-1) ** (self.nelec[1] + self.smap[s][0])
             else:
                 m = self.smap[s][-1]
-                jwstring_[s] = (-1) ** (self.n_elec[m] + self.smap[s][0] - 1)
+                jwstring_[s] = (-1) ** (self.nelec[m] + self.smap[s][0] - 1)
 
         return cmap_, jwstring_
 
@@ -221,15 +256,15 @@ class eBSE:
         if not self.spin_flip:
             fci_ = np.zeros(
                 (
-                    num_strings(self.n_orbitals, self.n_elec[0]),
-                    num_strings(self.n_orbitals, self.n_elec[1]),
+                    num_strings(self.n_orbitals, self.nelec[0]),
+                    num_strings(self.n_orbitals, self.nelec[1]),
                 )
             )
         else:
             fci_ = np.zeros(
                 (
-                    num_strings(self.n_orbitals, self.n_elec[0] - 1),
-                    num_strings(self.n_orbitals, self.n_elec[1] + 1),
+                    num_strings(self.n_orbitals, self.nelec[0] - 1),
+                    num_strings(self.n_orbitals, self.nelec[1] + 1),
                 )
             )
 
@@ -250,9 +285,9 @@ class eBSE:
 
         # account for different occupation in excited state in spin-flip BSE
         if not self.spin_flip:
-            nelec_ = self.n_elec
+            nelec_ = self.nelec
         else:
-            nelec_ = (self.n_elec[0] - 1, self.n_elec[1] + 1)
+            nelec_ = (self.nelec[0] - 1, self.nelec[1] + 1)
 
         return spin_square(fci_, self.n_orbitals, nelec_)
 
@@ -268,13 +303,13 @@ class eBSE:
         # get all possible FCI strings
         if not self.spin_flip:
             cistring_ = [
-                make_strings(range(self.n_orbitals), self.n_elec[0]),
-                make_strings(range(self.n_orbitals), self.n_elec[1]),
+                make_strings(range(self.n_orbitals), self.nelec[0]),
+                make_strings(range(self.n_orbitals), self.nelec[1]),
             ]
         else:
             cistring_ = [
-                make_strings(range(self.n_orbitals), self.n_elec[0] - 1),
-                make_strings(range(self.n_orbitals), self.n_elec[1] + 1),
+                make_strings(range(self.n_orbitals), self.nelec[0] - 1),
+                make_strings(range(self.n_orbitals), self.nelec[1] + 1),
             ]
         # output string
         str_ = ""
@@ -314,9 +349,9 @@ class eBSE:
         ms = int(np.rint(ms))
 
         if not self.spin_flip:
-            nelec_ = self.n_elec
+            nelec_ = self.nelec
         else:
-            nelec_ = (self.n_elec[0] - 1, self.n_elec[1] + 1)
+            nelec_ = (self.nelec[0] - 1, self.nelec[1] + 1)
 
         h_ = point_group_rep.point_group.h
         ctable_ = point_group_rep.point_group.ctable
@@ -341,3 +376,18 @@ class eBSE:
         # symm = f"{irreps[imax]}({irprojs[imax]:.2f})"
 
         return str(ms) + str(irreps[imax])
+
+    def generate_density_matrix(self):
+        
+        solver = direct_uhf.FCISolver()
+        if self.spin_flip:
+            nelec_ = (self.nelec[0]-1, self.nelec[1]+1)
+            nelec_ = (self.nelec[0], self.nelec[1])
+
+        rdm1s = []
+        for i in range(len(self.eigvals)):
+            fci_ = self.transform_transition_to_fci(i)
+            rdm1s.append(np.average(solver.make_rdm1(fcivec=fci_,
+                norb=len(self.basis), nelec=nelec_), axis=0)
+
+        return np.array(rdm1s)
