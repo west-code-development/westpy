@@ -4,7 +4,7 @@ import json
 from pyscf.fci.cistring import make_strings, num_strings
 from pyscf.fci.spin_op import spin_square
 from pyscf.fci.addons import transform_ci_for_orbital_rotation
-from pyscf.fci import  direct_uhf
+from pyscf.fci import direct_uhf
 
 from westpy.qdet.json_parser import (
     read_parameters,
@@ -15,17 +15,14 @@ from westpy.qdet.json_parser import (
 
 
 class eBSEResult:
-    def __init__(
-            self, 
-            filename: str, 
-            spin_flip_: bool=False):
+    def __init__(self, filename: str, spin_flip_: bool = False):
         """Parser for embedded Bethe-Salpeter Equation (eBSE) calculations.
 
         Args:
             filename (str): name of the JSON file that contains the output of the
             WEST calculation.
             spin_flip (boolean): trigger for spin-conserving (False) or
-            spin-flip (True) calculation. 
+            spin-flip (True) calculation.
         """
 
         self.filename = filename
@@ -55,9 +52,9 @@ class eBSEResult:
 
         # create mapping between transitions and FCI vectors
         self.cmap, self.jwstring = self.get_map_transitions_to_cistrings()
-    
+
     def write(self, *args):
-        
+
         data = ""
         for i in args:
             data += str(i)
@@ -96,7 +93,7 @@ class eBSEResult:
 
     def solve(self, verbose=True):
         # solve embedded BSE, return eigenvalues and -vectors
-        
+
         # initialize dictionary for results
         results = {}
         # allocate BSE Hamiltonian
@@ -111,7 +108,7 @@ class eBSEResult:
                 m_prime = 1 - m
                 bse_hamiltonian[s, s] += (
                     self.qp_energy[c, m_prime] - self.qp_energy[v, m]
-                    )
+                )
 
             # add direct and exchange terms
             for s2 in range(self.n_tr):
@@ -123,7 +120,7 @@ class eBSEResult:
                     if m == m2:
                         bse_hamiltonian[s, s2] += (
                             self.v[m, m, v, c, v2, c2] - self.w[m, m, v, v2, c, c2]
-                            )
+                        )
                     else:
                         bse_hamiltonian[s, s2] += self.v[m, m2, v, c, v2, c2]
                 # -------------------------------
@@ -135,17 +132,20 @@ class eBSEResult:
 
         # diagonalize Hamiltonian
         evs_, evcs_ = np.linalg.eigh(bse_hamiltonian)
-        results['evs_au'] = evc_*( eV ** (-1) / Hartree)
-        results['evs'] = evs_ - evs_[0]
-        results['evcs'] = evcs_
+        results["evs_au"] = evc_ * (eV ** (-1) / Hartree)
+        results["evs"] = evs_ - evs_[0]
+        results["evcs"] = evcs_
 
         # store density matrix and multiplicty
-        results['rdm1s'] = self.generate_density_matrix()
-        results['mults'] = np.array([ self.get_spin(i)[1] for i in
-            range(len(evs_))])
+        results["rdm1s"] = self.generate_density_matrix()
+        results["mults"] = np.array([self.get_spin(i)[1] for i in range(len(evs_))])
         # get occupation difference relative to the groundstate
-        results['excitations'] = np.array([np.diag(results['rdm1s'][i] -
-            results['rdm1s'][0]) for i in range(len(evs_))])
+        results["excitations"] = np.array(
+            [
+                np.diag(results["rdm1s"][i] - results["rdm1s"][0])
+                for i in range(len(evs_))
+            ]
+        )
 
         # write summary to screen
         if verbose:
@@ -166,17 +166,13 @@ class eBSEResult:
             # data
             for ie, energy in enumerate(results["evs"]):
                 row = [energy]
-                row.append(
-                    f"{int(round(results['mults'][ie]))}"
-                )
+                row.append(f"{int(round(results['mults'][ie]))}")
                 for ib, b in enumerate(self.basis):
                     row.append(results["excitations"][ie, ib])
                 df.loc[ie] = row
             # display
             display(df)
             self.write("-----------------------------------------------------")
-            
-
 
     def get_cistring(self, s):
         # determine cistring for the up- and down-component of a given
@@ -378,16 +374,20 @@ class eBSEResult:
         return str(ms) + str(irreps[imax])
 
     def generate_density_matrix(self):
-        
+
         solver = direct_uhf.FCISolver()
         if self.spin_flip:
-            nelec_ = (self.nelec[0]-1, self.nelec[1]+1)
+            nelec_ = (self.nelec[0] - 1, self.nelec[1] + 1)
             nelec_ = (self.nelec[0], self.nelec[1])
 
         rdm1s = []
         for i in range(len(self.eigvals)):
             fci_ = self.transform_transition_to_fci(i)
-            rdm1s.append(np.average(solver.make_rdm1(fcivec=fci_,
-                norb=len(self.basis), nelec=nelec_), axis=0))
+            rdm1s.append(
+                np.average(
+                    solver.make_rdm1(fcivec=fci_, norb=len(self.basis), nelec=nelec_),
+                    axis=0,
+                )
+            )
 
         return np.array(rdm1s)
