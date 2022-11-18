@@ -388,6 +388,6 @@ class eBSEResult:
         for i in range(len(self.eigvals)):
             fci_ = self.transform_transition_to_fci(i)
             rdm1s.append(np.average(solver.make_rdm1(fcivec=fci_,
-                norb=len(self.basis), nelec=nelec_), axis=0)
+                norb=len(self.basis), nelec=nelec_), axis=0))
 
         return np.array(rdm1s)
