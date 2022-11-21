@@ -10,6 +10,7 @@ from westpy.electronicStructure import *
 from westpy.session import *
 from westpy.lifetime import *
 from westpy.qdet import *
+from westpy.qbox2bse import *
 
 __version__ = "5.2.0"
 
