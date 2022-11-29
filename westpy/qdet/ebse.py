@@ -1,11 +1,13 @@
 import numpy as np
 import json
+import pandas as pd
 
 from pyscf.fci.cistring import make_strings, num_strings
 from pyscf.fci.spin_op import spin_square
 from pyscf.fci.addons import transform_ci_for_orbital_rotation
 from pyscf.fci import  direct_uhf
 
+from westpy import eV, Hartree
 from westpy.qdet.json_parser import (
     read_parameters,
     read_occupation,
@@ -47,7 +49,7 @@ class eBSEResult:
         # get size of single-particle space
         self.n_orbitals = self.basis.shape[0]
         # get number of electrons
-        self.nelec = [int(np.sum(occ_[0])), int(np.sum(occ_[1]))]
+        self.nelec = [int(np.sum(self.occ[0])), int(np.sum(self.occ[1]))]
 
         # create mapping between transitions and single-particle indices
         self.smap = self.get_smap()
@@ -106,11 +108,11 @@ class eBSEResult:
         for s in range(self.n_tr):
             v, c, m = self.smap[s][:]
             if not self.spin_flip:
-                bse_hamiltonian[s, s] += self.qp_energy[c, m] - self.qp_energy[v, m]
+                bse_hamiltonian[s, s] += self.qp_energies[c, m] - self.qp_energies[v, m]
             else:
                 m_prime = 1 - m
                 bse_hamiltonian[s, s] += (
-                    self.qp_energy[c, m_prime] - self.qp_energy[v, m]
+                    self.qp_energies[c, m_prime] - self.qp_energies[v, m]
                     )
 
             # add direct and exchange terms
@@ -133,15 +135,16 @@ class eBSEResult:
                     if m == m2:
                         bse_hamiltonian[s, s2] += -self.w[m, 1 - m, v, v2, c, c2]
 
+        results['hamiltonian'] = bse_hamiltonian[:,:]
         # diagonalize Hamiltonian
         evs_, evcs_ = np.linalg.eigh(bse_hamiltonian)
-        results['evs_au'] = evc_*( eV ** (-1) / Hartree)
+        results['evs_au'] = evs_*( eV ** (-1) / Hartree)
         results['evs'] = evs_ - evs_[0]
         results['evcs'] = evcs_
 
         # store density matrix and multiplicty
-        results['rdm1s'] = self.generate_density_matrix()
-        results['mults'] = np.array([ self.get_spin(i)[1] for i in
+        results['rdm1s'] = self.generate_density_matrix(evs_, evcs_)
+        results['mults'] = np.array([ self.get_spin(evcs_[i])[1] for i in
             range(len(evs_))])
         # get occupation difference relative to the groundstate
         results['excitations'] = np.array([np.diag(results['rdm1s'][i] -
@@ -175,6 +178,8 @@ class eBSEResult:
             # display
             display(df)
             self.write("-----------------------------------------------------")
+        
+        return results
             
 
 
@@ -247,11 +252,10 @@ class eBSEResult:
 
         return cmap_, jwstring_
 
-    def transform_transition_to_fci(self, i):
+    def transform_transition_to_fci(self, evcs_):
         # TODO: ensure that the length of the eigenvector is self.n_tr
         # returns BSE eigenvector in the format of a FCI vector in pyscf.fci
 
-        vector_ = self.eigvecs[:, i]
         # allocate FCI vector in the size of the correct Fock space
         if not self.spin_flip:
             fci_ = np.zeros(
@@ -269,19 +273,19 @@ class eBSEResult:
             )
 
         # loop over all transitions
-        for s in range(vector_.shape[0]):
+        for s in range(evcs_.shape[0]):
             # find the indices of the corresponding FCI vectors
             c1 = self.cmap[s, 0]
             c2 = self.cmap[s, 1]
 
             # assign value
-            fci_[c1, c2] = vector_[s] * self.jwstring[s]
+            fci_[c1, c2] = evcs_[s] * self.jwstring[s]
 
         return fci_
 
-    def get_spin(self, i):
+    def get_spin(self, evcs_):
         # return the total spin and multiplicity for BSE eigenstate
-        fci_ = self.transform_transition_to_fci(i)
+        fci_ = self.transform_transition_to_fci(evcs_)
 
         # account for different occupation in excited state in spin-flip BSE
         if not self.spin_flip:
@@ -294,11 +298,9 @@ class eBSEResult:
     def _pretty_binary_print(self, binary):
         return format(binary, "0" + str(self.n_orbitals) + "b")
 
-    def get_transition_information(self, i, cutoff=10 ** (-3)):
+    def get_transition_information(self, evcs_, cutoff=10 ** (-3)):
         # returns a string that displays the excited state vector as a linear
         # combination of Fock vectors
-
-        vector_ = self.eigvecs[:, i]
 
         # get all possible FCI strings
         if not self.spin_flip:
@@ -314,8 +316,8 @@ class eBSEResult:
         # output string
         str_ = ""
         # get string and contribution for each component of the BSE eigenvector
-        for s in range(vector_.shape[0]):
-            if abs(vector_[s]) >= cutoff:
+        for s in range(evcs_.shape[0]):
+            if abs(evcs_[s]) >= cutoff:
                 s1 = self.cmap[s, 0]
                 s2 = self.cmap[s, 1]
                 string_fock1 = (
@@ -329,7 +331,7 @@ class eBSEResult:
                     + ">"
                 )
                 str_ += (
-                    format(vector_[s] * self.jwstring[s], "+4.3f")
+                    format(evcs_[s] * self.jwstring[s], "+4.3f")
                     + ""
                     + string_fock1
                     + string_fock2
@@ -377,17 +379,17 @@ class eBSEResult:
 
         return str(ms) + str(irreps[imax])
 
-    def generate_density_matrix(self):
+    def generate_density_matrix(self, evs_, evcs_):
         
         solver = direct_uhf.FCISolver()
         if self.spin_flip:
             nelec_ = (self.nelec[0]-1, self.nelec[1]+1)
+        else:
             nelec_ = (self.nelec[0], self.nelec[1])
 
         rdm1s = []
-        for i in range(len(self.eigvals)):
-            fci_ = self.transform_transition_to_fci(i)
-            rdm1s.append(np.average(solver.make_rdm1(fcivec=fci_,
-                norb=len(self.basis), nelec=nelec_), axis=0)
+        for i in range(len(evs_)):
+            fci_ = self.transform_transition_to_fci(evcs_[i])
+            rdm1s.append(np.average(solver.make_rdm1s(fcivec=fci_, norb=len(self.basis), nelec=nelec_), axis=0))
 
         return np.array(rdm1s)
