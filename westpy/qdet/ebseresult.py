@@ -5,7 +5,7 @@ import pandas as pd
 from pyscf.fci.cistring import make_strings, num_strings
 from pyscf.fci.spin_op import spin_square
 from pyscf.fci.addons import transform_ci_for_orbital_rotation
-from pyscf.fci import  direct_uhf
+from pyscf.fci import direct_uhf
 
 from westpy import eV, Hartree
 from westpy.qdet.json_parser import (
@@ -17,17 +17,14 @@ from westpy.qdet.json_parser import (
 
 
 class eBSEResult:
-    def __init__(
-            self, 
-            filename: str, 
-            spin_flip_: bool=False):
+    def __init__(self, filename: str, spin_flip_: bool = False):
         """Parser for embedded Bethe-Salpeter Equation (eBSE) calculations.
 
         Args:
             filename (str): name of the JSON file that contains the output of the
             WEST calculation.
             spin_flip (boolean): trigger for spin-conserving (False) or
-            spin-flip (True) calculation. 
+            spin-flip (True) calculation.
         """
 
         self.filename = filename
@@ -57,9 +54,9 @@ class eBSEResult:
 
         # create mapping between transitions and FCI vectors
         self.cmap, self.jwstring = self.get_map_transitions_to_cistrings()
-    
+
     def write(self, *args):
-        
+
         data = ""
         for i in args:
             data += str(i)
@@ -98,7 +95,7 @@ class eBSEResult:
 
     def solve(self, verbose=True):
         # solve embedded BSE, return eigenvalues and -vectors
-        
+
         # initialize dictionary for results
         results = {}
         # allocate BSE Hamiltonian
@@ -125,7 +122,7 @@ class eBSEResult:
                     if m == m2:
                         bse_hamiltonian[s, s2] += (
                             self.v[m, m, v, c, v2, c2] - self.w[m, m, v, v2, c, c2]
-                            )
+                        )
                     else:
                         bse_hamiltonian[s, s2] += self.v[m, m2, v, c, v2, c2]
                 # -------------------------------
@@ -147,8 +144,12 @@ class eBSEResult:
         results['mults'] = np.array([ self.get_spin(evcs_[i])[1] for i in
             range(len(evs_))])
         # get occupation difference relative to the groundstate
-        results['excitations'] = np.array([np.diag(results['rdm1s'][i] -
-            results['rdm1s'][0]) for i in range(len(evs_))])
+        results["excitations"] = np.array(
+            [
+                np.diag(results["rdm1s"][i] - results["rdm1s"][0])
+                for i in range(len(evs_))
+            ]
+        )
 
         # write summary to screen
         if verbose:
@@ -169,9 +170,7 @@ class eBSEResult:
             # data
             for ie, energy in enumerate(results["evs"]):
                 row = [energy]
-                row.append(
-                    f"{int(round(results['mults'][ie]))}"
-                )
+                row.append(f"{int(round(results['mults'][ie]))}")
                 for ib, b in enumerate(self.basis):
                     row.append(results["excitations"][ie, ib])
                 df.loc[ie] = row
@@ -181,7 +180,6 @@ class eBSEResult:
         
         return results
             
-
 
     def get_cistring(self, s):
         # determine cistring for the up- and down-component of a given
