@@ -135,6 +135,10 @@ class eBSEResult:
         results['hamiltonian'] = bse_hamiltonian[:,:]
         # diagonalize Hamiltonian
         evs_, evcs_ = np.linalg.eigh(bse_hamiltonian)
+        # bring eigenvectors in the same format as the QDET ones,
+        # such that results['evcs'][i] yields the i-th eigenstate
+        evcs_ = evcs_.T
+        
         results['evs_au'] = evs_*( eV ** (-1) / Hartree)
         results['evs'] = evs_ - evs_[0]
         results['evcs'] = evcs_
