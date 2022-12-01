@@ -110,7 +110,7 @@ class eBSEResult:
                 m_prime = 1 - m
                 bse_hamiltonian[s, s] += (
                     self.qp_energies[c, m_prime] - self.qp_energies[v, m]
-                    )
+                )
 
             # add direct and exchange terms
             for s2 in range(self.n_tr):
@@ -132,21 +132,22 @@ class eBSEResult:
                     if m == m2:
                         bse_hamiltonian[s, s2] += -self.w[m, 1 - m, v, v2, c, c2]
 
-        results['hamiltonian'] = bse_hamiltonian[:,:]
+        results["hamiltonian"] = bse_hamiltonian[:, :]
         # diagonalize Hamiltonian
         evs_, evcs_ = np.linalg.eigh(bse_hamiltonian)
         # bring eigenvectors in the same format as the QDET ones,
         # such that results['evcs'][i] yields the i-th eigenstate
         evcs_ = evcs_.T
-        
-        results['evs_au'] = evs_*( eV ** (-1) / Hartree)
-        results['evs'] = evs_ - evs_[0]
-        results['evcs'] = evcs_
+
+        results["evs_au"] = evs_ * (eV ** (-1) / Hartree)
+        results["evs"] = evs_ - evs_[0]
+        results["evcs"] = evcs_
 
         # store density matrix and multiplicty
-        results['rdm1s'] = self.generate_density_matrix(evs_, evcs_)
-        results['mults'] = np.array([ self.get_spin(evcs_[i])[1] for i in
-            range(len(evs_))])
+        results["rdm1s"] = self.generate_density_matrix(evs_, evcs_)
+        results["mults"] = np.array(
+            [self.get_spin(evcs_[i])[1] for i in range(len(evs_))]
+        )
         # get occupation difference relative to the groundstate
         results["excitations"] = np.array(
             [
@@ -181,9 +182,8 @@ class eBSEResult:
             # display
             display(df)
             self.write("-----------------------------------------------------")
-        
+
         return results
-            
 
     def get_cistring(self, s):
         # determine cistring for the up- and down-component of a given
@@ -382,16 +382,21 @@ class eBSEResult:
         return str(ms) + str(irreps[imax])
 
     def generate_density_matrix(self, evs_, evcs_):
-        
+
         solver = direct_uhf.FCISolver()
         if self.spin_flip:
-            nelec_ = (self.nelec[0]-1, self.nelec[1]+1)
+            nelec_ = (self.nelec[0] - 1, self.nelec[1] + 1)
         else:
             nelec_ = (self.nelec[0], self.nelec[1])
 
         rdm1s = []
         for i in range(len(evs_)):
             fci_ = self.transform_transition_to_fci(evcs_[i])
-            rdm1s.append(np.average(solver.make_rdm1s(fcivec=fci_, norb=len(self.basis), nelec=nelec_), axis=0))
+            rdm1s.append(
+                np.average(
+                    solver.make_rdm1s(fcivec=fci_, norb=len(self.basis), nelec=nelec_),
+                    axis=0,
+                )
+            )
 
         return np.array(rdm1s)
