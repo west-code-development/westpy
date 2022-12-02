@@ -175,7 +175,7 @@ class eBSEResult:
             # data
             for ie, energy in enumerate(results["evs"]):
                 row = [energy]
-                row.append(f"{int(round(results['mults'][ie]))}")
+                row.append(results["mults"][ie])
                 for ib, b in enumerate(self.basis):
                     row.append(results["excitations"][ie, ib])
                 df.loc[ie] = row
