@@ -1,4 +1,6 @@
 import base64
+import h5py
+import numpy as np
 from xml.etree import ElementTree as ET
 
 
@@ -71,7 +73,7 @@ class Qbox2BSE(object):
 
     def write_wavefunction(self, filename: str = "qb.wfc"):
         """
-        Reads wavefunctions from XML file then writes to binary file.
+        Reads wavefunctions from XML file then writes to HDF5 file.
 
         :param filename: name of Qbox wavefunction file
         :type filename: string
@@ -103,18 +105,26 @@ class Qbox2BSE(object):
             thisname = f"{filename}.{ispin+1}"
             gfs = sd.findall("grid_function")
 
-            with open(thisname, "wb") as f:
-                f.write(self.nwfc[ispin].to_bytes(4, "little"))
-                f.write(self.ngrid[0].to_bytes(4, "little"))
-                f.write(self.ngrid[1].to_bytes(4, "little"))
-                f.write(self.ngrid[2].to_bytes(4, "little"))
+            nwfc = self.nwfc[ispin]
+            nx = self.ngrid[0]
+            ny = self.ngrid[1]
+            nz = self.ngrid[2]
 
-                for gf in gfs:
+            with h5py.File(thisname, "w") as f:
+                wfcs = f.create_group("wfcs")
+                wfcs.attrs.create("nwfcs", nwfc)
+                wfcs.attrs.create("nx", nx)
+                wfcs.attrs.create("ny", ny)
+                wfcs.attrs.create("nz", nz)
+
+                for igf, gf in enumerate(gfs):
                     # get base64 string without line breaks
                     s = gf.text.replace("\n", "")
 
                     # base64 -> bytes
                     b = base64.b64decode(s)
 
-                    # write bytes
-                    f.write(b)
+                    # bytes -> numpy
+                    array = np.frombuffer(b, dtype="float64")
+
+                    wfcs.create_dataset(f"wfc{igf+1}", data=array, compression="gzip")
