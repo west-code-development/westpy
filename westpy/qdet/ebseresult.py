@@ -65,8 +65,10 @@ class eBSEResult:
         print(data)
 
     def get_smap(self):
-        # maps from a transition index s to the KS indices
-        # (v, c, s) = smap[s]
+        """ Creates a map between the transition index s and the combination of
+        KS indices (v,c) of the valence state v and conduction state c and the
+        spin index m.The format is smap[s] = (v, c, m).
+        """
 
         smap_ = []
 
@@ -94,7 +96,11 @@ class eBSEResult:
         return np.asarray(smap_)
 
     def solve(self, verbose=True):
-        # solve embedded BSE, return eigenvalues and -vectors
+        """ Constructs and diagonalizes the embedded BSE Hamiltonian.
+
+        Args:
+            verbose: if True, the output is written to screen.
+        """
 
         # initialize dictionary for results
         results = {}
@@ -186,8 +192,13 @@ class eBSEResult:
         return results
 
     def get_cistring(self, s):
-        # determine cistring for the up- and down-component of a given
-        # transition
+        """ For a given transition s, the function returns the cistring (in
+        pyscf notation) of the excited spin-up and spin-down Slater determinant
+        of the final state of the transition.
+
+        Args:
+            s: eBSE transition index.
+        """
         v, c, m = self.smap[s][:]
         # adjust occupation for a given transition
         occ_ = np.copy(self.occ)
@@ -210,11 +221,11 @@ class eBSEResult:
         return np.asarray(cistring_)
 
     def get_map_transitions_to_cistrings(self):
-        # returns a map that associates each transition s of the transition
-        # space to a pair of fci-vector indices in pyscf.fci
-        # additionally: stores Jordan-Wigner string for each product of up- and
-        # down-Slater determinant
-
+        """returns a map that associates each transition s of the transition
+         space to a pair of fci-vector indices in pyscf.fci
+         additionally: stores Jordan-Wigner string for each product of up- and
+         down-Slater determinant.
+        """
         # generate all possible cistrings
         if not self.spin_flip:
             cistring_ = [
@@ -255,8 +266,14 @@ class eBSEResult:
         return cmap_, jwstring_
 
     def transform_transition_to_fci(self, evcs_):
-        # TODO: ensure that the length of the eigenvector is self.n_tr
-        # returns BSE eigenvector in the format of a FCI vector in pyscf.fci
+        """Transforms an eBSE eigenstate into an FCI state in
+        second-quantization. The format of the FCI state follows that of
+        pyscf.fci
+
+        Args:
+
+            evcs_: eBSE eigenstate
+        """
 
         # allocate FCI vector in the size of the correct Fock space
         if not self.spin_flip:
@@ -286,7 +303,13 @@ class eBSEResult:
         return fci_
 
     def get_spin(self, evcs_):
-        # return the total spin and multiplicity for BSE eigenstate
+        """ Calculates the expectation value of the total spin $\langle
+        \hat{S}^2 \rangle$ and spin multiplicity $M_S$ for a given eBSE
+        eigenstate.
+
+        Args:
+            evcs_: eBSE eigenstate
+        """
         fci_ = self.transform_transition_to_fci(evcs_)
 
         # account for different occupation in excited state in spin-flip BSE
@@ -301,6 +324,14 @@ class eBSEResult:
         return format(binary, "0" + str(self.n_orbitals) + "b")
 
     def get_transition_information(self, evcs_, cutoff=10 ** (-3)):
+        """ Visualizes a given eBSE eigenstate as linear combination of Slater
+        determinants.
+
+        Args:
+            evcs_: eBSE eigenstate.
+            cutoff: only Slater determinants with contribution larger than the
+            cutoff are included.
+        """
         # returns a string that displays the excited state vector as a linear
         # combination of Fock vectors
 
@@ -342,8 +373,15 @@ class eBSEResult:
         return str_
 
     def get_transition_symmetry(self, vector, point_group_rep):
-        # determines symmetry of specific transition
-        # code replicated from WESTpy
+        """ Determines the character of a eBSE eigenstate for a given point
+        group representation. The function mimicks the corresponding
+        functionality in the qdetresult object.
+
+        Args:
+            vector: eBSE eigenstet
+            point_group_rep: point group representation on the active-space
+            orbitals.
+        """
 
         fcivec = self.transform_transition_to_fci(vector)
 
@@ -382,6 +420,11 @@ class eBSEResult:
         return str(ms) + str(irreps[imax])
 
     def generate_density_matrix(self, evs_, evcs_):
+        """ generates density matrix for all eBSE eigenstates.
+        Args:
+            evs_: list of eBSE eigenvalues
+            evcs_: list of eBSE eigenstates
+        """
 
         solver = direct_uhf.FCISolver()
         if self.spin_flip:
