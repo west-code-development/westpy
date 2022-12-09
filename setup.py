@@ -38,7 +38,8 @@ setup(name='westpy',
           'pandas',
           'six',
           'ase',
-          'qiskit_nature'
+          'qiskit_nature',
+          'h5py'
       ],
       python_requires='>=3.6, <4',
       zip_safe=True)

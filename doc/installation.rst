@@ -27,6 +27,7 @@ The software is tested for Python version 3.x and has the following dependencies
    - ``six``
    - ``ase``
    - ``qiskit_nature``
+   - ``h5py``
 
 The dependencies will all be installed automatically, following instructions reported below.
 
