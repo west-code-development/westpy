@@ -65,7 +65,7 @@ class eBSEResult:
         print(data)
 
     def get_smap(self):
-        """ Creates a map between the transition index s and the combination of
+        """Creates a map between the transition index s and the combination of
         KS indices (v,c) of the valence state v and conduction state c and the
         spin index m.The format is smap[s] = (v, c, m).
         """
@@ -96,7 +96,7 @@ class eBSEResult:
         return np.asarray(smap_)
 
     def solve(self, verbose=True):
-        """ Constructs and diagonalizes the embedded BSE Hamiltonian.
+        """Constructs and diagonalizes the embedded BSE Hamiltonian.
 
         Args:
             verbose: if True, the output is written to screen.
@@ -192,7 +192,7 @@ class eBSEResult:
         return results
 
     def get_cistring(self, s):
-        """ For a given transition s, the function returns the cistring (in
+        """For a given transition s, the function returns the cistring (in
         pyscf notation) of the excited spin-up and spin-down Slater determinant
         of the final state of the transition.
 
@@ -222,9 +222,9 @@ class eBSEResult:
 
     def get_map_transitions_to_cistrings(self):
         """returns a map that associates each transition s of the transition
-         space to a pair of fci-vector indices in pyscf.fci
-         additionally: stores Jordan-Wigner string for each product of up- and
-         down-Slater determinant.
+        space to a pair of fci-vector indices in pyscf.fci
+        additionally: stores Jordan-Wigner string for each product of up- and
+        down-Slater determinant.
         """
         # generate all possible cistrings
         if not self.spin_flip:
@@ -303,7 +303,7 @@ class eBSEResult:
         return fci_
 
     def get_spin(self, evcs_):
-        """ Calculates the expectation value of the total spin $\langle
+        """Calculates the expectation value of the total spin $\langle
         \hat{S}^2 \rangle$ and spin multiplicity $M_S$ for a given eBSE
         eigenstate.
 
@@ -324,7 +324,7 @@ class eBSEResult:
         return format(binary, "0" + str(self.n_orbitals) + "b")
 
     def get_transition_information(self, evcs_, cutoff=10 ** (-3)):
-        """ Visualizes a given eBSE eigenstate as linear combination of Slater
+        """Visualizes a given eBSE eigenstate as linear combination of Slater
         determinants.
 
         Args:
@@ -373,7 +373,7 @@ class eBSEResult:
         return str_
 
     def get_transition_symmetry(self, vector, point_group_rep):
-        """ Determines the character of a eBSE eigenstate for a given point
+        """Determines the character of a eBSE eigenstate for a given point
         group representation. The function mimicks the corresponding
         functionality in the qdetresult object.
 
@@ -420,7 +420,7 @@ class eBSEResult:
         return str(ms) + str(irreps[imax])
 
     def generate_density_matrix(self, evs_, evcs_):
-        """ generates density matrix for all eBSE eigenstates.
+        """generates density matrix for all eBSE eigenstates.
         Args:
             evs_: list of eBSE eigenvalues
             evcs_: list of eBSE eigenstates
