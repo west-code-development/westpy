@@ -13,7 +13,7 @@ class Qbox2BSE(object):
 
         :Example:
 
-        >>> from westpy import *
+        >>> from westpy.bse import *
         >>> qb2bse = Qbox2BSE("qb.out")
         """
 
@@ -42,7 +42,7 @@ class Qbox2BSE(object):
 
         :Example:
 
-        >>> from westpy import *
+        >>> from westpy.bse import *
         >>> qb2bse = Qbox2BSE("qb.out")
         >>> qb2bse.write_localization()
         """
@@ -80,7 +80,7 @@ class Qbox2BSE(object):
 
         :Example:
 
-        >>> from westpy import *
+        >>> from westpy.bse import *
         >>> qb2bse = Qbox2BSE("qb.out")
         >>> qb2bse.write_wavefunction()
         """
