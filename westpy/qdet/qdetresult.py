@@ -8,6 +8,11 @@ from westpy import eV, Hartree
 from westpy import VData
 from westpy.qdet.heff import Heff
 from westpy.qdet.symm import PointGroup, PointGroupRep
+from westpy.qdet.json_parser import (
+    read_parameters,
+    read_occupation,
+    read_matrix_elements,
+)
 
 
 class QDETResult(object):
@@ -29,13 +34,13 @@ class QDETResult(object):
         self.filename = filename
 
         # read basic parameters from JSON file
-        self.nspin, self.npair, self.basis = self.__read_parameters_from_JSON(filename)
+        self.nspin, self.npair, self.basis = read_parameters(filename)
 
         # read occupation from file
-        self.occupation = self.__read_occupation_from_JSON(filename)
+        self.occupation = read_occupation(filename)
 
         # read one- and two-body terms from JSON file
-        self.h1e, self.eri = self.__read_matrix_elements_from_JSON(filename)
+        self.h1e, self.eri = read_matrix_elements(filename)
 
         # determine point-group representation
 
@@ -71,122 +76,6 @@ class QDETResult(object):
         string += "---------------------------------------------------------------\n"
 
         return string
-
-    def __read_parameters_from_JSON(self, filename):
-        """
-        Read basic calculation parameters from JSON file.
-        """
-
-        with open(filename, "r") as f:
-            raw_ = json.load(f)
-
-        indexmap = np.array(raw_["output"]["Q"]["indexmap"], dtype=int)
-
-        npair = len(indexmap)
-        nspin = int(raw_["system"]["electron"]["nspin"])
-        bands = np.array(raw_["input"]["wfreq_control"]["qp_bands"], dtype=int)
-
-        return nspin, npair, bands
-
-    def __read_occupation_from_JSON(self, filename):
-        """
-        Read DFT occupation from JSON file.
-        """
-        with open(filename, "r") as f:
-            raw_ = json.load(f)
-
-        occ_ = np.zeros((self.nspin, len(self.basis)))
-
-        for ispin in range(self.nspin):
-            string1 = "K" + format(ispin + 1, "06d")
-            occ_[ispin, :] = np.array(
-                raw_["output"]["Q"][string1]["occupation"], dtype=float
-            )
-
-        return occ_
-
-    def __read_matrix_elements_from_JSON(self, filename):
-        """
-        Read one-body and two-body terms from JSON file.
-        """
-
-        with open(filename, "r") as f:
-            raw_ = json.load(f)
-
-        indexmap = np.array(raw_["output"]["Q"]["indexmap"], dtype=int)
-
-        # allocate one- and two-body terms in basis of pairs of KS states
-        eri_pair = np.zeros((self.nspin, self.nspin, self.npair, self.npair))
-        h1e_pair = np.zeros((self.nspin, self.npair))
-
-        # read one-body terms from file
-        for ispin in range(self.nspin):
-            string1 = "K" + format(ispin + 1, "06d")
-            h1e_pair[ispin, :] = np.array(raw_["qdet"]["h1e"][string1], dtype=float)
-
-        # read two-body terms from file
-        for ispin1 in range(self.nspin):
-            string1 = "K" + format(ispin1 + 1, "06d")
-            for ispin2 in range(self.nspin):
-                string2 = "K" + format(ispin2 + 1, "06d")
-
-                for ipair in range(self.npair):
-                    string3 = "pair" + format(ipair + 1, "06d")
-                    eri_pair[ispin1, ispin2, ipair, :] = np.array(
-                        raw_["qdet"]["eri_w"][string1][string2][string3], dtype=float
-                    )
-
-        # unfold one-body terms from pair basis to Kohn-Sham basis
-        h1e = np.zeros((self.nspin, len(self.basis), len(self.basis)))
-        for ispin in range(self.nspin):
-            for ipair in range(len(indexmap)):
-                i, j = indexmap[ipair]
-                h1e[ispin, i - 1, j - 1] = h1e_pair[ispin, ipair]
-                h1e[ispin, j - 1, i - 1] = h1e_pair[ispin, ipair]
-
-        # unfold two-body terms from pair to Kohn-Sham basis
-        eri = np.zeros(
-            (
-                self.nspin,
-                self.nspin,
-                len(self.basis),
-                len(self.basis),
-                len(self.basis),
-                len(self.basis),
-            )
-        )
-        for ispin in range(self.nspin):
-            for jspin in range(self.nspin):
-                for ipair in range(len(indexmap)):
-                    i, j = indexmap[ipair]
-                    for jpair in range(len(indexmap)):
-                        k, l = indexmap[jpair]
-                        eri[ispin, jspin, i - 1, j - 1, k - 1, l - 1] = eri_pair[
-                            ispin, jspin, ipair, jpair
-                        ]
-                        eri[ispin, jspin, i - 1, j - 1, l - 1, k - 1] = eri_pair[
-                            ispin, jspin, ipair, jpair
-                        ]
-                        eri[ispin, jspin, j - 1, i - 1, k - 1, l - 1] = eri_pair[
-                            ispin, jspin, ipair, jpair
-                        ]
-                        eri[ispin, jspin, j - 1, i - 1, l - 1, k - 1] = eri_pair[
-                            ispin, jspin, ipair, jpair
-                        ]
-
-                        eri[ispin, jspin, k - 1, l - 1, i - 1, j - 1] = eri_pair[
-                            ispin, jspin, ipair, jpair
-                        ]
-                        eri[ispin, jspin, k - 1, l - 1, j - 1, i - 1] = eri_pair[
-                            ispin, jspin, ipair, jpair
-                        ]
-                        eri[ispin, jspin, l - 1, k - 1, i - 1, j - 1] = eri_pair[
-                            ispin, jspin, ipair, jpair
-                        ]
-                        eri[ispin, jspin, l - 1, k - 1, j - 1, i - 1] = eri_pair[
-                            ispin, jspin, ipair, jpair
-                        ]
-        return h1e, eri
 
     def write(self, *args):
 
