@@ -145,7 +145,7 @@ class eBSEResult:
         # such that results['evcs'][i] yields the i-th eigenstate
         evcs_ = evcs_.T
 
-        results["evs_au"] = evs_ * eV * Hartree
+        results["evs_au"] = evs_ * eV / Hartree
         results["evs"] = evs_ - evs_[0]
         results["evcs"] = evcs_
 
