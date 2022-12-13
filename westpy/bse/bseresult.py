@@ -3,6 +3,7 @@ import json
 import numpy as np
 import scipy.constants as sc
 import scipy.linalg.lapack as la
+from westpy.units import eV
 
 
 class BSEResult(object):
@@ -49,8 +50,8 @@ class BSEResult(object):
         self,
         ipol: str = None,
         ispin: int = 1,
-        energyRange: List[float] = [0.0, 5.0, 0.001],
-        sigma: float = 0.01,
+        energyRange: List[float] = [0.0, 10.0, 0.01],
+        sigma: float = 0.1,
         n_extra: int = 0,
         fname: str = None,
         save_data: bool = True,
@@ -59,9 +60,9 @@ class BSEResult(object):
 
         :param ispin: Spin channel to consider
         :type ispin: int
-        :param energyRange: energy range = min, max, step (Rydberg)
+        :param energyRange: energy range = min, max, step (eV)
         :type energyRange: 3-dim float
-        :param sigma: Broadening width in Rydberg
+        :param sigma: Broadening width (eV)
         :type sigma: float
         :param n_extra: Number of extrapolation steps
         :type n_extra: int
@@ -72,7 +73,7 @@ class BSEResult(object):
 
         >>> from westpy.bse import *
         >>> wbse = BSEResult("wbse.json")
-        >>> wbse.plotSpectrum(energyRange=[0.0,1.0,0.001],sigma=0.0073,n_extra=100000)
+        >>> wbse.plotSpectrum(energyRange=[0.0,10.0,0.01],sigma=0.1,n_extra=100000)
         """
 
         assert ipol in self.can_do
@@ -116,11 +117,19 @@ class BSEResult(object):
                 ip2 = 2
 
         raw = open(f"chi_{ipol}.dat", "w")
+        raw.write(f"chi_{ipol} \hbar \omega (eV) real(chi) (e^2*a_0^2/eV) imag(chi) (e^2*a_0^2/eV)")
 
         n_step = int((xmax - xmin) / dx) + 1
         for i_step in range(n_step):
-            # Calculate susceptibility for given frequency
-            chi = self.__calc_chi(xmin, sigma)
+            # eV to Ry
+            freq_ev = xmin * eV
+            sigma_ev = sigma * eV
+
+            # calculate susceptibility for given frequency
+            chi = self.__calc_chi(freq_ev, sigma_ev)
+
+            # 1/Ry to 1/eV
+            chi = chi * eV
 
             raw.write(
                 f"chi_{ipol} {xmin:15.8e} {chi[ip2, ip].real:15.8e} {chi[ip2, ip].imag:15.8e}\n"
