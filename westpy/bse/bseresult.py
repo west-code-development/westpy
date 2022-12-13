@@ -1,14 +1,14 @@
 from typing import List
 import json
+import matplotlib.pyplot as plt
 import numpy as np
-import scipy.constants as sc
 import scipy.linalg.lapack as la
 from westpy.units import eV
 
 
 class BSEResult(object):
     def __init__(self, filename: str):
-        """Parses Wbse Lanczos output and plots absorption spectrum.
+        """Parses Wbse Lanczos results.
 
         :param filename: Wbse output file (JSON)
         :type filename: string
@@ -32,7 +32,7 @@ class BSEResult(object):
         if pol in ["XYZ", "xyz"]:
             self.n_ipol = 3
             self.pols = ["XX", "YY", "ZZ"]
-            self.can_do = ["XX", "XY", "XZ", "YX", "YY", "YZ", "ZX", "ZY", "ZZ"]
+            self.can_do = ["XX", "XY", "XZ", "YX", "YY", "YZ", "ZX", "ZY", "ZZ", "XYZ"]
         elif pol in ["XX", "xx"]:
             self.n_ipol = 1
             self.pols = ["XX"]
@@ -46,7 +46,7 @@ class BSEResult(object):
             self.pols = ["ZZ"]
             self.can_do = ["ZZ"]
 
-    def poltSpectrum(
+    def plotSpectrum(
         self,
         ipol: str = None,
         ispin: int = 1,
@@ -54,10 +54,11 @@ class BSEResult(object):
         sigma: float = 0.1,
         n_extra: int = 0,
         fname: str = None,
-        save_data: bool = True,
-    ) -> None:
-        """Parses Wbse Lanczos output and plots absorption spectrum.
+    ):
+        """Parses and plots Wbse Lanczos results.
 
+        :param ipol: which component to compute ("XX", "XY", "XZ", "YX", "YY", "YZ", "ZX", "ZY", "ZZ", or "XYZ")
+        :type ipol: string
         :param ispin: Spin channel to consider
         :type ispin: int
         :param energyRange: energy range = min, max, step (eV)
@@ -73,7 +74,7 @@ class BSEResult(object):
 
         >>> from westpy.bse import *
         >>> wbse = BSEResult("wbse.json")
-        >>> wbse.plotSpectrum(energyRange=[0.0,10.0,0.01],sigma=0.1,n_extra=100000)
+        >>> wbse.plotSpectrum(ipol="XYZ",energyRange=[0.0,10.0,0.01],sigma=0.1,n_extra=100000)
         """
 
         assert ipol in self.can_do
@@ -99,31 +100,14 @@ class BSEResult(object):
             for i in range(self.n_total - 1):
                 self.b[ip, i] = -self.beta[ip, i]
 
-        if self.n_ipol == 1:
-            ip = 0
-            ip2 = 0
-        elif self.n_ipol == 3:
-            if ipol[0] == "X":
-                ip = 0
-            if ipol[0] == "Y":
-                ip = 1
-            if ipol[0] == "Z":
-                ip = 2
-            if ipol[1] == "X":
-                ip2 = 0
-            if ipol[1] == "Y":
-                ip2 = 1
-            if ipol[1] == "Z":
-                ip2 = 2
-
-        raw = open(f"chi_{ipol}.dat", "w")
-        raw.write(f"chi_{ipol} \hbar \omega (eV) real(chi) (e^2*a_0^2/eV) imag(chi) (e^2*a_0^2/eV)")
-
+        sigma_ev = sigma * eV
         n_step = int((xmax - xmin) / dx) + 1
-        for i_step in range(n_step):
+        energyAxis = np.linspace(xmin, xmax, n_step, endpoint=True)
+        chiAxis = np.zeros(n_step, dtype=np.complex128)
+
+        for ie, energy in enumerate(energyAxis):
             # eV to Ry
-            freq_ev = xmin * eV
-            sigma_ev = sigma * eV
+            freq_ev = energy * eV
 
             # calculate susceptibility for given frequency
             chi = self.__calc_chi(freq_ev, sigma_ev)
@@ -131,13 +115,51 @@ class BSEResult(object):
             # 1/Ry to 1/eV
             chi = chi * eV
 
-            raw.write(
-                f"chi_{ipol} {xmin:15.8e} {chi[ip2, ip].real:15.8e} {chi[ip2, ip].imag:15.8e}\n"
-            )
+            if self.n_ipol == 1:
+                chiAxis[ie] = chi[0, 0]
+            elif self.n_ipol == 3:
+                if ipol == "XX":
+                    chiAxis[ie] = chi[0, 0]
+                if ipol == "XY":
+                    chiAxis[ie] = chi[1, 0]
+                if ipol == "XZ":
+                    chiAxis[ie] = chi[2, 0]
+                if ipol == "YX":
+                    chiAxis[ie] = chi[0, 1]
+                if ipol == "YY":
+                    chiAxis[ie] = chi[1, 1]
+                if ipol == "YZ":
+                    chiAxis[ie] = chi[2, 1]
+                if ipol == "ZX":
+                    chiAxis[ie] = chi[0, 2]
+                if ipol == "ZY":
+                    chiAxis[ie] = chi[1, 2]
+                if ipol == "ZZ":
+                    chiAxis[ie] = chi[2, 2]
+                if ipol == "XYZ":
+                    chiAxis[ie] = (
+                        (chi[0, 0] + chi[1, 1] + chi[2, 2]) * energy / 3.0 / np.pi
+                    )
 
-            xmin = xmin + dx
+        if not fname:
+            fname = f"chi_{ipol}.png"
 
-        raw.close()
+        fig = plt.figure()
+        ax = fig.add_subplot(1, 1, 1)
+        dosPlot = ax.plot(energyAxis, chiAxis.imag, label=f"chi_{ipol}")
+
+        plt.xlim([xmin, xmax])
+        plt.xlabel("$\omega$ (eV)")
+        if ipol == "XYZ":
+            plt.ylabel("abs. coeff. (a.u.)")
+        else:
+            plt.ylabel("Im[$\chi$] (a.u.)")
+            plt.legend()
+        plt.savefig(fname, dpi=300)
+        print("output written in : ", fname)
+        print("waiting for user to close image preview...")
+        plt.show()
+        fig.clear()
 
     def __read_beta_zeta(self, ispin: int):
 
@@ -149,18 +171,10 @@ class BSEResult(object):
             res = json.load(f)
 
         for ip, lp in enumerate(self.pols):
-            if self.nspin > 1:
-                tmp = res["output"]["lanczos"][f"K{ispin:6.6d}"][lp]["beta"]
-            else:
-                tmp = res["output"]["lanczos"][lp]["beta"]
-
+            tmp = res["output"]["lanczos"][f"K{ispin:0>6}"][lp]["beta"]
             beta_read = np.array(tmp)
 
-            if self.nspin > 1:
-                tmp = res["output"]["lanczos"][f"K{ispin:6.6d}"][lp]["zeta"]
-            else:
-                tmp = res["output"]["lanczos"][lp]["zeta"]
-
+            tmp = res["output"]["lanczos"][f"K{ispin:0>6}"][lp]["zeta"]
             zeta_read = np.array(tmp).reshape((3, self.n_lanczos))
 
             self.norm[ip] = beta_read[0]

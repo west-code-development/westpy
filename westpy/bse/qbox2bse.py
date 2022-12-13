@@ -14,7 +14,7 @@ class Qbox2BSE(object):
         :Example:
 
         >>> from westpy.bse import *
-        >>> qb2bse = Qbox2BSE("qb.out")
+        >>> qb = Qbox2BSE("qb.out")
         """
 
         self.filename = filename
@@ -33,7 +33,7 @@ class Qbox2BSE(object):
         for sd in sds:
             self.nwfc.append(int(sd.attrib["size"]))
 
-    def write_localization(self, filename: str = "info.bis"):
+    def write_localization(self, filename: str = "bis_info"):
         """
         Reads localization from XML file then writes to text file.
 
@@ -43,8 +43,8 @@ class Qbox2BSE(object):
         :Example:
 
         >>> from westpy.bse import *
-        >>> qb2bse = Qbox2BSE("qb.out")
-        >>> qb2bse.write_localization()
+        >>> qb = Qbox2BSE("qb.out")
+        >>> qb.write_localization()
         """
 
         localization = {}
@@ -71,7 +71,7 @@ class Qbox2BSE(object):
                 for loc in localization[ispin]:
                     f.write(f"{loc}\n")
 
-    def write_wavefunction(self, filename: str = "qb.wfc"):
+    def write_wavefunction(self, filename: str = "qb_wfc"):
         """
         Reads wavefunctions from XML file then writes to HDF5 file.
 
@@ -81,8 +81,8 @@ class Qbox2BSE(object):
         :Example:
 
         >>> from westpy.bse import *
-        >>> qb2bse = Qbox2BSE("qb.out")
-        >>> qb2bse.write_wavefunction()
+        >>> qb = Qbox2BSE("qb.out")
+        >>> qb.write_wavefunction()
         """
 
         with open(self.filename, "r") as f:
