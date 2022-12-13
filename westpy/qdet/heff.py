@@ -158,6 +158,8 @@ class Heff:
 
         res = {
             "nstates": nstates,
+            "nelec": nelec,
+            "norb": self.norb,
             "evs_au": evs,
             "evs": (evs - evs[0]) * (eV ** (-1) / Hartree),
             "evcs": evcs,
