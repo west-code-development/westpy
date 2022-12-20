@@ -48,7 +48,7 @@ class eBSEResultTestCase(unittest.TestCase):
         Tests the result of the eBSE diagonalization.
         """
         # solve eBSE Hamiltonian
-        solution = self.ebseresult.solve(verbose=False)
+        solution = self.ebseresult.solve()
         
         np.testing.assert_almost_equal(solution['hamiltonian'],
                 np.array(self.solution_ref['hamiltonian']))

@@ -1,6 +1,7 @@
 import numpy as np
 import json
 import pandas as pd
+from IPython.display import display
 
 from pyscf.fci.cistring import make_strings, num_strings
 from pyscf.fci.spin_op import spin_square
