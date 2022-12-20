@@ -56,8 +56,8 @@ class eBSEResultTestCase(unittest.TestCase):
                 np.array(self.solution_ref['evs']))
         np.testing.assert_almost_equal(solution['evs_au'],
                 np.array(self.solution_ref['evs_au']))
-        np.testing.assert_almost_equal(solution['evcs'],
-                np.array(self.solution_ref['evcs']))
+        np.testing.assert_almost_equal(np.abs(solution['evcs']),
+                np.abs(np.array(self.solution_ref['evcs'])))
         np.testing.assert_almost_equal(solution['rdm1s'],
                 np.array(self.solution_ref['rdm1s']))
         np.testing.assert_almost_equal(solution['mults'],
