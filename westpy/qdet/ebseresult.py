@@ -1,6 +1,7 @@
 import numpy as np
 import json
 import pandas as pd
+from IPython.display import display
 
 from pyscf.fci.cistring import make_strings, num_strings
 from pyscf.fci.spin_op import spin_square
@@ -145,7 +146,7 @@ class eBSEResult:
         # such that results['evcs'][i] yields the i-th eigenstate
         evcs_ = evcs_.T
 
-        results["evs_au"] = evs_ * eV * Hartree
+        results["evs_au"] = evs_ * eV / Hartree
         results["evs"] = evs_ - evs_[0]
         results["evcs"] = evcs_
 

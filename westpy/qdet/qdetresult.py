@@ -54,8 +54,8 @@ class QDETResult(object):
                 self.orbital_symms,
             ) = self.point_group.compute_rep_on_orbitals(orbitals, orthogonalize=True)
 
-        self.h1e = self.h1e / (eV ** (-1) / Hartree)
-        self.eri = self.eri / (eV ** (-1) / Hartree)
+        self.h1e = self.h1e * eV / Hartree
+        self.eri = self.eri * eV / Hartree
 
         # generate effective Hamiltonian
         self.heff = Heff(self.h1e, self.eri, point_group_rep=self.point_group_rep)
