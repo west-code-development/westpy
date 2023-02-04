@@ -28,7 +28,7 @@ class BSEResult(object):
         which = res["input"]["wbse_control"]["wbse_calculation"]
         assert which in ["L", "l"]
         self.n_lanczos = res["input"]["wbse_control"]["n_lanczos"]
-        pol = res["input"]["wbse_control"]["ipol_input"]
+        pol = res["input"]["wbse_control"]["wbse_ipol"]
         if pol in ["XYZ", "xyz"]:
             self.n_ipol = 3
             self.pols = ["XX", "YY", "ZZ"]
