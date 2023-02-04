@@ -162,7 +162,6 @@ class BSEResult(object):
         fig.clear()
 
     def __read_beta_zeta(self, ispin: int):
-
         self.norm = np.zeros(self.n_ipol, dtype=np.float64)
         self.beta = np.zeros((self.n_ipol, self.n_total), dtype=np.float64)
         self.zeta = np.zeros((self.n_ipol, 3, self.n_total), dtype=np.complex128)
@@ -183,7 +182,6 @@ class BSEResult(object):
             self.zeta[ip, :, 0 : self.n_lanczos] = zeta_read[:, 0 : self.n_lanczos]
 
     def __extrapolate(self, n_extra: int):
-
         skip = False
 
         if n_extra > 0:
@@ -230,7 +228,6 @@ class BSEResult(object):
                         self.beta[ip, i] = average[ip] - amplitude[ip]
 
     def __calc_chi(self, freq: float, broaden: float):
-
         degspin = 2.0 / self.nspin
         omeg_c = freq + broaden * 1j
 

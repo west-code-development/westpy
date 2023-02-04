@@ -57,7 +57,6 @@ class eBSEResult:
         self.cmap, self.jwstring = self.get_map_transitions_to_cistrings()
 
     def write(self, *args):
-
         data = ""
         for i in args:
             data += str(i)

@@ -8,6 +8,7 @@ class DataContainer:
     >>> dc = DataContainer()
 
     """
+
     #
     def __init__(self):
         from signac import Collection
