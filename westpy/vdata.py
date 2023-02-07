@@ -18,7 +18,6 @@ class VData:
         funct=None,
         normalize=False,
     ):
-
         self.name = "vdata"
         self.comments = None
 

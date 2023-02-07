@@ -78,7 +78,6 @@ class QDETResult(object):
         return string
 
     def write(self, *args):
-
         data = ""
         for i in args:
             data += str(i)
@@ -116,7 +115,6 @@ class QDETResult(object):
         fcires = self.heff.FCI(nelec=nelec, nroots=nroots)
 
         if verbose:
-
             self.write(
                 "==============================================================="
             )
