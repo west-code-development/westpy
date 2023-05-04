@@ -12,6 +12,7 @@ from westpy.qdet.json_parser import (
     read_parameters,
     read_occupation,
     read_matrix_elements,
+    read_overlap
 )
 
 
@@ -42,6 +43,12 @@ class QDETResult(object):
         # read one- and two-body terms from JSON file
         self.h1e, self.eri = read_matrix_elements(filename)
 
+        # read overlap matrix from file
+        if self.nspin == 2:
+            self.ovlpab = read_overlap(filename)
+        elif self.nspin == 1:
+            self.ovlpab = None
+
         # determine point-group representation
 
         self.point_group = point_group
@@ -58,7 +65,7 @@ class QDETResult(object):
         self.eri = self.eri * eV / Hartree
 
         # generate effective Hamiltonian
-        self.heff = Heff(self.h1e, self.eri, point_group_rep=self.point_group_rep)
+        self.heff = Heff(self.h1e, self.eri, self.ovlpab, point_group_rep=self.point_group_rep)
 
         self.heff.symmetrize(**symmetrize)
 

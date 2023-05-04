@@ -153,3 +153,17 @@ def read_matrix_elements(filename: str, string: str = "eri_w"):
                         ispin, jspin, ipair, jpair
                     ]
     return h1e, eri
+
+
+def read_overlap(filename: str):
+    """Read overlap between spin up and spin down orbitals from JSON file.
+
+    Argument:
+    filename: name of the JSON file that contains the QDET output.
+    """
+    with open(filename, "r") as f:
+        raw_ = json.load(f)
+
+    overlap = np.array(raw_["overlap"], dtype=float)
+
+    return overlap
