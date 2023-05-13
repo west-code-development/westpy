@@ -44,7 +44,7 @@ class Heff:
             elif self.nspin == 2:
                 self.h1e = h1e
                 self.eri = eri
-                assert ovlpab != None, "Overlap between spin up and spin down orbitals is required for a spin polarized calculation."
+                assert ovlpab.any() is not None, "Overlap between spin up and spin down orbitals is required for a spin polarized calculation."
                 self.ovlpab = ovlpab
         elif h1e.ndim == 2 and eri.ndim == 4:
             self.nspin = 1
@@ -169,17 +169,12 @@ class Heff:
             "evcs": evcs,
             "mults": np.array(
                 [
-                    if self.nspin == 1:
-                        self.fcisolver.spin_square(fcivec=evc, norb=self.norb, nelec=nelec)[
-                            1
-                        ]
-                        for evc in evcs
-                    elif self.nspin == 2:
-                        self.spin_square_spin_polarized(fcivec=evc,
-                            norb=self.norb, nelec=nelec, ovlpab=self.ovlpab)[
-                            1
-                        ]
-                        for evc in evcs
+                    self.fcisolver.spin_square(fcivec=evc, norb=self.norb, nelec=nelec)[1]
+                    if self.nspin == 1
+                    else self.spin_square_spin_polarized(evc, norb=self.norb, nelec=nelec, ovlpab=self.ovlpab)[1]
+                    if self.nspin == 2
+                    else None
+                    for evc in evcs
                 ]
             ),
         }
@@ -301,22 +296,22 @@ class Heff:
         ovlpba = ovlpab.T
 
         # if ovlp=1, ssz = (neleca-nelecb)**2 * .25
-        ssz = (numpy.einsum('ijkl,ij,kl->', dm2aa, ovlpaa, ovlpaa) -
-               numpy.einsum('ijkl,ij,kl->', dm2ab, ovlpaa, ovlpbb) +
-               numpy.einsum('ijkl,ij,kl->', dm2bb, ovlpbb, ovlpbb) -
-               numpy.einsum('ijkl,ij,kl->', dm2ab, ovlpaa, ovlpbb)) * .25
-        ssz += (numpy.einsum('ji,ij->', dm1a, ovlpaa) +
-                numpy.einsum('ji,ij->', dm1b, ovlpbb)) *.25
+        ssz = (np.einsum('ijkl,ij,kl->', dm2aa, ovlpaa, ovlpaa) -
+               np.einsum('ijkl,ij,kl->', dm2ab, ovlpaa, ovlpbb) +
+               np.einsum('ijkl,ij,kl->', dm2bb, ovlpbb, ovlpbb) -
+               np.einsum('ijkl,ij,kl->', dm2ab, ovlpaa, ovlpbb)) * .25
+        ssz += (np.einsum('ji,ij->', dm1a, ovlpaa) +
+                np.einsum('ji,ij->', dm1b, ovlpbb)) *.25
 
         dm2abba = -dm2ab.transpose(0,3,2,1)  # alpha^+ beta^+ alpha beta
         dm2baab = -dm2ab.transpose(2,1,0,3)  # beta^+ alpha^+ beta alpha
-        ssxy =(numpy.einsum('ijkl,ij,kl->', dm2baab, ovlpba, ovlpab) +
-               numpy.einsum('ijkl,ij,kl->', dm2abba, ovlpab, ovlpba) +
-               numpy.einsum('ji,ij->', dm1a, ovlpaa) +
-               numpy.einsum('ji,ij->', dm1b, ovlpbb)) * .5
+        ssxy =(np.einsum('ijkl,ij,kl->', dm2baab, ovlpba, ovlpab) +
+               np.einsum('ijkl,ij,kl->', dm2abba, ovlpab, ovlpba) +
+               np.einsum('ji,ij->', dm1a, ovlpaa) +
+               np.einsum('ji,ij->', dm1b, ovlpbb)) * .5
         ss = ssxy + ssz
 
-        s = numpy.sqrt(ss+.25) - .5
+        s = np.sqrt(ss+.25) - .5
         multip = s*2+1
         return ss, multip
 

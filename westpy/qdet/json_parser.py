@@ -164,6 +164,9 @@ def read_overlap(filename: str):
     with open(filename, "r") as f:
         raw_ = json.load(f)
 
-    overlap = np.array(raw_["overlap"], dtype=float)
+    overlap = np.array(raw_["qdet"]["overlap_ab"], dtype=float)
+    n = int(np.sqrt(overlap.shape[0]))
+    assert n**2 == overlap.shape[0], "The size of the overlap matrix is wrong"
+    overlap = np.reshape(overlap, (n, n)).T
 
     return overlap
