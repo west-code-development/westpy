@@ -182,13 +182,12 @@ class BSEResult(object):
             self.zeta[ip, :, 0 : self.n_lanczos] = zeta_read[:, 0 : self.n_lanczos]
 
     def __extrapolate(self, n_extra: int):
-        skip = False
-
         if n_extra > 0:
             average = np.zeros(self.n_ipol, dtype=np.float64)
             amplitude = np.zeros(self.n_ipol, dtype=np.float64)
 
             for ip in range(self.n_ipol):
+                skip = False
                 counter = 0
 
                 for i in range(150, self.n_lanczos):
