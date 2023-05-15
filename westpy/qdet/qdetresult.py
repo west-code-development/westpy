@@ -12,7 +12,7 @@ from westpy.qdet.json_parser import (
     read_parameters,
     read_occupation,
     read_matrix_elements,
-    read_overlap
+    read_overlap,
 )
 
 
@@ -65,7 +65,9 @@ class QDETResult(object):
         self.eri = self.eri * eV / Hartree
 
         # generate effective Hamiltonian
-        self.heff = Heff(self.h1e, self.eri, self.ovlpab, point_group_rep=self.point_group_rep)
+        self.heff = Heff(
+            self.h1e, self.eri, self.ovlpab, point_group_rep=self.point_group_rep
+        )
 
         self.heff.symmetrize(**symmetrize)
 

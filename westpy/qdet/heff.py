@@ -44,7 +44,9 @@ class Heff:
             elif self.nspin == 2:
                 self.h1e = h1e
                 self.eri = eri
-                assert ovlpab.any() is not None, "Overlap between spin up and spin down orbitals is required for a spin polarized calculation."
+                assert (
+                    ovlpab.any() is not None
+                ), "Overlap between spin up and spin down orbitals is required for a spin polarized calculation."
                 self.ovlpab = ovlpab
         elif h1e.ndim == 2 and eri.ndim == 4:
             self.nspin = 1
@@ -169,9 +171,13 @@ class Heff:
             "evcs": evcs,
             "mults": np.array(
                 [
-                    self.fcisolver.spin_square(fcivec=evc, norb=self.norb, nelec=nelec)[1]
+                    self.fcisolver.spin_square(fcivec=evc, norb=self.norb, nelec=nelec)[
+                        1
+                    ]
                     if self.nspin == 1
-                    else self.spin_square_spin_polarized(evc, norb=self.norb, nelec=nelec, ovlpab=self.ovlpab)[1]
+                    else self.spin_square_spin_polarized(
+                        evc, norb=self.norb, nelec=nelec, ovlpab=self.ovlpab
+                    )[1]
                     if self.nspin == 2
                     else None
                     for evc in evcs
@@ -273,8 +279,9 @@ class Heff:
         else:
             return Heff(h1e, eri, point_group_rep=self.point_group_rep)
 
-    def spin_square_spin_polarized(self, evc: np.ndarray, norb: int, nelec: Tuple[int, int],
-        ovlpab: np.ndarray) -> Tuple[float, float]:
+    def spin_square_spin_polarized(
+        self, evc: np.ndarray, norb: int, nelec: Tuple[int, int], ovlpab: np.ndarray
+    ) -> Tuple[float, float]:
         """Compute the spin multiplicity for spin polarized calculations. Modified from pyscf spin_square_general().
 
         Args:
@@ -286,35 +293,40 @@ class Heff:
         Returns:
             Tuple[spin_square, spin_multiplicity].
         """
-        
+
         # compute the density matrices
-        (dm1a, dm1b), (dm2aa, dm2ab, dm2bb) = \
-            self.fcisolver.make_rdm12s(evc, norb=norb, nelec=nelec)
+        (dm1a, dm1b), (dm2aa, dm2ab, dm2bb) = self.fcisolver.make_rdm12s(
+            evc, norb=norb, nelec=nelec
+        )
 
         ovlpaa = np.eye(ovlpab.shape[0])
         ovlpbb = np.eye(ovlpab.shape[0])
         ovlpba = ovlpab.T
 
         # if ovlp=1, ssz = (neleca-nelecb)**2 * .25
-        ssz = (np.einsum('ijkl,ij,kl->', dm2aa, ovlpaa, ovlpaa) -
-               np.einsum('ijkl,ij,kl->', dm2ab, ovlpaa, ovlpbb) +
-               np.einsum('ijkl,ij,kl->', dm2bb, ovlpbb, ovlpbb) -
-               np.einsum('ijkl,ij,kl->', dm2ab, ovlpaa, ovlpbb)) * .25
-        ssz += (np.einsum('ji,ij->', dm1a, ovlpaa) +
-                np.einsum('ji,ij->', dm1b, ovlpbb)) *.25
+        ssz = (
+            np.einsum("ijkl,ij,kl->", dm2aa, ovlpaa, ovlpaa)
+            - np.einsum("ijkl,ij,kl->", dm2ab, ovlpaa, ovlpbb)
+            + np.einsum("ijkl,ij,kl->", dm2bb, ovlpbb, ovlpbb)
+            - np.einsum("ijkl,ij,kl->", dm2ab, ovlpaa, ovlpbb)
+        ) * 0.25
+        ssz += (
+            np.einsum("ji,ij->", dm1a, ovlpaa) + np.einsum("ji,ij->", dm1b, ovlpbb)
+        ) * 0.25
 
-        dm2abba = -dm2ab.transpose(0,3,2,1)  # alpha^+ beta^+ alpha beta
-        dm2baab = -dm2ab.transpose(2,1,0,3)  # beta^+ alpha^+ beta alpha
-        ssxy =(np.einsum('ijkl,ij,kl->', dm2baab, ovlpba, ovlpab) +
-               np.einsum('ijkl,ij,kl->', dm2abba, ovlpab, ovlpba) +
-               np.einsum('ji,ij->', dm1a, ovlpaa) +
-               np.einsum('ji,ij->', dm1b, ovlpbb)) * .5
+        dm2abba = -dm2ab.transpose(0, 3, 2, 1)  # alpha^+ beta^+ alpha beta
+        dm2baab = -dm2ab.transpose(2, 1, 0, 3)  # beta^+ alpha^+ beta alpha
+        ssxy = (
+            np.einsum("ijkl,ij,kl->", dm2baab, ovlpba, ovlpab)
+            + np.einsum("ijkl,ij,kl->", dm2abba, ovlpab, ovlpba)
+            + np.einsum("ji,ij->", dm1a, ovlpaa)
+            + np.einsum("ji,ij->", dm1b, ovlpbb)
+        ) * 0.5
         ss = ssxy + ssz
 
-        s = np.sqrt(ss+.25) - .5
-        multip = s*2+1
+        s = np.sqrt(ss + 0.25) - 0.5
+        multip = s * 2 + 1
         return ss, multip
-
 
     @staticmethod
     def apply_permutation_symm_to_h1e(h1e: np.ndarray) -> np.ndarray:
