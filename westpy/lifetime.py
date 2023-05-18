@@ -1,4 +1,4 @@
-def radiative_lifetime(westpp_file, ispin, band1, band2, n, e_zpl):
+def radiative_lifetime(westpp_file, ispin, band1, band2, n=None, e_zpl=None):
     """Computes radiative lifetime.
 
     :param westpp_file: The JSON output file of Westpp
@@ -10,7 +10,7 @@ def radiative_lifetime(westpp_file, ispin, band1, band2, n, e_zpl):
     :param band2: band index (transition from band1 to band2 is computed)
     :type band2: int
     :param n: refractive index
-    :type n: float
+    :type n: float or function of e_zpl
     :param e_zpl: zero phonon line (ZPL) energy in Rydberg
     :type e_zpl: float
 
@@ -27,8 +27,6 @@ def radiative_lifetime(westpp_file, ispin, band1, band2, n, e_zpl):
 
     #
     assert ispin == 1 or ispin == 2
-    assert n > 0.0
-    assert e_zpl > 0.0
     #
     # read westpp
     with open(westpp_file, "r") as f:
@@ -71,6 +69,19 @@ def radiative_lifetime(westpp_file, ispin, band1, band2, n, e_zpl):
     #
     rr_sq = sum(rr**2)
     #
+    if e_zpl is None:
+        e_zpl = e_diff
+    assert e_zpl > 0.0
+    #
+    # refractive index
+    if callable(n):
+        refrac = n(e_zpl)
+    elif isinstance(n, float):
+        assert n >= 1.0
+        refrac = n
+    else:
+        refrac = 1.0
+    #
     # Bohr to m
     Meter = Angstrom * 1.0e10
     rr_sq /= Meter**2
@@ -79,7 +90,7 @@ def radiative_lifetime(westpp_file, ispin, band1, band2, n, e_zpl):
     #
     # compute radiative lifetime using SI units
     tau = (3 * sc.epsilon_0 * sc.pi * (sc.c**3) * (sc.hbar**4)) / (
-        n * (e_zpl**3) * (sc.e**2) * rr_sq
+        refrac * (e_zpl**3) * (sc.e**2) * rr_sq
     )
     #
     return tau
