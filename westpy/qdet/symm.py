@@ -15,19 +15,44 @@ from westpy import VData
 
 class PointGroupOperation:
     def __init__(
-        self, T: np.ndarray, origin: Union[Sequence[float], np.ndarray] = None
+        self,
+        T: np.ndarray,
+        origin: Union[Sequence[float], np.ndarray] = None,
+        cell: np.ndarray = None,
     ):
         """An operation in the point group.
 
         Args:
             T: 4x4 affine transformation matrix for point group operation
             origin: origin of operation
+            cell: transformation matrix to the volumetric cell data.
+                  obtaining cell:
+                  1.let A = crystal vectoe matrix:
+                      matrix is np.array([x1,y1.z1],
+                              [x2,y2,z2],
+                              [x3,y3,z3]).T
+                    where [xi,yi,zi] are the ith crystal basis vector. The Unit doesn't matter
+                  2. ket T = np.array([nx,0,0],
+                              [0,ny,0],
+                              [0,0,nz])
+                    where nx,ny,nz are the shape of the volumetric data, it is in .cube file's header.
+                  3. cell = A@T
         """
         assert T.shape == (4, 4)
         self.T = T
+        if cell is not None:
+            assert np.shape(cell) == (3, 3)
+            if origin is not None:
+                origin = np.linalg.inv(cell) @ origin
+            self.set_coord(cell)
         if origin is not None:
             assert len(origin) == 3
             self.set_origin(origin)
+
+    def set_coord(self, cell):
+        """transform the coordinate of T into M^-1M"""
+        TC = block_diag(cell, 1)
+        self.T = np.linalg.inv(TC) @ self.T @ TC
 
     def set_origin(self, origin):
         """Set origin of the operation.
@@ -69,7 +94,7 @@ class PointGroupOperation:
         Returns:
             transformed function
         """
-        return affine_transform(f, matrix=self.T)
+        return affine_transform(f, matrix=self.T, mode="grid-wrap")
 
 
 class PointGroupReflection(PointGroupOperation):
@@ -77,6 +102,7 @@ class PointGroupReflection(PointGroupOperation):
         self,
         normal: Union[Sequence[float], np.ndarray],
         origin: Union[Sequence[float], np.ndarray] = (0.0, 0.0, 0.0),
+        cell: np.ndarray = None,
     ):
         """Reflection operation.
 
@@ -96,7 +122,7 @@ class PointGroupReflection(PointGroupOperation):
                 [0, 0, 0, 1],
             ]
         )
-        super(PointGroupReflection, self).__init__(T=RE, origin=origin)
+        super(PointGroupReflection, self).__init__(T=RE, origin=origin, cell=cell)
 
 
 class PointGroupRotation(PointGroupOperation):
@@ -104,6 +130,7 @@ class PointGroupRotation(PointGroupOperation):
         self,
         rotvec: Union[Sequence[float], np.ndarray],
         origin: Union[Sequence[float], np.ndarray] = (0.0, 0.0, 0.0),
+        cell: np.ndarray = None,
     ):
         """Rotation operation.
 
@@ -115,18 +142,65 @@ class PointGroupRotation(PointGroupOperation):
         """
         rotation = Rotation.from_rotvec(rotvec)
         RO = block_diag(rotation.as_matrix().T, 1)
-        super(PointGroupRotation, self).__init__(T=RO, origin=origin)
+        super(PointGroupRotation, self).__init__(T=RO, origin=origin, cell=cell)
 
 
 class PointGroupInversion(PointGroupOperation):
-    def __init__(self, origin: Union[Sequence[float], np.ndarray] = (0.0, 0.0, 0.0)):
+    def __init__(
+        self,
+        origin: Union[Sequence[float], np.ndarray] = (0.0, 0.0, 0.0),
+        cell: np.ndarray = None,
+    ):
         """Inversion operation.
 
         Args:
             origin: origin.
         """
         super(PointGroupInversion, self).__init__(
-            T=block_diag(-1 * np.eye(3), 1), origin=origin
+            T=block_diag(-1 * np.eye(3), 1), origin=origin, cell=cell
+        )
+
+
+class PointGroupRotateReflection(PointGroupOperation):
+    def __init__(
+        self,
+        rotvec: Union[Sequence[float], np.ndarray],
+        origin: Union[Sequence[float], np.ndarray] = (0.0, 0.0, 0.0),
+        multiple: int = 1,
+        cell: np.ndarray = None,
+    ):
+        """Rotation and then reflect in a plane perpendicular to the rotation axis
+
+        Rotation matrix R0
+        reflection matrix RE
+        Rotation+reflection=R1@R0
+
+        Args:
+            normal: rotvec: (a, b, c), |(a, b, c)| is interpreted as degree in radian, direction is interpreted as axis
+            origin: origin
+            multiple is an integer. give the mutiplication of the operation: if multiple=3 then give S^3=S@S@S  operation
+        """
+        # print('Rotvec =',rotvec)
+        R0 = Rotation.from_rotvec(rotvec).as_matrix()
+        # print('R0 is',R0)
+        a, b, c = np.array(rotvec) / np.linalg.norm(rotvec)
+        RE = np.array(
+            [
+                [1 - 2 * a * a, -2 * a * b, -2 * a * c],
+                [-2 * a * b, 1 - 2 * b * b, -2 * b * c],
+                [-2 * a * c, -2 * b * c, 1 - 2 * c * c],
+            ]
+        )
+        # print(type(RE),type(R0))
+        S = RE @ R0  # 3x3 matrix for rotation then reflection.
+        if multiple > 1:  # if need multiple S operation
+            for m in range(1, multiple):
+                S = RE @ R0 @ S
+        # print(S)
+        S_Affine = block_diag(S.T, 1)  # construct affine matrix
+        # print(S_Affine,type(S_Affine))
+        super(PointGroupRotateReflection, self).__init__(
+            T=S_Affine, origin=origin, cell=cell
         )
 
 
