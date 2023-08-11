@@ -9,20 +9,22 @@ The development of **WESTpy** is funded by `MICCoM <http://miccom-center.org/>`_
 Project Lead
 ------------
 
-Marco Govoni (Argonne National Laboratory and University of Chicago)
+Marco Govoni (University of Modena and Reggio Emilia, Argonne National Lab, University of Chicago)
 
 Developers
 ----------
 
-  - Nan Sheng (University of Chicago)
-  - Christian Vorwerk (University of Chicago)
-  - Han Yang (University of Chicago)
-  - Victor Yu (Argonne National Laboratory)
+  - Marco Govoni (University of Modena and Reggio Emilia, Argonne National Lab, University of Chicago)
+  - Yu Jin (University of Chicago)
+  - Victor Yu (Argonne National Lab)
 
 Former Developers
 -----------------
 
-  - Lan Huang (Argonne National Laboratory)
-  - He Ma (University of Chicago)
-  - Aditya Tanikanti (University of Chicago)
-  - Huihuo Zheng (Argonne National Laboratory)
+  - Lan Huang
+  - He Ma 
+  - Nan Sheng
+  - Aditya Tanikanti
+  - Christian Vorwerk 
+  - Han Yang
+  - Huihuo Zheng
