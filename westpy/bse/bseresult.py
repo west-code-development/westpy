@@ -8,9 +8,9 @@ from westpy.units import eV
 
 class BSEResult(object):
     def __init__(self, filename: str):
-        """Parses Wbse Lanczos results.
+        """Parses BSE/TDDFT results.
 
-        :param filename: Wbse output file (JSON)
+        :param filename: Wbse or Westpp output file (JSON)
         :type filename: string
 
         :Example:
@@ -24,27 +24,53 @@ class BSEResult(object):
         with open(filename, "r") as f:
             res = json.load(f)
 
-        self.nspin = res["system"]["electron"]["nspin"]
-        which = res["input"]["wbse_control"]["wbse_calculation"]
-        assert which in ["L", "l"]
-        self.n_lanczos = res["input"]["wbse_control"]["n_lanczos"]
-        pol = res["input"]["wbse_control"]["wbse_ipol"]
-        if pol in ["XYZ", "xyz"]:
+        if res["software"]["program"] == "WBSE":
+            self.wbse_calc = "lanczos"
+        elif res["software"]["program"] == "WESTPP":
+            self.wbse_calc = "davidson"
+        assert self.wbse_calc is not None
+
+        if self.wbse_calc == "lanczos":
+            self.nspin = res["system"]["electron"]["nspin"]
+            which = res["input"]["wbse_control"]["wbse_calculation"]
+            assert which in ["L", "l"]
+            self.n_lanczos = res["input"]["wbse_control"]["n_lanczos"]
+            pol = res["input"]["wbse_control"]["wbse_ipol"]
+            if pol in ["XYZ", "xyz"]:
+                self.n_ipol = 3
+                self.pols = ["XX", "YY", "ZZ"]
+                self.can_do = [
+                    "XX",
+                    "XY",
+                    "XZ",
+                    "YX",
+                    "YY",
+                    "YZ",
+                    "ZX",
+                    "ZY",
+                    "ZZ",
+                    "XYZ",
+                ]
+            elif pol in ["XX", "xx"]:
+                self.n_ipol = 1
+                self.pols = ["XX"]
+                self.can_do = ["XX"]
+            elif pol in ["YY", "yy"]:
+                self.n_ipol = 1
+                self.pols = ["YY"]
+                self.can_do = ["YY"]
+            elif pol in ["ZZ", "zz"]:
+                self.n_ipol = 1
+                self.pols = ["ZZ"]
+                self.can_do = ["ZZ"]
+        elif self.wbse_calc == "davidson":
+            self.nspin = res["system"]["electron"]["nspin"]
+            self.n_liouville = res["input"]["westpp_control"][
+                "westpp_n_liouville_to_use"
+            ]
             self.n_ipol = 3
             self.pols = ["XX", "YY", "ZZ"]
             self.can_do = ["XX", "XY", "XZ", "YX", "YY", "YZ", "ZX", "ZY", "ZZ", "XYZ"]
-        elif pol in ["XX", "xx"]:
-            self.n_ipol = 1
-            self.pols = ["XX"]
-            self.can_do = ["XX"]
-        elif pol in ["YY", "yy"]:
-            self.n_ipol = 1
-            self.pols = ["YY"]
-            self.can_do = ["YY"]
-        elif pol in ["ZZ", "zz"]:
-            self.n_ipol = 1
-            self.pols = ["ZZ"]
-            self.can_do = ["ZZ"]
 
     def plotSpectrum(
         self,
@@ -55,7 +81,7 @@ class BSEResult(object):
         n_extra: int = 0,
         fname: str = None,
     ):
-        """Parses and plots Wbse Lanczos results.
+        """Plots BSE/TDDFT absorption spectrum.
 
         :param ipol: which component to compute ("XX", "XY", "XZ", "YX", "YY", "YZ", "ZX", "ZY", "ZZ", or "XYZ")
         :type ipol: string
@@ -65,7 +91,7 @@ class BSEResult(object):
         :type energyRange: 3-dim float
         :param sigma: Broadening width (eV)
         :type sigma: float
-        :param n_extra: Number of extrapolation steps
+        :param n_extra: Number of extrapolation steps (Lanczos only)
         :type n_extra: int
         :param fname: Output file name
         :type fname: string
@@ -85,20 +111,23 @@ class BSEResult(object):
         assert sigma > 0.0
         assert n_extra >= 0
 
-        if self.n_lanczos < 151 and n_extra > 0:
-            n_extra = 0
-        self.n_total = self.n_lanczos + n_extra
+        if self.wbse_calc == "lanczos":
+            if self.n_lanczos < 151 and n_extra > 0:
+                n_extra = 0
+            self.n_total = self.n_lanczos + n_extra
 
-        self.__read_beta_zeta(ispin)
-        self.__extrapolate(n_extra)
+            self.__read_beta_zeta(ispin)
+            self.__extrapolate(n_extra)
 
-        self.r = np.zeros(self.n_total, dtype=np.complex128)
-        self.r[0] = 1.0
+            self.r = np.zeros(self.n_total, dtype=np.complex128)
+            self.r[0] = 1.0
 
-        self.b = np.zeros((self.n_ipol, self.n_total - 1), dtype=np.complex128)
-        for ip in range(self.n_ipol):
-            for i in range(self.n_total - 1):
-                self.b[ip, i] = -self.beta[ip, i]
+            self.b = np.zeros((self.n_ipol, self.n_total - 1), dtype=np.complex128)
+            for ip in range(self.n_ipol):
+                for i in range(self.n_total - 1):
+                    self.b[ip, i] = -self.beta[ip, i]
+        elif self.wbse_calc == "davidson":
+            self.__read_tdm()
 
         sigma_ev = sigma * eV
         n_step = int((xmax - xmin) / dx) + 1
@@ -140,6 +169,8 @@ class BSEResult(object):
                     chiAxis[ie] = (
                         (chi[0, 0] + chi[1, 1] + chi[2, 2]) * energy / 3.0 / np.pi
                     )
+
+        print(f"plotting absorption spectrum ({self.wbse_calc.capitalize()})")
 
         if not fname:
             fname = f"chi_{ipol}.png"
@@ -232,17 +263,39 @@ class BSEResult(object):
 
         chi = np.zeros((self.n_ipol, self.n_ipol), dtype=np.complex128)
 
-        for ip2 in range(self.n_ipol):
-            a = np.full(self.n_total, omeg_c, dtype=np.complex128)
-            b = self.b[ip2, :]
-            c = b
-            r = self.r
+        if self.wbse_calc == "lanczos":
+            for ip2 in range(self.n_ipol):
+                a = np.full(self.n_total, omeg_c, dtype=np.complex128)
+                b = self.b[ip2, :]
+                c = b
+                r = self.r
 
-            b1, a1, c1, r1, ierr = la.zgtsv(b, a, c, r)
-            assert ierr == 0
+                b1, a1, c1, r1, ierr = la.zgtsv(b, a, c, r)
+                assert ierr == 0
 
+                for ip in range(self.n_ipol):
+                    chi[ip2, ip] = np.dot(self.zeta[ip2, ip, :], r1)
+                    chi[ip2, ip] *= -2.0 * degspin * self.norm[ip2]
+
+        elif self.wbse_calc == "davidson":
             for ip in range(self.n_ipol):
-                chi[ip2, ip] = np.dot(self.zeta[ip2, ip, :], r1)
-                chi[ip2, ip] *= -2.0 * degspin * self.norm[ip2]
+                for ip2 in range(self.n_ipol):
+                    num = self.tdm[:, ip] * self.tdm[:, ip2]
+                    den = freq - self.vee[:] - 1j * broaden
+                    tmp = np.sum(num / den)
+                    chi[ip, ip2] = tmp
 
         return chi
+
+    def __read_tdm(self):
+        self.tdm = np.zeros((self.n_liouville, 3), dtype=np.float64)
+        self.vee = np.zeros(self.n_liouville, dtype=np.float64)
+
+        with open(self.filename, "r") as f:
+            res = json.load(f)
+
+        for il in range(self.n_liouville):
+            tmp = res["output"][f"E{(il+1):05d}"]["transition_dipole_moment"]
+            self.tdm[il] = np.array(tmp)
+            tmp = res["output"][f"E{(il+1):05d}"]["excitation_energy"]
+            self.vee[il] = tmp
