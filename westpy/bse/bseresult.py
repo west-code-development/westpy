@@ -63,6 +63,13 @@ class BSEResult(object):
                 self.n_ipol = 1
                 self.pols = ["ZZ"]
                 self.can_do = ["ZZ"]
+            self.dip_real = res["input"]["wbse_control"]["l_dipole_realspace"]
+            self.bg = np.zeros((3, 3), dtype=np.float64)
+            self.bg[0] = np.array(res["system"]["cell"]["b1"])
+            self.bg[1] = np.array(res["system"]["cell"]["b2"])
+            self.bg[2] = np.array(res["system"]["cell"]["b3"])
+            self.bg = self.bg / res["system"]["cell"]["tpiba"]
+
         elif self.wbse_calc == "davidson":
             self.nspin = res["system"]["electron"]["nspin"]
             self.n_liouville = res["input"]["westpp_control"][
@@ -147,6 +154,10 @@ class BSEResult(object):
             if self.n_ipol == 1:
                 chiAxis[ie] = chi[0, 0]
             elif self.n_ipol == 3:
+                # crystal to cart
+                if self.wbse_calc == "lanczos" and self.dip_real == False:
+                    chi = np.dot(self.bg.T, np.dot(chi, self.bg))
+
                 if ipol == "XX":
                     chiAxis[ie] = chi[0, 0]
                 if ipol == "XY":
