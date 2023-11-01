@@ -11,7 +11,7 @@
     "program": "WFREQ",
     "version": "5.2.0",
     "westgit": "v5.2.0-24-ge4d9127",
-    "website": "http://www.west-code.org",
+    "website": "https://west-code.org",
     "citation": "M. Govoni et al., J. Chem. Theory Comput. 11, 2680 (2015).",
     "qeversion": "7.1"
   },

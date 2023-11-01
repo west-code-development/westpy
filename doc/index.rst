@@ -9,7 +9,7 @@ Welcome to WESTpy's documentation!
 
     This is documentation for the **WESTpy** *package*, which is part of the WEST_ framework.
 
-.. _WEST: http://www.west-code.org
+.. _WEST: https://west-code.org
 
 Contents
 --------

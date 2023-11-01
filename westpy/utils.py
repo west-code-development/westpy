@@ -12,7 +12,7 @@ def extractFileNamefromUrl(url):
     :Example:
 
     >>> from westpy import *
-    >>> extractFileNamefromUrl("http://www.west-code.org/database/gw100/xyz/CH4.xyz")
+    >>> extractFileNamefromUrl("https://west-code.org/database/gw100/xyz/CH4.xyz")
     """
     #
     fname = None
@@ -33,7 +33,7 @@ def download(url, fname=None):
     :Example:
 
     >>> from westpy import *
-    >>> download("http://www.west-code.org/database/gw100/xyz/CH4.xyz")
+    >>> download("https://west-code.org/database/gw100/xyz/CH4.xyz")
 
     .. note:: The file will be downloaded in the current directory.
     """
