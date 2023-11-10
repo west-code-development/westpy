@@ -20,6 +20,23 @@ def read_parameters(filename: str):
 
     return nspin, npair, bands
 
+def read_lband(bands):
+    """Determine the numbers of band
+
+    Argument:
+    bands: the bands returned from read_parameters()
+    """
+    #length of bands list: lband
+    if isinstance(bands[0],np.ndarray) and len(bands)==2: 
+        #print("Band is spin resolved")
+        if len(bands[0])==len(bands[1]):
+            lband = len(bands[0])
+        else:
+            raise NotImplementedError("Different N.O orbitals from two channel case is not implemented!")
+    else:
+        lband = len(bands)
+    return lband
+
 
 def read_qp_energies(filename: str):
     """Read QP energies from JSON file.
@@ -37,7 +54,7 @@ def read_qp_energies(filename: str):
         qp_energies = np.array(raw_["output"]["Q"]["K000001"]["eqpSec"])
 
     elif nspin == 2:
-        qp_energies = np.zeros((len(bands), 2))
+        qp_energies = np.zeros((read_lband(bands), 2))
         qp_energies[:, 0] = np.array(raw_["output"]["Q"]["K000001"]["eqpSec"])
         qp_energies[:, 1] = np.array(raw_["output"]["Q"]["K000002"]["eqpSec"])
 
@@ -55,7 +72,7 @@ def read_occupation(filename: str):
 
     nspin, npair, bands = read_parameters(filename)
 
-    occ_ = np.zeros((nspin, len(bands)))
+    occ_ = np.zeros((nspin, read_lband(bands)))
 
     for ispin in range(nspin):
         string1 = "K" + format(ispin + 1, "06d")
@@ -103,7 +120,8 @@ def read_matrix_elements(filename: str, string: str = "eri_w"):
                 )
 
     # unfold one-body terms from pair basis to Kohn-Sham basis
-    h1e = np.zeros((nspin, len(bands), len(bands)))
+
+    h1e = np.zeros((nspin, read_lband(bands), read_lband(bands)))
     for ispin in range(nspin):
         for ipair in range(len(indexmap)):
             i, j = indexmap[ipair]
@@ -115,10 +133,10 @@ def read_matrix_elements(filename: str, string: str = "eri_w"):
         (
             nspin,
             nspin,
-            len(bands),
-            len(bands),
-            len(bands),
-            len(bands),
+            read_lband(bands),
+            read_lband(bands),
+            read_lband(bands),
+            read_lband(bands),
         )
     )
     for ispin in range(nspin):
