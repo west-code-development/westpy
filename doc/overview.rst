@@ -12,4 +12,4 @@ Features:
    - Plot of DOS, *LDOS*, *full-frequency self-energy*
 
 .. seealso::
-   **WEST** is massively parallel code for Many-Body Perturbation Theory calculations. Click `here <http://www.west-code.org/doc/West/latest/>`_ to know more.
+   **WEST** is massively parallel code for Many-Body Perturbation Theory calculations. Click `here <https://west-code.org/doc/West/latest/>`_ to know more.

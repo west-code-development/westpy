@@ -263,7 +263,7 @@ class Geometry(object):
 
         >>> from westpy import *
         >>> geom = Geometry()
-        >>> geom.addAtomsFromOnlineXYZ( "http://www.west-code.org/database/gw100/xyz/CH4.xyz" )
+        >>> geom.addAtomsFromOnlineXYZ( "https://west-code.org/database/gw100/xyz/CH4.xyz" )
         """
         #
         import urllib.request
@@ -283,7 +283,7 @@ class Geometry(object):
 
         >>> from westpy import *
         >>> geom = Geometry()
-        >>> geom.addAtomsFromOnlineXYZ( "http://www.west-code.org/database/gw100/xyz/CH4.xyz" )
+        >>> geom.addAtomsFromOnlineXYZ( "https://west-code.org/database/gw100/xyz/CH4.xyz" )
         >>> nat = geom.getNumberOfAtoms()
         >>> print( nat )
         5
@@ -302,7 +302,7 @@ class Geometry(object):
 
         >>> from westpy import *
         >>> geom = Geometry()
-        >>> geom.addAtomsFromOnlineXYZ( "http://www.west-code.org/database/gw100/xyz/CH4.xyz" )
+        >>> geom.addAtomsFromOnlineXYZ( "https://west-code.org/database/gw100/xyz/CH4.xyz" )
         >>> ntyp = geom.getNumberOfSpecies()
         >>> print( ntyp )
         2
@@ -325,7 +325,7 @@ class Geometry(object):
 
         >>> from westpy import *
         >>> geom = Geometry()
-        >>> geom.addAtomsFromOnlineXYZ( "http://www.west-code.org/database/gw100/xyz/CH4.xyz" )
+        >>> geom.addAtomsFromOnlineXYZ( "https://west-code.org/database/gw100/xyz/CH4.xyz" )
         >>> geom.addSpecies( "C", "http://www.quantum-simulation.org/potentials/sg15_oncv/xml/C_ONCV_PBE-1.0.xml")
         >>> geom.addSpecies( "H", "http://www.quantum-simulation.org/potentials/sg15_oncv/xml/H_ONCV_PBE-1.0.xml")
         >>> nelec = geom.getNumberOfElectrons()
@@ -364,7 +364,7 @@ class Geometry(object):
 
         >>> from westpy import *
         >>> geom = Geometry()
-        >>> geom.addAtomsFromOnlineXYZ( "http://www.west-code.org/database/gw100/xyz/CH4.xyz" )
+        >>> geom.addAtomsFromOnlineXYZ( "https://west-code.org/database/gw100/xyz/CH4.xyz" )
         >>> geom.addSpecies( "C", "http://www.quantum-simulation.org/potentials/sg15_oncv/xml/C_ONCV_PBE-1.0.xml")
         >>> geom.addSpecies( "H", "http://www.quantum-simulation.org/potentials/sg15_oncv/xml/H_ONCV_PBE-1.0.xml")
         >>> geom.downloadPseudopotentials()

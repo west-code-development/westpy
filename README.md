@@ -1,5 +1,5 @@
 # westpy
-Python tools for [WEST](http://www.west-code.org)
+Python tools for [WEST](https://west-code.org)
 
 ## About
 **westpy** is a Python package to pre- and post-process WEST calculations.
