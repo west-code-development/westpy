@@ -26,3 +26,5 @@ files.txt
 .DS_Store
 
 doc/_build
+
+.ipynb_checkpoints
