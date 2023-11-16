@@ -19,8 +19,8 @@ default:
     - conda create -y --name westpy_env python=3.8
     - source ~/.bashrc
     - conda activate westpy_env
-    - conda install -q -y -c conda-forge pytest
-    - pip install -q --upgrade pip
+    - pip install -q -U pip
+    - pip install -q -U pytest
     - which python
 
 .git_clone: &git_clone
@@ -54,9 +54,10 @@ westpy_doc_build:
   stage: doc
   script:
     - apt-get install -qq pandoc > /dev/null
-    - conda install -q -y -c conda-forge nbsphinx
-    - conda install -q -y sphinx_rtd_theme
-    - conda install -q -y jupyter
+    - pip install -q -U sphinx
+    - pip install -q -U nbsphinx
+    - pip install -q -U sphinx_rtd_theme
+    - pip install -q -U jupyter
     - *git_clone
     - cd doc
     - make html

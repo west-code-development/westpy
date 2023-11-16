@@ -11,6 +11,7 @@ from westpy.session import *
 from westpy.lifetime import *
 from westpy.qdet import *
 from westpy.bse import *
+from westpy.relaxation import *
 
 __version__ = "5.5.0"
 
