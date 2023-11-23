@@ -1,0 +1,19 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    container: continuumio/miniconda3:latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build
+      run: |
+        pip install .
+    - name: Test
+      run: |
+        conda install pytest
+        cd test-suite
+        pytest

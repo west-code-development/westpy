@@ -45,5 +45,5 @@ Contents
 
    To get help using the **WESTpy** package, send an email to `mgovoni@anl.gov <mailto:mgovoni@anl.gov>`_.
 
-The **WESTpy** package is hosted on `GitLab <http://greatfire.uchicago.edu/west-public/westpy>`_, mirrored to `GitHub <https://github.com/west-code-development/westpy>`_, and licensed under the open-source GPLv3 license.
+The **WESTpy** package is hosted on `GitHub <https://github.com/west-code-development/westpy>`_, and licensed under the open-source GPLv3 license.
 

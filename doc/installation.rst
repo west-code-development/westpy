@@ -39,7 +39,7 @@ To install **WESTpy** you need to execute:
 
 .. code:: bash
 
-    $ git clone http://greatfire.uchicago.edu/west-public/westpy.git
+    $ git clone https://github.com/west-code-development/westpy.git
     $ cd westpy
     $ python setup.py install --user
 
@@ -47,7 +47,7 @@ or simply execute:
 
 .. code:: bash
 
-    $ git clone http://greatfire.uchicago.edu/west-public/westpy.git
+    $ git clone https://github.com/west-code-development/westpy.git
     $ cd westpy
     $ make
 
