@@ -117,17 +117,20 @@ class bfgs_iter:
     def read_prefix(self):
         wbse_in = os.getcwd() + "/" + self.wbse_input
 
-        # load JSON or YAML
-        try:
-            with open(wbse_in, "r") as f:
-                data = json.load(f)
-        except ValueError:
-            with open(wbse_in, "r") as f:
-                data = yaml.load(f, Loader=yaml.FullLoader)
+        with open(wbse_in, "r") as f:
+            data = yaml.load(f, Loader=yaml.SafeLoader)
 
-        self.pw_prefix = data["input_west"]["qe_prefix"]
-        self.west_prefix = data["input_west"]["west_prefix"]
-        self.outdir = data["input_west"]["outdir"] + "/"
+        self.pw_prefix = "pwscf"
+        self.west_prefix = "west"
+        self.outdir = "./"
+
+        if "input_west" in data:
+            if "qe_prefix" in data["input_west"]:
+                self.pw_prefix = data["input_west"]["qe_prefix"]
+            if "west_prefix" in data["input_west"]:
+                self.west_prefix = data["input_west"]["west_prefix"]
+            if "outdir" in data["input_west"]:
+                self.outdir = data["input_west"]["outdir"] + "/"
 
     def read_pos_unit(self):
         pw_in = os.getcwd() + "/" + self.pw_input
@@ -605,24 +608,21 @@ class bfgs_iter:
 
         # extract at and bg
         at_str = []
-        for i in range(1, 4):
+        for i in [1, 2, 3]:
             aa = atomic_structure.find(f"cell/a{i}").text.split()
             at_str.append(aa)
         at = np.array(at_str, dtype=np.float64) / alat
 
         bg_str = []
-        for i in range(1, 4):
+        for i in [1, 2, 3]:
             bb = root.find(f"output/basis_set/reciprocal_lattice/b{i}").text.split()
             bg_str.append(bb)
         bg = np.array(bg_str, dtype=np.float64)
 
         # extract data for 'atomic species' and 'atomic coordinates'
         atoms = atomic_structure.findall("atomic_positions/atom")
-        atoms_str = []
-        pos_in_str = []
-        for atom in atoms:
-            atoms_str.append(atom.attrib["name"])
-            pos_in_str.append(atom.text.split())
+        atoms_str = [atom.attrib["name"] for atom in atoms]
+        pos_in_str = [atom.text.split() for atom in atoms]
         pos_in = np.array(pos_in_str, dtype=np.float64) / alat
         pos_in = np.ravel(pos_in)
 
