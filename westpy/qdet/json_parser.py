@@ -16,7 +16,7 @@ def read_parameters(filename: str):
 
     npair = len(indexmap)
     nspin = int(raw_["system"]["electron"]["nspin"])
-    bands = np.array(raw_["input"]["wfreq_control"]["qp_bands"], dtype=int)
+    bands = np.array(raw_["input"]["wfreq_control"]["qp_bands"][0], dtype=int)
 
     return nspin, npair, bands
 
@@ -60,7 +60,7 @@ def read_occupation(filename: str):
     for ispin in range(nspin):
         string1 = "K" + format(ispin + 1, "06d")
         occ_[ispin, :] = np.array(
-            raw_["output"]["Q"][string1]["occupation"], dtype=float
+            raw_["output"]["Q"][string1]["occupation"], dtype=np.float64
         )
 
     return occ_
@@ -88,7 +88,7 @@ def read_matrix_elements(filename: str, string: str = "eri_w"):
     # read one-body terms from file
     for ispin in range(nspin):
         string1 = "K" + format(ispin + 1, "06d")
-        h1e_pair[ispin, :] = np.array(raw_["qdet"]["h1e"][string1], dtype=float)
+        h1e_pair[ispin, :] = np.array(raw_["qdet"]["h1e"][string1], dtype=np.float64)
 
     # read two-body terms from file
     for ispin1 in range(nspin):
@@ -99,7 +99,7 @@ def read_matrix_elements(filename: str, string: str = "eri_w"):
             for ipair in range(npair):
                 string3 = "pair" + format(ipair + 1, "06d")
                 eri_pair[ispin1, ispin2, ipair, :] = np.array(
-                    raw_["qdet"][string][string1][string2][string3], dtype=float
+                    raw_["qdet"][string][string1][string2][string3], dtype=np.float64
                 )
 
     # unfold one-body terms from pair basis to Kohn-Sham basis
@@ -164,7 +164,7 @@ def read_overlap(filename: str):
     with open(filename, "r") as f:
         raw_ = json.load(f)
 
-    overlap = np.array(raw_["qdet"]["overlap_ab"], dtype=float)
+    overlap = np.array(raw_["qdet"]["overlap_ab"], dtype=np.float64)
     n = int(np.sqrt(overlap.shape[0]))
     assert n**2 == overlap.shape[0], "The size of the overlap matrix is wrong"
     overlap = np.reshape(overlap, (n, n)).T
