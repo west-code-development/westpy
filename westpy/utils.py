@@ -436,8 +436,8 @@ def wfreq2df(
     for s in range(1, data["system"]["electron"]["nspin"] + 1):
         for k in data["system"]["bzsamp"]["k"]:
             kindex = f"K{k['id']+(s-1)*len(data['system']['bzsamp']['k']):06d}"
-            for i, n in enumerate(data["output"]["Q"]["bandmap"]):
-                d = data["output"]["Q"][kindex]
+            d = data["output"]["Q"][kindex]
+            for i, n in enumerate(data["input"]["wfreq_control"]["qp_bands"][s - 1]):
                 row = [k["id"], s, n]
                 for key in dfKeys:
                     if "re" in d[key]:

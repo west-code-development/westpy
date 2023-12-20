@@ -128,9 +128,9 @@ class Geometry(object):
         import numpy as np
 
         #
-        self.cell["a1"] = np.array(a1, dtype="f8") * units
-        self.cell["a2"] = np.array(a2, dtype="f8") * units
-        self.cell["a3"] = np.array(a3, dtype="f8") * units
+        self.cell["a1"] = np.array(a1, dtype=np.float64) * units
+        self.cell["a2"] = np.array(a2, dtype=np.float64) * units
+        self.cell["a3"] = np.array(a3, dtype=np.float64) * units
         self.cell["volume"] = np.dot(
             self.cell["a1"], np.cross(self.cell["a2"], self.cell["a3"])
         )
@@ -432,7 +432,7 @@ class Geometry(object):
             print(xyz)
         xyzview.setStyle({style: {}})
         # draw the box
-        a0 = np.array([0.0, 0.0, 0.0], dtype="f8")
+        a0 = np.array([0.0, 0.0, 0.0], dtype=np.float64)
         from_ = [a0, a1 + a2, a1 + a3, a2 + a3]
         to_ = [
             [a1, a2, a3],
