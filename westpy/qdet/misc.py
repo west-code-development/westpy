@@ -14,11 +14,24 @@ def visualize_correlated_state(evcs, norb, nelec, cutoff=10 ** (-3)):
     """
     # constrcut N-particle Fock space
     string_fock = []
-    for i in range(2):
-        determinants = cistring.make_strings(range(norb), nelec[i])
-        string_fock.append(
-            ["|" + format(entry, "0" + str(norb) + "b") + ">" for entry in determinants]
-        )
+    if norb<=64:
+        for i in range(2):
+            determinants = cistring.make_strings(range(norb), nelec[i])
+            string_fock.append(
+                ["|" + format(entry, "0" + str(norb) + "b") + ">" for entry in determinants]
+            )
+    else: #if the orbital>64. pyscf have different implementation 
+        for i in range(2):
+            determinants = cistring.gen_occslst(range(norb), nelec[i])
+            string_one_fock = []
+            for entry in determinants:
+                #generate the binary string as <64 case.
+                string_occ=['0']*norb
+                for i in entry:
+                    string_occ[i]='1'
+                string_occ=''.join(reversed(string_occ))
+                string_one_fock.append("|" + string_occ + ">")
+            string_fock.append(string_one_fock)
 
     # string for many-body state
     string = ""
