@@ -26,11 +26,11 @@ def active_space(westpp_file, local_factor_thr=0.0, max_n_bands=10, max_i_band=0
     #
     lsda = j["system"]["electron"]["lsda"]
     westpp_range = j["input"]["westpp_control"]["westpp_range"]
-    n_bands = westpp_range[1] - westpp_range[0] + 1
-    if max_n_bands > n_bands:
-        max_n_bands = n_bands
     if max_i_band < 1:
         max_i_band = westpp_range[1]
+    n_bands = max_i_band - westpp_range[0] + 1
+    if max_n_bands > n_bands:
+        max_n_bands = n_bands
     #
     if lsda:
         lf = np.zeros((n_bands), dtype=np.float64)
@@ -57,7 +57,9 @@ def active_space(westpp_file, local_factor_thr=0.0, max_n_bands=10, max_i_band=0
         zip_sort = sorted(zip_sort)
         qp_bands = list(map(list, zip(*zip_sort)))
     else:
-        lf = np.array(j["output"]["L"]["K00001"]["local_factor"], dtype=np.float64)
+        lf = np.array(
+            j["output"]["L"]["K00001"]["local_factor"][:n_bands], dtype=np.float64
+        )
         max_lf_ids = np.argsort(lf)[::-1][:max_n_bands]
         #
         qp_bands = [
