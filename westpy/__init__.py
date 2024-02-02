@@ -14,7 +14,7 @@ from westpy.bse import *
 from westpy.relaxation import *
 from westpy.activeSpace import *
 
-__version__ = "5.5.0"
+__version__ = "6.0.0"
 
 
 def header():
