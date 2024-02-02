@@ -20,7 +20,6 @@ def active_space(westpp_file, local_factor_thr=0.0, max_n_bands=10, max_i_band=0
     import numpy as np
 
     #
-    # read westpp
     with open(westpp_file, "r") as f:
         j = json.load(f)
     #
@@ -42,9 +41,9 @@ def active_space(westpp_file, local_factor_thr=0.0, max_n_bands=10, max_i_band=0
         overlap_ab = j["output"]["L"]["overlap_ab"]
         #
         for ip, pair in enumerate(overlap_ab):
-            ib[ip] = pair["ib"]
-            jb[ip] = pair["jb"]
-            if ib[ip] <= max_i_band and jb[ip] <= max_i_band:
+            if pair["ib"] <= max_i_band and pair["jb"] <= max_i_band:
+                ib[ip] = pair["ib"]
+                jb[ip] = pair["jb"]
                 lf[ip] = max(lf1[ib[ip] - 1], lf2[jb[ip] - 1])
         #
         max_lf_ids = np.argsort(lf)[::-1][:max_n_bands]
