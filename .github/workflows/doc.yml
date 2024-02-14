@@ -8,15 +8,15 @@ jobs:
     container: continuumio/miniconda3:latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Init
       run: |
         apt-get update
         apt-get install -qq make
         apt-get install -qq pandoc
-        pip install -q --upgrade pip
-        pip install -q nbsphinx
-        pip install -q sphinx_rtd_theme
+        pip install -q -U pip
+        pip install -q -U nbsphinx
+        pip install -q -U sphinx_rtd_theme
     - name: Build
       run: |
         pip install .
