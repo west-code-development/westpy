@@ -171,12 +171,12 @@ class Heff:
             "evcs": evcs,
             "mults": np.array(
                 [
-                    self.fcisolver.spin_square(fcivec=evc, norb=self.norb, nelec=nelec)[
-                        1
-                    ]
+                    self.spin_square_spin_polarized(
+                        fcivec=evc, norb=self.norb, nelec=nelec
+                    )[1]
                     if self.nspin == 1
                     else self.spin_square_spin_polarized(
-                        evc, norb=self.norb, nelec=nelec, ovlpab=self.ovlpab
+                        fcivec=evc, norb=self.norb, nelec=nelec, ovlpab=self.ovlpab
                     )[1]
                     if self.nspin == 2
                     else None
@@ -280,12 +280,16 @@ class Heff:
             return Heff(h1e, eri, point_group_rep=self.point_group_rep)
 
     def spin_square_spin_polarized(
-        self, evc: np.ndarray, norb: int, nelec: Tuple[int, int], ovlpab: np.ndarray
+        self,
+        fcivec: np.ndarray,
+        norb: int,
+        nelec: Tuple[int, int],
+        ovlpab: np.ndarray = None,
     ) -> Tuple[float, float]:
         """Compute the spin multiplicity for spin polarized calculations. Modified from pyscf spin_square_general().
 
         Args:
-            evc: FCI eigenvector.
+            fcivec: FCI eigenvector.
             norb: # of orbitals.
             nelec: # of spin up and spin down electrons.
             ovlpab: overlap matrix between orbitals in spin up and spin down channels.
@@ -296,12 +300,16 @@ class Heff:
 
         # compute the density matrices
         (dm1a, dm1b), (dm2aa, dm2ab, dm2bb) = self.fcisolver.make_rdm12s(
-            evc, norb=norb, nelec=nelec
+            fcivec, norb=norb, nelec=nelec
         )
 
-        ovlpaa = np.eye(ovlpab.shape[0])
-        ovlpbb = np.eye(ovlpab.shape[0])
-        ovlpba = ovlpab.T
+        ovlpaa = np.eye(norb)
+        ovlpbb = np.eye(norb)
+        if ovlpab is None:
+            ovlpab = np.eye(norb)
+            ovlpba = np.eye(norb)
+        else:
+            ovlpba = ovlpab.T
 
         # if ovlp=1, ssz = (neleca-nelecb)**2 * .25
         ssz = (
