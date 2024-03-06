@@ -12,11 +12,10 @@ def read_parameters(filename: str):
     with open(filename, "r") as f:
         raw_ = json.load(f)
 
-    indexmap = np.array(raw_["output"]["Q"]["indexmap"], dtype=int)
-
-    npair = len(indexmap)
     nspin = int(raw_["system"]["electron"]["nspin"])
     bands = np.array(raw_["input"]["wfreq_control"]["qp_bands"][0], dtype=int)
+    nband = len(bands)
+    npair = nband * (nband + 1) // 2
 
     return nspin, npair, bands
 
@@ -78,8 +77,15 @@ def read_matrix_elements(filename: str, string: str = "eri_w"):
         raw_ = json.load(f)
 
     nspin, npair, bands = read_parameters(filename)
+    nband = len(bands)
 
-    indexmap = np.array(raw_["output"]["Q"]["indexmap"], dtype=int)
+    # generate indexmap
+    indexmap = np.zeros((npair, 2), dtype=int)
+    ipair = 0
+    for ib in range(nband):
+        for jb in range(ib, nband):
+            indexmap[ipair] = [ib + 1, jb + 1]
+            ipair += 1
 
     # allocate one- and two-body terms in basis of pairs of KS states
     eri_pair = np.zeros((nspin, nspin, npair, npair))
@@ -103,9 +109,9 @@ def read_matrix_elements(filename: str, string: str = "eri_w"):
                 )
 
     # unfold one-body terms from pair basis to Kohn-Sham basis
-    h1e = np.zeros((nspin, len(bands), len(bands)))
+    h1e = np.zeros((nspin, nband, nband))
     for ispin in range(nspin):
-        for ipair in range(len(indexmap)):
+        for ipair in range(npair):
             i, j = indexmap[ipair]
             h1e[ispin, i - 1, j - 1] = h1e_pair[ispin, ipair]
             h1e[ispin, j - 1, i - 1] = h1e_pair[ispin, ipair]
@@ -115,17 +121,17 @@ def read_matrix_elements(filename: str, string: str = "eri_w"):
         (
             nspin,
             nspin,
-            len(bands),
-            len(bands),
-            len(bands),
-            len(bands),
+            nband,
+            nband,
+            nband,
+            nband,
         )
     )
     for ispin in range(nspin):
         for jspin in range(nspin):
-            for ipair in range(len(indexmap)):
+            for ipair in range(npair):
                 i, j = indexmap[ipair]
-                for jpair in range(len(indexmap)):
+                for jpair in range(npair):
                     k, l = indexmap[jpair]
                     eri[ispin, jspin, i - 1, j - 1, k - 1, l - 1] = eri_pair[
                         ispin, jspin, ipair, jpair
