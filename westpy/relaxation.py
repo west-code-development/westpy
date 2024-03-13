@@ -211,6 +211,7 @@ class bfgs_iter:
 
         # lattice parameters in Bohr
         h = self.alat * self.at
+        self.h = h
         hinv = np.linalg.inv(h)
         self.hinv_block = np.zeros((3 * self.nat, 3 * self.nat))
         for k in range(self.nat):
@@ -428,9 +429,13 @@ class bfgs_iter:
     def write_new_pw_input(self):
         # convert unit of atomic positions if necessary
         if self.pos_unit == "bohr":
-            pos_to_write = np.dot(self.pos, self.h)
+            tmp_pos = np.reshape(self.pos, (self.pos.shape[0] // 3, 3))
+            tmp_pos = np.dot(tmp_pos, self.h)
+            pos_to_write = tmp_pos.flatten()
         elif self.pos_unit == "angstrom":
-            pos_to_write = np.dot(self.pos, self.h) / Angstrom
+            tmp_pos = np.reshape(self.pos, (self.pos.shape[0] // 3, 3))
+            tmp_pos = np.dot(tmp_pos, self.h)
+            pos_to_write = tmp_pos.flatten() / Angstrom
         elif self.pos_unit == "crystal":
             pos_to_write = self.pos
 
@@ -624,6 +629,7 @@ class bfgs_iter:
         atoms_str = [atom.attrib["name"] for atom in atoms]
         pos_in_str = [atom.text.split() for atom in atoms]
         pos_in = np.array(pos_in_str, dtype=np.float64) / alat
+        pos_in = np.dot(pos_in, np.linalg.inv(at))
         pos_in = np.ravel(pos_in)
 
         self.nat = nat
