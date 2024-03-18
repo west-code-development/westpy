@@ -28,11 +28,13 @@ class bfgs_iter:
         self,
         run_pw: str,
         run_wbse: str,
+        run_nscf: str = None,
         run_wbse_init: str = None,
         pp: list = [],
         pw_input: str = "pw.in",
+        nscf_input: str = "nscf.in",
         wbse_input: str = "wbse.in",
-        wbse_init_input: str = None,
+        wbse_init_input: str = "wbse_init.in",
         l_restart: bool = False,
         energy_thr: float = 1.0e-4,
         grad_thr: float = 1.0e-3,
@@ -47,11 +49,13 @@ class bfgs_iter:
         """
         run_pw: Full command to run pwscf, e.g., mpirun -n 2 /path/to/qe/bin/pw.x
         run_wbse: Full command to run wbse, e.g., mpirun -n 4 /path/to/qe/bin/wbse.x -nb 4
+        run_nscf: Full command to run nscf, e.g., mpirun -n 2 /path/to/qe/bin/pw.x
         run_wbse_init: Full command to run wbse_init, e.g., mpirun -n 4 /path/to/qe/bin/wbse_init.x
         pp: List of pseudopotential files
         pw_input: pw.x input file name
+        nscf_input: pw.x input file name for nscf calculation
         wbse_input: wbse.x input file name
-        wbse_init_input: wbse_init.x input file name (default: same as wbse_input)
+        wbse_init_input: wbse_init.x input file name
         l_restart: If True, restart an unfinished run
         energy_thr: Convergence threshold on total energy (Ry) for ionic minimization
         grad_thr: Convergence threshold on forces (Ry/Bohr) for ionic minimization
@@ -66,14 +70,15 @@ class bfgs_iter:
         """
         # how to run
         self.run_pw = run_pw
+        self.run_nscf = run_nscf
         self.run_wbse = run_wbse
         self.run_wbse_init = run_wbse_init
         self.pp = pp
         self.pw_input = pw_input
-        if wbse_init_input:
+        if self.run_nscf:
+            self.nscf_input = nscf_input
+        if self.run_wbse_init:
             self.wbse_init_input = wbse_init_input
-        else:
-            self.wbse_init_input = wbse_input
         self.wbse_input = wbse_input
 
         # how to do BFGS
@@ -158,6 +163,9 @@ class bfgs_iter:
         if self.scf_iter == 1:
             os.mkdir(work_dir)
             shutil.copy2(self.pw_input, work_dir + self.pw_input)
+            # also copy the nscf.in file if necessary
+            if self.run_nscf:
+                shutil.copy2(self.nscf_input, work_dir + self.nscf_input)
 
         # run pw
         self.log("Running pw.x ...")
@@ -174,6 +182,27 @@ class bfgs_iter:
         self.read_constants_positions_pwxml()
         # load ground state forces and energy
         self.read_ground_state_forces_energy_pwxml()
+
+        # run nscf
+        if self.run_nscf:
+            self.log("Running nscf calculation using pw.x ...")
+
+            command = "cp -r pwscf.save pwscf_copy.save"
+            subprocess.run(command, shell=True, cwd=work_dir, check=True)
+
+            command = f"{self.run_nscf} -i {self.nscf_input} > nscf.out"
+            try:
+                subprocess.run(command, shell=True, cwd=work_dir, check=True)
+            except subprocess.CalledProcessError:
+                self.log(f"nscf pw.x failed: {work_dir}")
+                exit()
+
+            command = "cp pwscf.save/ace* pwscf_copy.save"
+            subprocess.run(command, shell=True, cwd=work_dir, check=True)
+            command = "rm -rf pwscf.save"
+            subprocess.run(command, shell=True, cwd=work_dir, check=True)
+            command = "mv pwscf_copy.save pwscf.save"
+            subprocess.run(command, shell=True, cwd=work_dir, check=True)
 
         # run wbse_init
         if self.l_exx:
@@ -467,6 +496,31 @@ class bfgs_iter:
 
         with open(new_pw_in, "w") as f:
             f.writelines(lines)
+
+        # also update the nscf file if needed
+        if self.run_nscf:
+            old_nscf_in = root_dir + self.nscf_input
+            new_nscf_in = next_dir + self.nscf_input
+
+            with open(old_nscf_in, "r") as f:
+                lines = f.readlines()
+
+            for start, line in enumerate(lines):
+                if line:
+                    if line.split()[0] == "ATOMIC_POSITIONS":
+                        break
+
+            # update atomic positions
+            for iat in range(self.nat):
+                new_line = f"{self.atoms[iat]}"
+                for iforce in range(3):
+                    new_line += f"   {pos_to_write[3 * iat + iforce]:.12f}"
+                new_line += "\n"
+
+                lines[start + 1 + iat] = new_line
+
+            with open(new_nscf_in, "w") as f:
+                f.writelines(lines)
 
         work_dir = root_dir + self.folder_name + str(self.scf_iter) + "/"
         shutil.rmtree(work_dir)
