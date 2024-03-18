@@ -185,10 +185,12 @@ class bfgs_iter:
 
         # run nscf
         if self.run_nscf:
-            self.log("Running nscf calculation using pw.x ...")
+            self.log("Running nscf pw.x ...")
 
-            command = "cp -r pwscf.save pwscf_copy.save"
-            subprocess.run(command, shell=True, cwd=work_dir, check=True)
+            save_dir = work_dir + self.pw_prefix + ".save/"
+            copy_dir = work_dir + self.pw_prefix + ".copy/"
+
+            shutil.copytree(save_dir, copy_dir)
 
             command = f"{self.run_nscf} -i {self.nscf_input} > nscf.out"
             try:
@@ -197,12 +199,14 @@ class bfgs_iter:
                 self.log(f"nscf pw.x failed: {work_dir}")
                 exit()
 
-            command = "cp pwscf.save/ace* pwscf_copy.save"
-            subprocess.run(command, shell=True, cwd=work_dir, check=True)
-            command = "rm -rf pwscf.save"
-            subprocess.run(command, shell=True, cwd=work_dir, check=True)
-            command = "mv pwscf_copy.save pwscf.save"
-            subprocess.run(command, shell=True, cwd=work_dir, check=True)
+            # use ACE operators from the nscf calculation
+            for ace_file in glob.glob(f"{copy_dir}ace*"):
+                os.remove(ace_file)
+            for ace_file in glob.glob(f"{save_dir}ace*"):
+                shutil.move(ace_file, copy_dir)
+
+            shutil.rmtree(save_dir)
+            shutil.move(copy_dir, save_dir)
 
         # run wbse_init
         if self.l_exx:
