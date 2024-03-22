@@ -93,7 +93,11 @@ class QDETResult(object):
         print(data)
 
     def solve(
-        self, nelec: Tuple = None, nroots: int = 10, verbose: bool = True
+        self,
+        nelec: Tuple = None,
+        nroots: int = 10,
+        solver: str = "FCI",
+        verbose: bool = True,
     ) -> Dict:
         """Build and diagonalize effective Hamiltonians for given active space.
 
@@ -102,6 +106,8 @@ class QDETResult(object):
             nroots (int): Number of roots for FCI calculations
             verbose (boolean): If True, write detailed info for FCI calculations
         """
+        assert solver.upper() in ["FCI", "SCI"]
+
         basis_indices = self.basis
         basis_labels = [""] * len(basis_indices)
 
@@ -116,7 +122,7 @@ class QDETResult(object):
                 nelec = (int(nel1), int(nel2))
 
         # diagonalize effective Hamiltonian
-        fcires = self.heff.FCI(nelec=nelec, nroots=nroots)
+        fcires = self.heff.FCI(nelec=nelec, nroots=nroots, solver=solver)
 
         if verbose:
             self._write(
@@ -125,6 +131,7 @@ class QDETResult(object):
             self._write("Diagonalizing QDET effective Hamiltonian...")
             self._write(f"nspin: {self.nspin}")
             self._write(f"occupations: {self.occupation[:]}")
+            self._write(f"solver: {solver.upper()}")
             self._write(
                 "==============================================================="
             )

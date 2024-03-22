@@ -1,6 +1,7 @@
 import unittest
 from westpy import Geometry, GroundState
 
+
 class GroundStateTestCase(unittest.TestCase):
     def setUp(self):
         geom = Geometry()

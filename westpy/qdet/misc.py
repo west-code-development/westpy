@@ -1,6 +1,7 @@
 import numpy as np
 from pyscf.fci import cistring
 from pyscf.fci import direct_uhf
+from pyscf.fci import selected_ci
 from typing import Tuple
 
 
@@ -56,6 +57,7 @@ def visualize_correlated_state(
 
 
 def spin_square_spin_polarized(
+    solver: str,
     fcievc: np.ndarray,
     norb: int,
     nelec: Tuple[int, int],
@@ -64,6 +66,7 @@ def spin_square_spin_polarized(
     """Compute the spin multiplicity for spin polarized calculations. Modified from pyscf spin_square_general().
 
     Args:
+        solver: Impurity solver.
         fcievc: FCI eigenvector.
         norb: Number of orbitals in the active space
         nelec: A 2-dim tuple containing the number of spin-up and spin-down
@@ -74,8 +77,13 @@ def spin_square_spin_polarized(
         Tuple[spin_square, spin_multiplicity].
     """
 
+    if solver.upper() == "SCI":
+        fcisolver = selected_ci.SelectedCI()
+    else:
+        fcisolver = direct_uhf.FCISolver()
+
     # compute the density matrices
-    (dm1a, dm1b), (dm2aa, dm2ab, dm2bb) = direct_uhf.make_rdm12s(
+    (dm1a, dm1b), (dm2aa, dm2ab, dm2bb) = fcisolver.make_rdm12s(
         fcievc, norb=norb, nelec=nelec
     )
 

@@ -322,7 +322,7 @@ class eBSEResult:
             nelec_ = (self.nelec[0] - 1, self.nelec[1] + 1)
 
         return spin_square_spin_polarized(
-            fcievc=fci_, norb=self.norb, nelec=nelec_, ovlpab=self.ovlpab
+            solver="FCI", fcievc=fci_, norb=self.norb, nelec=nelec_, ovlpab=self.ovlpab
         )
 
     def get_transition_symmetry(self, vector, point_group_rep):

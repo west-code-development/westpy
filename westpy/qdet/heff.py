@@ -126,6 +126,7 @@ class Heff:
         self,
         nelec: Union[int, Tuple[int, int]],
         nroots: int = 10,
+        solver: str = "FCI",
         verbose: bool = False,
     ) -> Dict:
         """Perform FCI calculations using pyscf package.
@@ -145,7 +146,10 @@ class Heff:
             self.print_symm_info()
 
         if self.nspin == 1:
-            self.fcisolver = pyscf.fci.direct_spin1.FCISolver()
+            if solver.upper() == "SCI":
+                self.fcisolver = pyscf.fci.selected_ci.SelectedCI()
+            else:
+                self.fcisolver = pyscf.fci.direct_spin1.FCISolver()
             evs, evcs = self.fcisolver.kernel(
                 h1e=self.h1e, eri=self.eri, norb=self.norb, nelec=nelec, nroots=nroots
             )
@@ -171,11 +175,12 @@ class Heff:
                 [
                     (
                         spin_square_spin_polarized(
-                            fcievc=evc, norb=self.norb, nelec=nelec
+                            solver=solver, fcievc=evc, norb=self.norb, nelec=nelec
                         )[1]
                         if self.nspin == 1
                         else (
                             spin_square_spin_polarized(
+                                solver=solver,
                                 fcievc=evc,
                                 norb=self.norb,
                                 nelec=nelec,
@@ -191,12 +196,24 @@ class Heff:
         }
 
         if self.nspin == 1:
-            res["rdm1s"] = np.array(
-                [
-                    self.fcisolver.make_rdm1(fcivec=evc, norb=self.norb, nelec=nelec)
-                    for evc in evcs
-                ]
-            )
+            if solver.upper() == "SCI":
+                res["rdm1s"] = np.array(
+                    [
+                        self.fcisolver.make_rdm1(
+                            civec_strs=evc, norb=self.norb, nelec=nelec
+                        )
+                        for evc in evcs
+                    ]
+                )
+            else:
+                res["rdm1s"] = np.array(
+                    [
+                        self.fcisolver.make_rdm1(
+                            fcivec=evc, norb=self.norb, nelec=nelec
+                        )
+                        for evc in evcs
+                    ]
+                )
         else:
             res["rdm1s"] = np.array(
                 [
@@ -225,11 +242,14 @@ class Heff:
             ctable = self.point_group_rep.point_group.ctable
 
             from pyscf.fci.addons import transform_ci_for_orbital_rotation
+            from pyscf.fci.selected_ci import to_fci
 
             res["symms_maxproj"] = []
             res["symms_full"] = []
 
             for fcivec in evcs:
+                if solver.upper() == "SCI":
+                    fcivec = to_fci(fcivec, self.norb, nelec)
                 irprojs = {}
                 for irrep, chis in ctable.items():
                     l = chis[0]

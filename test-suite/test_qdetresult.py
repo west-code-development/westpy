@@ -47,11 +47,36 @@ class QDETResultTestCase(unittest.TestCase):
 
         np.testing.assert_almost_equal(self.qdetresult.eri, np.array(self.ref["eri"]))
 
-    def test_solution(self):
+    def test_solution_fci(self):
         """
         Test QDET eigenvalues.
         """
         solution = self.qdetresult.solve()
+
+        np.testing.assert_almost_equal(
+            solution["evs"],
+            np.array(
+                [
+                    0.0,
+                    0.43604111,
+                    0.436138,
+                    1.25034936,
+                    1.94063497,
+                    1.94070084,
+                    2.93681169,
+                    2.93688193,
+                    4.66194716,
+                    5.07277312,
+                ]
+            ),
+            decimal=4,
+        )
+
+    def test_solution_sci(self):
+        """
+        Test QDET eigenvalues.
+        """
+        solution = self.qdetresult.solve(solver="SCI")
 
         np.testing.assert_almost_equal(
             solution["evs"],
