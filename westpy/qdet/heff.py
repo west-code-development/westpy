@@ -171,15 +171,22 @@ class Heff:
             "evcs": evcs,
             "mults": np.array(
                 [
-                    self.spin_square_spin_polarized(
-                        fcivec=evc, norb=self.norb, nelec=nelec
-                    )[1]
-                    if self.nspin == 1
-                    else self.spin_square_spin_polarized(
-                        fcivec=evc, norb=self.norb, nelec=nelec, ovlpab=self.ovlpab
-                    )[1]
-                    if self.nspin == 2
-                    else None
+                    (
+                        self.spin_square_spin_polarized(
+                            fcivec=evc, norb=self.norb, nelec=nelec
+                        )[1]
+                        if self.nspin == 1
+                        else (
+                            self.spin_square_spin_polarized(
+                                fcivec=evc,
+                                norb=self.norb,
+                                nelec=nelec,
+                                ovlpab=self.ovlpab,
+                            )[1]
+                            if self.nspin == 2
+                            else None
+                        )
+                    )
                     for evc in evcs
                 ]
             ),
