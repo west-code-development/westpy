@@ -50,18 +50,14 @@ def set_units():
     # sp.m_n         # neutron mass
     #
     AU["Bohr"] = 1.0
-    AU["Angstrom"] = (
-        1e-10 / 4.0 / sp.pi / sp.epsilon_0 / sp.hbar**2 * sp.m_e * sp.e**2
-    )
+    AU["Angstrom"] = 1e-10 / 4.0 / sp.pi / sp.epsilon_0 / sp.hbar**2 * sp.m_e * sp.e**2
     AU["Ang"] = AU["Angstrom"]
     AU["Rydberg"] = 1.0
     AU["Ry"] = AU["Rydberg"]
     AU["Hartree"] = 2.0 * AU["Rydberg"]
     AU["Ha"] = AU["Hartree"]
     AU["eV"] = sp.e / sp.m_e / sp.e**4 * (8.0 * sp.epsilon_0**2 * sp.h**2)
-    AU["Joule"] = (
-        32.0 * sp.pi**2 * sp.epsilon_0**2 * sp.hbar**2 / sp.m_e / sp.e**4
-    )
+    AU["Joule"] = 32.0 * sp.pi**2 * sp.epsilon_0**2 * sp.hbar**2 / sp.m_e / sp.e**4
     #
     return AU
 
