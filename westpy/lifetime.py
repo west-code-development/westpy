@@ -44,7 +44,7 @@ def radiative_lifetime(westpp_file, ispin, band1, band2, n=None, e_zpl=None):
     #
     rr = np.zeros(3)
     for ikpt in range(ikpt0, ikpt1):
-        label_k = "K" + "{:05d}".format(ikpt)
+        label_k = "K" + "{:06d}".format(ikpt)
         #
         assert westpp_json["output"]["D"][label_k]["dipole"][itrans]["trans"] == [
             band1,
