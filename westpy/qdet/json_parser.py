@@ -103,7 +103,7 @@ def read_matrix_elements(filename: str, string: str = "eri_w"):
             string2 = "K" + format(ispin2 + 1, "06d")
 
             for ipair in range(npair):
-                string3 = "pair" + format(ipair + 1, "06d")
+                string3 = "pair" + format(ipair + 1, "09d")
                 eri_pair[ispin1, ispin2, ipair, :] = np.array(
                     raw_["qdet"][string][string1][string2][string3], dtype=np.float64
                 )
