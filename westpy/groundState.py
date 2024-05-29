@@ -193,11 +193,11 @@ class GroundState:
                     file.write(
                         atom.symbol
                         + " "
-                        + str(atom.position[0])
+                        + str(atom.abs_coord[0])
                         + " "
-                        + str(atom.position[1])
+                        + str(atom.abs_coord[1])
                         + " "
-                        + str(atom.position[2])
+                        + str(atom.abs_coord[2])
                         + "\n"
                     )
                 #
@@ -291,11 +291,11 @@ class GroundState:
                         + " "
                         + self.geom.species[atom.symbol]["name"]
                         + " "
-                        + str(atom.position[0])
+                        + str(atom.abs_coord[0])
                         + " "
-                        + str(atom.position[1])
+                        + str(atom.abs_coord[1])
                         + " "
-                        + str(atom.position[2])
+                        + str(atom.abs_coord[2])
                         + "\n"
                     )
                     #

@@ -172,8 +172,9 @@ class Geometry(object):
         >>> geom.addAtom( position="Si", abs_coord=(0,0,0) )
         """
         from westpy import Atom
+        import numpy as np
 
-        self.atoms.append(Atom(symbol=symbol, position=np.array(position) * units))
+        self.atoms.append(Atom(symbol=symbol, abs_coord=np.array(position) * units))
         self.isSet["atoms"] = True
 
     #
@@ -219,6 +220,7 @@ class Geometry(object):
         """
         #
         from westpy import Angstrom
+        import numpy as np
 
         natoms = int(lines[0])
         for line in lines[2 : 2 + natoms]:
@@ -417,7 +419,7 @@ class Geometry(object):
                                 + " ".join(
                                     map(
                                         str,
-                                        atom.position * BOHR2A
+                                        atom.abs_coord * BOHR2A
                                         + i * a1
                                         + j * a2
                                         + k * a3,

@@ -1,5 +1,14 @@
 """ Set of utilities."""
 
+logger = None
+def _debug(*args):
+    global logger
+    if not logger:
+        import logging
+        logger = logging.getLogger("westpy.utils")
+    # Ensure all arguments are converted to strings
+    message = " ".join(map(str, args))
+    logger.error(message)
 
 def extractFileNamefromUrl(url):
     """Extracts a file name from url.
