@@ -36,7 +36,7 @@ class Atom(object):
 
             assert isinstance(ase_atom, ASEAtom)
             self.symbol = ase_atom.symbol
-            self.abs_coord = ase_atom.position * Angstrom
+            self.abs_coord = ase_atom.abs_coord * Angstrom
         else:
             assert isinstance(symbol, string_types)
             assert bool(cry_coord is None) != bool(abs_coord is None)
@@ -62,7 +62,7 @@ class Atom(object):
 
     @cry_coord.setter
     def cry_coord(self, cry_coord):
-        if sel.cell is not None:
+        if self.cell is not None:
             if self.cell.isperiodic:
                 self.abs_coord = cry_coord @ self.cell.R
             else:
