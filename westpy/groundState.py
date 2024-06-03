@@ -354,6 +354,6 @@ class GroundState:
 
         >>> geom.addSpecies( "Si", "http://www.quantum-simulation.org/potentials/sg15_oncv/upf/Si_ONCV_PBE-1.1.upf" )
 
-        .. note:: You can use this method to add either upf or xml pseudopotentials. However it is forbidded to mix them.
+        .. note:: You can use this method to add either upf or xml pseudopotentials. However it is forbidden to mix them.
         """
         self.geom.addSpecies(symbol, url)

@@ -69,7 +69,7 @@ class Geometry(object):
         >>> geom = Geometry()
         >>> geom.addSpecies( "Si", "http://www.quantum-simulation.org/potentials/sg15_oncv/upf/Si_ONCV_PBE-1.1.upf" )
 
-        .. note:: You can use this method to add either upf or xml pseudopotentials. However it is forbidded to mix them.
+        .. note:: You can use this method to add either upf or xml pseudopotentials. However it is forbidden to mix them.
         """
         from westpy import extractFileNamefromUrl
 
@@ -155,13 +155,13 @@ class Geometry(object):
         self.isSet["cell"] = True
 
     #
-    def addAtom(self, symbol, position, units=Bohr):
+    def addAtom(self, symbol, abs_coord, units=Bohr):
         """Adds a single atom.
 
         :param symbol: chemical symbol
         :type symbol: string
-        :param position: position
-        :type position: 3-dim tuple
+        :param abs_coord: absolute coordinates
+        :type abs_coord: 3-dim tuple
         :param units: Units, optional
         :type units: "Bohr" or "Angstrom"
 
@@ -169,12 +169,12 @@ class Geometry(object):
 
         >>> from westpy import *
         >>> geom = Geometry()
-        >>> geom.addAtom( position="Si", abs_coord=(0,0,0) )
+        >>> geom.addAtom( symbol="Si", abs_coord=(0,0,0) )
         """
-        from westpy import Atom
         import numpy as np
+        from westpy import Atom
 
-        self.atoms.append(Atom(symbol=symbol, abs_coord=np.array(position) * units))
+        self.atoms.append(Atom(symbol=symbol, abs_coord=np.array(abs_coord) * units))
         self.isSet["atoms"] = True
 
     #
@@ -182,8 +182,8 @@ class Geometry(object):
         """adds a single atom by fractional coords
         :param symbol: chemical symbol
         :type symbol: string
-        :param position: position
-        :type position: 3-dim tuple
+        :param frac_coord: fractional coordinates
+        :type frac_coord: 3-dim tuple
 
         :Example:
 
@@ -219,8 +219,8 @@ class Geometry(object):
         :type bool:
         """
         #
-        from westpy import Angstrom
         import numpy as np
+        from westpy import Angstrom
 
         natoms = int(lines[0])
         for line in lines[2 : 2 + natoms]:
