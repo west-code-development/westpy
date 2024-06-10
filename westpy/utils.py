@@ -100,7 +100,6 @@ def writeJsonFile(fname, data):
     with open(fname, "w") as file:
         json.dump(data, file, indent=2)
         #
-        print("")
         print("File written : ", fname)
 
 
@@ -126,7 +125,6 @@ def readJsonFile(fname):
     with open(fname, "r") as file:
         data = json.load(file)
         #
-        print("")
         print("File read : ", fname)
     return data
 
@@ -319,11 +317,11 @@ def read_imcube(rfname, ifname=""):
     import numpy as np
 
     ifname = ifname or rfname.replace("real", "imag")
-    _debug("reading from files", rfname, "and", ifname)
+    print("Reading from files ", rfname, " and ", ifname)
     re, im = read_cube(rfname), read_cube(ifname)
     fin = np.zeros(re[0].shape, dtype="complex128")
     if re[1] != im[1]:
-        _debug("warning: meta data mismatch, real part metadata retained")
+        print("Warning: meta data mismatch, real part metadata retained")
     fin += re[0]
     fin += 1j * im[0]
     return fin, re[1]
@@ -384,7 +382,7 @@ def write_imcube(data, meta, rfname, ifname=""):
     :type ifname: string
     """
     ifname = ifname or rfname.replace("real", "imag")
-    _debug("writing data to files", rfname, "and", ifname)
+    print("Writing data to files ", rfname, " and ", ifname)
     write_cube(data.real, meta, rfname)
     write_cube(data.imag, meta, ifname)
 
