@@ -76,7 +76,6 @@ class BSEResult(object):
     def plotSpectrum(
         self,
         ipol: str = None,
-        ispin: int = 1,
         energyRange: List[float] = [0.0, 10.0, 0.01],
         sigma: float = 0.1,
         n_extra: int = 0,
@@ -86,8 +85,6 @@ class BSEResult(object):
 
         :param ipol: which component to compute ("XX", "XY", "XZ", "YX", "YY", "YZ", "ZX", "ZY", "ZZ", or "XYZ")
         :type ipol: string
-        :param ispin: Spin channel to consider
-        :type ispin: int
         :param energyRange: energy range = min, max, step (eV)
         :type energyRange: 3-dim float
         :param sigma: Broadening width (eV)
@@ -105,7 +102,6 @@ class BSEResult(object):
         """
 
         assert ipol in self.can_do
-        assert ispin >= 1 and ispin <= self.nspin
         xmin, xmax, dx = energyRange
         assert xmax > xmin
         assert dx > 0.0
@@ -117,7 +113,7 @@ class BSEResult(object):
                 n_extra = 0
             self.n_total = self.n_lanczos + n_extra
 
-            self.__read_beta_zeta(ispin)
+            self.__read_beta_zeta()
             self.__extrapolate(n_extra)
 
             self.r = np.zeros(self.n_total, dtype=np.complex128)
@@ -179,6 +175,8 @@ class BSEResult(object):
         fig = plt.figure()
         ax = fig.add_subplot(1, 1, 1)
         dosPlot = ax.plot(energyAxis, chiAxis.imag, label=f"chi_{ipol}")
+        for aa, bb in zip(energyAxis, chiAxis.imag):
+            print(f"{aa:5.3f}, {bb}")
 
         plt.xlim([xmin, xmax])
         plt.xlabel("$\omega$ (eV)")
@@ -193,7 +191,7 @@ class BSEResult(object):
         plt.show()
         fig.clear()
 
-    def __read_beta_zeta(self, ispin: int):
+    def __read_beta_zeta(self):
         self.norm = np.zeros(self.n_ipol, dtype=np.float64)
         self.beta = np.zeros((self.n_ipol, self.n_total), dtype=np.float64)
         self.zeta = np.zeros((self.n_ipol, 3, self.n_total), dtype=np.complex128)
@@ -202,10 +200,10 @@ class BSEResult(object):
             res = json.load(f)
 
         for ip, lp in enumerate(self.pols):
-            tmp = res["output"]["lanczos"][f"K{ispin:0>6}"][lp]["beta"]
+            tmp = res["output"]["lanczos"][lp]["beta"]
             beta_read = np.array(tmp)
 
-            tmp = res["output"]["lanczos"][f"K{ispin:0>6}"][lp]["zeta"]
+            tmp = res["output"]["lanczos"][lp]["zeta"]
             zeta_read = np.array(tmp).reshape((3, self.n_lanczos))
 
             self.norm[ip] = beta_read[0]
@@ -296,7 +294,7 @@ class BSEResult(object):
             res = json.load(f)
 
         for il in range(self.n_liouville):
-            tmp = res["output"][f"E{(il+1):05d}"]["transition_dipole_moment"]
+            tmp = res["output"][f"E{(il+1):06d}"]["transition_dipole_moment"]
             self.tdm[il] = np.array(tmp)
-            tmp = res["output"][f"E{(il+1):05d}"]["excitation_energy"]
+            tmp = res["output"][f"E{(il+1):06d}"]["excitation_energy"]
             self.vee[il] = tmp
