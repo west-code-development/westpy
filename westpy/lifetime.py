@@ -32,6 +32,7 @@ def radiative_lifetime(westpp_file, ispin, band1, band2, n=None, e_zpl=None):
     with open(westpp_file, "r") as f:
         westpp_json = json.load(f)
     #
+    gamma_only = westpp_json["system"]["basis"]["gamma_only"]
     nkstot = westpp_json["system"]["electron"]["nkstot"]
     lsda = westpp_json["system"]["electron"]["lsda"]
     nkpt = int(nkstot / 2) if lsda else nkstot
@@ -46,11 +47,6 @@ def radiative_lifetime(westpp_file, ispin, band1, band2, n=None, e_zpl=None):
     for ikpt in range(ikpt0, ikpt1):
         label_k = "K" + "{:06d}".format(ikpt)
         #
-        assert westpp_json["output"]["D"][label_k]["dipole"][itrans]["trans"] == [
-            band1,
-            band2,
-        ]
-        #
         eig1 = westpp_json["output"]["D"][label_k]["energies"][band1 - 1]
         eig2 = westpp_json["output"]["D"][label_k]["energies"][band2 - 1]
         e_diff = eig2 - eig1
@@ -61,8 +57,19 @@ def radiative_lifetime(westpp_file, ispin, band1, band2, n=None, e_zpl=None):
         if not lsda:
             wk /= 2.0
         #
-        re = westpp_json["output"]["D"][label_k]["dipole"][itrans]["re"]
-        im = westpp_json["output"]["D"][label_k]["dipole"][itrans]["im"]
+        re = np.zeros(3)
+        im = np.zeros(3)
+        if gamma_only:
+            re[0] = westpp_json["output"]["D"][label_k]["dipole"]["x"][itrans]
+            re[1] = westpp_json["output"]["D"][label_k]["dipole"]["y"][itrans]
+            re[2] = westpp_json["output"]["D"][label_k]["dipole"]["z"][itrans]
+        else:
+            re[0] = westpp_json["output"]["D"][label_k]["dipole"]["x"]["re"][itrans]
+            re[1] = westpp_json["output"]["D"][label_k]["dipole"]["y"]["re"][itrans]
+            re[2] = westpp_json["output"]["D"][label_k]["dipole"]["z"]["re"][itrans]
+            im[0] = westpp_json["output"]["D"][label_k]["dipole"]["x"]["im"][itrans]
+            im[1] = westpp_json["output"]["D"][label_k]["dipole"]["y"]["im"][itrans]
+            im[2] = westpp_json["output"]["D"][label_k]["dipole"]["z"]["im"][itrans]
         #
         for i in range(3):
             rr[i] += np.sqrt(re[i] ** 2 + im[i] ** 2) * wk / e_diff
