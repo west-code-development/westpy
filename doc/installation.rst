@@ -41,7 +41,7 @@ To install **WESTpy** you need to execute:
 
     $ git clone https://github.com/west-code-development/westpy.git
     $ cd westpy
-    $ python setup.py install --user
+    $ pip install --user .
 
 or simply execute:
 
