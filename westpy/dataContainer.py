@@ -11,7 +11,7 @@ class DataContainer:
 
     #
     def __init__(self):
-        from signac import Collection
+        from westpy import Collection
 
         self.info = {}
         self.coll = Collection()
