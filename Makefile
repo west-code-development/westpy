@@ -1,7 +1,7 @@
 PYT=python3
 
 install:
-	${PYT} -m pip install --user .
+	${PYT} -m pip install .
 
 clean:
 	rm -rf westpy.egg-info

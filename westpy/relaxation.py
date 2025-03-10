@@ -527,6 +527,15 @@ class bfgs_iter:
                 f.writelines(lines)
 
         work_dir = root_dir + self.folder_name + str(self.scf_iter) + "/"
+
+        # copy the .save directory from the current step to the next step
+        old_save_dir = work_dir + self.pw_prefix + ".save"
+        new_save_dir = next_dir + self.pw_prefix + ".save"
+        if os.path.exists(old_save_dir):
+            shutil.copytree(old_save_dir, new_save_dir)
+            self.log("")
+            self.log(f"Copied {self.pw_prefix}.save folder into {next_dir}")
+
         shutil.rmtree(work_dir)
 
     def reset_bfgs(self):
