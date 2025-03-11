@@ -35,6 +35,7 @@ class bfgs_iter:
         nscf_input: str = "nscf.in",
         wbse_input: str = "wbse.in",
         wbse_init_input: str = "wbse_init.in",
+        l_copy_save_dir: bool = True,
         l_restart: bool = False,
         energy_thr: float = 1.0e-4,
         grad_thr: float = 1.0e-3,
@@ -56,6 +57,7 @@ class bfgs_iter:
         nscf_input: pw.x input file name for nscf calculation
         wbse_input: wbse.x input file name
         wbse_init_input: wbse_init.x input file name
+        l_copy_save_dir: If False, does not copy .save dir (.True. if startingpot/wfc='file')
         l_restart: If True, restart an unfinished run
         energy_thr: Convergence threshold on total energy (Ry) for ionic minimization
         grad_thr: Convergence threshold on forces (Ry/Bohr) for ionic minimization
@@ -98,6 +100,7 @@ class bfgs_iter:
         self.tmp_file = "bfgs_tmp.json"
         self.l_exx = False
         self.conv_bfgs = False
+        self.l_copy_save_dir = l_copy_save_dir
         if l_restart:
             self.start_iter = self.read_restart()
         else:
@@ -527,15 +530,16 @@ class bfgs_iter:
                 f.writelines(lines)
 
         work_dir = root_dir + self.folder_name + str(self.scf_iter) + "/"
-
-        # copy the .save directory from the current step to the next step
-        old_save_dir = work_dir + self.pw_prefix + ".save"
-        new_save_dir = next_dir + self.pw_prefix + ".save"
-        if os.path.exists(old_save_dir):
-            shutil.copytree(old_save_dir, new_save_dir)
+        if(self.l_copy_save_dir) : 
+            """
+            copy the .save directory from the current step to the next step
+            """
+            old_save_dir = work_dir + self.pw_prefix + ".save"
+            new_save_dir = next_dir + self.pw_prefix + ".save"
+            if os.path.exists(old_save_dir):
+               shutil.copytree(old_save_dir, new_save_dir)
             self.log("")
             self.log(f"Copied {self.pw_prefix}.save folder into {next_dir}")
-
         shutil.rmtree(work_dir)
 
     def reset_bfgs(self):
