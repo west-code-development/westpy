@@ -530,7 +530,7 @@ class bfgs_iter:
                 f.writelines(lines)
 
         work_dir = root_dir + self.folder_name + str(self.scf_iter) + "/"
-        if(self.l_copy_save_dir): 
+        if self.l_copy_save_dir: 
             """
             copy the .save directory from the current step to the next step
             """
