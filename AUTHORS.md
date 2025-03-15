@@ -4,6 +4,7 @@
 
 ## Developers
 
+- Siyuan Chen (University of Chicago)
 - Marco Govoni (University of Modena and Reggio Emilia, Argonne National Lab, University of Chicago)
 - Yu Jin (University of Chicago)
 - Victor Yu (Argonne National Lab)
