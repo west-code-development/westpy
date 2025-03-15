@@ -59,7 +59,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = data['name']
-copyright = u'2022, Marco Govoni'
+copyright = u'2025, Marco Govoni'
 author = u'Marco Govoni'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -129,8 +129,6 @@ html_theme = 'sphinx_rtd_theme'
 
 # Add any paths that contain custom themes here, relative to this directory.
 html_theme = "sphinx_rtd_theme"
-html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
-#html_theme_path = ["_themes", ]
 html_show_sourcelink = False
 html_show_copyright = False
 html_show_sphinx = False
