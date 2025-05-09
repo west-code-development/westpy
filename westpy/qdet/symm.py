@@ -24,26 +24,29 @@ class PointGroupOperation:
 
         Args:
             T: 4x4 affine transformation matrix for point group operation
-            origin: origin of operation
-            cell: transformation matrix to the volumetric cell data.
-                  obtaining cell:
-                  1.let A = crystal vectoe matrix:
-                      matrix is np.array([x1,y1.z1],
+            origin: origin of operation, defined as follows:
+                  1. [x,y,z] = coordinate of origin in crystal unit
+                  2. [nx,ny,nz] = shape of the volumetric data, i.e.,
+                     dimension of the real space grid
+                  3. origin = [x*nx,y*ny,z*nz]
+            cell: transformation matrix to the volumetric cell data, defined
+                  as follows:
+                  1. A = crystal vector matrix
+                     np.array([x1,y1,z1],
                               [x2,y2,z2],
                               [x3,y3,z3]).T
-                    where [xi,yi,zi] are the ith crystal basis vector. The Unit doesn't matter
-                  2. ket T = np.array([nx,0,0],
+                     where [xi,yi,zi] is the ith crystal basis vector in any unit
+                  2. B = 1 / np.array([nx,0,0],
                               [0,ny,0],
                               [0,0,nz])
-                    where nx,ny,nz are the shape of the volumetric data, it is in .cube file's header.
-                  3. cell = A@T
+                     where nx,ny,nz are the shape of the volumetric data, i.e.,
+                     dimension of the real space grid
+                  3. cell = A @ B
         """
         assert T.shape == (4, 4)
         self.T = T
         if cell is not None:
             assert np.shape(cell) == (3, 3)
-            if origin is not None:
-                origin = np.linalg.inv(cell) @ origin
             self.set_coord(cell)
         if origin is not None:
             assert len(origin) == 3
