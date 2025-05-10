@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "westpy"
+authors = [
+    {name = "Marco Govoni", email = "mgovoni@unimore.it"},
+]
+description = "Python tools for WEST"
+readme = "README.md"
+requires-python = ">=3.6, <4"
+license = "GPL-3.0-only"
+dependencies = [
+    "numpy",
+    "scipy",
+    "matplotlib",
+    "pyyaml",
+    "datetime",
+    "requests",
+    "mendeleev",
+    "setuptools",
+    "urllib3",
+    "sphinx",
+    "sphinx_rtd_theme",
+    "py3Dmol",
+    "pyscf",
+    "ipython",
+    "pandas",
+    "six",
+    "ase",
+    "qiskit_nature",
+    "h5py",
+]
+dynamic = ["version"]
+
+[tool.setuptools.dynamic]
+version = {attr = "westpy.__version__"}
+
+[project.urls]
+Homepage = "https://west-code.org/"
+Documentation = "https://west-code.org/doc/westpy/latest/"
+Repository = "https://github.com/west-code-development/westpy"
