@@ -21,10 +21,9 @@ class ElectronicStructure:
     def addKey(self, key, description):
         """Describes metadata key.
 
-        :param key: key
-        :type key: string
-        :param description: description
-        :type description: * (hashable object)
+        Args:
+            key (string): key
+            description (hashable object): description
 
         :Example:
 
@@ -38,8 +37,8 @@ class ElectronicStructure:
     def removeKey(self, key):
         """Removes key from metadata.
 
-        :param key: key
-        :type key: string
+        Args:
+            key (string): key
 
         :Example:
 
@@ -66,12 +65,10 @@ class ElectronicStructure:
     def addDataPoint(self, ksb, key, what):
         """Adds datapoint to data.
 
-        :param ksb: triplet of integers: k-point, spin, band (integer labels)
-        :type ksb: 3-dim int
-        :param key: key
-        :type key: string
-        :param what: content attached to key
-        :type what: * (hashable object)
+        Args:
+            ksb (3-dim tuple of int): triplet of integers: k-point, spin, band (integer labels)
+            key (string): key
+            what (hashable object): content attached to key
 
         :Example:
 
@@ -95,20 +92,14 @@ class ElectronicStructure:
     ):
         """Plots desnity of states (DOS).
 
-        :param kk: list of k-points
-        :type kk: list of int
-        :param ss: list of spin channels (must be [1], [2], or [1,2])
-        :type ss: list of int
-        :param energyKeys: energy keys
-        :type energyKeys: list of string (needs to match the available keys)
-        :param sigma: standard deviation of gaussian (eV), optional
-        :type sigma: float .OR. string (needs to match the available keys)
-        :param weight: weight, optional
-        :type weight: float .OR. string (needs to match the available keys)
-        :param energyRange: energy range = min, max, step (eV), optional
-        :type energyRange: 3-dim float
-        :param fname: output file name
-        :type fname: string
+        Args:
+            kk (list of int): list of k-points
+            ss (list of int): list of spin channels (must be [1], [2], or [1,2])
+            energyKeys (list of string): energy keys (mush match the available keys)
+            sigma (float or string): standard deviation of gaussian (eV), optional (mush match the available keys)
+            weight (float or string): weight, optional (mush match the available keys)
+            energyRange (3-dim tuple of float): energy range = min, max, step (eV), optional
+            fname (string): output file name, optional
 
         :Example:
 
@@ -217,22 +208,15 @@ class ElectronicStructure:
     ):
         """Plots desnity of states (DOS).
 
-        :param kk: list of k-points
-        :type kk: list of int
-        :param ss: list of spin channels
-        :type ss: list of int
-        :param energyKeys: energy keys
-        :type energyKeys: list of string (needs to match the available keys)
-        :param sigma: standard deviation of gaussian (eV), optional
-        :type sigma: float .OR. string (needs to match the available keys)
-        :param weight: weight, optional
-        :type weight: float .OR. string (needs to match the available keys)
-        :param energyRange: energy range = min, max, step (eV), optional
-        :type energyRange: 3-dim float
-        :param wfcKey: wavefunction file
-        :type wfcKey: string (needs to match the available keys)
-        :param fname: output file name
-        :type fname: string
+        Args:
+            kk (list of int): list of k-points
+            ss (list of int): list of spin channels (must be [1], [2], or [1,2])
+            energyKeys (list of string): energy keys (mush match the available keys)
+            sigma (float or string): standard deviation of gaussian (eV), optional (mush match the available keys)
+            weight (float or string): weight, optional (mush match the available keys)
+            energyRange (3-dim tuple of float): energy range = min, max, step (eV), optional
+            wfcKey (string) : wavefunction file (mush match the available keys)
+            fname (string): output file name, optional
 
         :Example:
 
@@ -251,6 +235,7 @@ class ElectronicStructure:
             import numpy as np
             from scipy import interpolate
             from westpy import gaussian
+            from westpy import Angstrom
 
             #
             npte = int((energyRange[1] - energyRange[0]) / energyRange[2]) + 1
@@ -287,7 +272,7 @@ class ElectronicStructure:
                         iptx = 0
                         for line in lines:
                             if not line.startswith("#"):
-                                xAxisFromFile[iptx] = float(line.split()[0])
+                                xAxisFromFile[iptx] = float(line.split()[0]) / Angstrom
                                 iptx += 1
                     #
                     break
@@ -392,8 +377,8 @@ class ElectronicStructure:
             #
             plt.xlim([0, np.max(xAxis[:])])
             plt.ylim([energyRange[0], energyRange[1]])
-            plt.xlabel("avg. dir. (a.u.)")
-            plt.ylabel("energy (eV)")
+            plt.xlabel(r"z ($\AA$)")
+            plt.ylabel("Energy (eV)")
             plt.savefig(fname, dpi=300)
             # plt.legend()
             print("output written in : ", fname)

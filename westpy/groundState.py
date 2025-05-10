@@ -4,12 +4,10 @@ import requests
 class GroundState:
     """Class for representing a ground state calculation with DFT.
 
-    :param geom: geometry (cell, atoms, species)
-    :type geom: Class(Geometry)
-    :param xc: exchange-correlation functional
-    :type xc: string
-    :param ecut: energy cutoff for the wavefunction (in Rydberg units)
-    :type ecut: float
+    Args:
+        geom (Geometry): geometry (cell, atoms, species)
+        xc (string): exchange-correlation functional
+        ecut (float): energy cutoff for the wavefunction (Rydberg)
 
     :Example:
 
@@ -42,8 +40,8 @@ class GroundState:
     def setNempty(self, nempty):
         """Sets the number of empty bands.
 
-        :param nempty: number of empty bands
-        :type nempty: int
+        Args:
+            nempty (int): number of empty bands
 
         :Example:
 
@@ -55,8 +53,8 @@ class GroundState:
     def setKmesh(self, kmesh):
         """Sets the uniform grid for k-points sampling.
 
-        :param kmesh: kmesh
-        :type kmesh: 3-dim tuple of int
+        Args:
+            kmesh (3-dim tuple of int): kmesh
 
         :Example:
 
@@ -78,8 +76,8 @@ class GroundState:
     def setCollinearSpin(self, tot_magnetization=0.0):
         """Sets collinear spin.
 
-        :param tot_magnetization: Total majority spin charge - minority spin charge, optional
-        :type tot_magnetization: float
+        Args:
+            tot_magnetization (float): Total majority spin charge - minority spin charge, optional
 
         :Example:
 
@@ -95,8 +93,8 @@ class GroundState:
 
         Optionally spin-orbit can be turned on.
 
-        :param lspinorb: spin-orbit, optional
-        :type lspinorb: boolean
+        Args:
+            lspinorb (boolean): spin-orbit, optional
 
         :Example:
 
@@ -112,8 +110,8 @@ class GroundState:
     def generateInputPW(self, fname="pw.in"):
         """Generates input file for pwscf. Valid only for QuantumEspresso calculations.
 
-        :param fname: fname, optional
-        :type fname: string
+        Args:
+            fname (string): fname, optional
 
         :Example:
 
@@ -232,8 +230,8 @@ class GroundState:
     def generateInputQbox(self, fname="qbox.in"):
         """Generates input file for qbox. Valid only for Qbox calculations.
 
-        :param fname: fname, optional
-        :type fname: string
+        Args:
+            fname (string): fname, optional
 
         :Example:
 
@@ -345,10 +343,9 @@ class GroundState:
     def updateSpecies(self, symbol, url):
         """Update a species.
 
-        :param symbol: chemical symbol
-        :type symbol: string
-        :param url: url
-        :type url: string
+        Args:
+            symbol (string): chemical symbol
+            url (string): url
 
         :Example:
 

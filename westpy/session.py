@@ -126,16 +126,12 @@ class Session(object):
     ):
         """Runs the executable on the remote server.
 
-        :param executable: name of executable
-        :type executable: string
-        :param inputFile: name of input file
-        :type inputFile: string
-        :param outputFile: name of output file
-        :type outputFile: string
-        :param downloadUrl: URLs to be downloaded
-        :type downloadUrl: list of string
-        :param number_of_cores: number of cores
-        :type number_of_cores: int
+        Args:
+            executable (string): name of executable
+            inputFile (string): name of input file
+            outputFile (string): name of output file
+            downloadUrl (string): URLs to be downloaded
+            number_of_cores (int): number of cores
 
         :Example:
 

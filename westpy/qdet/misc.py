@@ -5,11 +5,14 @@ from pyscf.fci import cistring
 def visualize_correlated_state(evcs, norb, nelec, cutoff=1e-3):
     """Visualizes the Slater determinants that contribute to a given many-body state
 
-    :param evcs: FCI eigenstates provided by PySCF
-    :param norb: number of orbitals that form the active space
-    :param nelec: a two-entry list containing the number of spin-up and spin-down
-    electrons in the active space
-    :return: string representing the many-body state
+    Args:
+        evcs: FCI eigenstates provided by PySCF
+        norb: Number of orbitals in the active space
+        nelec: A 2-dim tuple containing the number of spin-up and spin-down
+            electrons in the active space
+
+    Returns:
+        String representing the many-body state
     """
     # constrcut N-particle Fock space
     string_fock = [[], []]

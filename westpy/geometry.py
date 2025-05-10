@@ -58,10 +58,9 @@ class Geometry(object):
     def addSpecies(self, symbol, url):
         """Adds a species.
 
-        :param symbol: chemical symbol
-        :type symbol: string
-        :param url: url
-        :type url: string
+        Args:
+            symbol (string): chemical symbol
+            url (string): url
 
         :Example:
 
@@ -110,14 +109,11 @@ class Geometry(object):
     def setCell(self, a1=(0, 0, 0), a2=(0, 0, 0), a3=(0, 0, 0), units=Bohr):
         """Sets cell, given the three vectors :math:`a_1`, :math:`a_2`, :math:`a_3`.
 
-        :param a1: :math:`a_1`
-        :type a1: 3-dim tuple
-        :param a2: :math:`a_2`
-        :type a2: 3-dim tuple
-        :param a3: :math:`a_3`
-        :type a3: 3-dim tuple
-        :param units: Units, optional
-        :type units: "Bohr" or "Angstrom"
+        Args:
+            a1 (3-dim tuple of float): :math:`a_1`
+            a2 (3-dim tuple of float): :math:`a_2`
+            a3 (3-dim tuple of float): :math:`a_3`
+            units ("Bohr" or "Angstrom"): Units, optional
 
         :Example:
 
@@ -158,12 +154,10 @@ class Geometry(object):
     def addAtom(self, symbol, abs_coord, units=Bohr):
         """Adds a single atom.
 
-        :param symbol: chemical symbol
-        :type symbol: string
-        :param abs_coord: absolute coordinates
-        :type abs_coord: 3-dim tuple
-        :param units: Units, optional
-        :type units: "Bohr" or "Angstrom"
+        Args:
+            symbol (string): chemical symbol
+            abs_coord (3-dim tuple of float): absolute coordinates
+            units ("Bohr" or "Angstrom"): Units, optional
 
         :Example:
 
@@ -180,10 +174,10 @@ class Geometry(object):
     #
     def addFracCoordAtom(self, symbol, frac_coord):
         """adds a single atom by fractional coords
-        :param symbol: chemical symbol
-        :type symbol: string
-        :param frac_coord: fractional coordinates
-        :type frac_coord: 3-dim tuple
+
+        Args:
+            symbol (string): chemical symbol
+            frac_coord (3-dim tuple of float): fractional coordinates
 
         :Example:
 
@@ -213,10 +207,9 @@ class Geometry(object):
     def __addAtomsFromXYZLines(self, lines, decode=True):
         """Adds atoms from XYZ lines.
 
-        :param lines: lines read from XYZ file (only one image)
-        :type lines: list of string
-        :param decode:
-        :type bool:
+        Args:
+            lines (list of string): lines read from XYZ file (only one image)
+            decode (boolean): utf-8
         """
         #
         import numpy as np
@@ -240,8 +233,8 @@ class Geometry(object):
     def addAtomsFromXYZFile(self, fname):
         """Adds atoms from XYZ file (only one image).
 
-        :param fname: file name
-        :type fname: string
+        Args:
+            fname (string): file name
 
         :Example:
 
@@ -258,8 +251,8 @@ class Geometry(object):
     def addAtomsFromOnlineXYZ(self, url):
         """Adds atoms from XYZ file (only one image) located at url.
 
-        :param url: url
-        :type url: string
+        Args:
+            url (string): url
 
         :Example:
 
@@ -382,17 +375,8 @@ class Geometry(object):
 
     def view(self, style="stick", width=800, height=800, ix=1, iy=1, iz=1, debug=False):
         """Display simulation box geom in Angstrom.
-        ix, iy, iz is the perodic display to system
+        ix, iy, iz is the perodic display.
         style can be line, stick, sphere.
-
-        :param style:
-        :param width:
-        :param height:
-        :param ix:
-        :param iy:
-        :param iz:
-        :param debug:
-        :return:
         """
         import py3Dmol
         import numpy as np
