@@ -26,7 +26,7 @@ class Atom(object):
         symbol=None,
         cry_coord=None,
         abs_coord=None,
-        **kwargs
+        **kwargs,
     ):
         # assert isinstance(cell, Cell)
         self.cell = cell
