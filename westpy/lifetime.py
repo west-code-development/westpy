@@ -1,18 +1,13 @@
 def radiative_lifetime(westpp_file, ispin, band1, band2, n=None, e_zpl=None):
     """Computes radiative lifetime.
 
-    :param westpp_file: The JSON output file of Westpp
-    :type westpp_file: string
-    :param ispin: spin index
-    :type ispin: int
-    :param band1: band index (transition from band1 to band2 is computed)
-    :type band1: int
-    :param band2: band index (transition from band1 to band2 is computed)
-    :type band2: int
-    :param n: refractive index
-    :type n: float or function of e_zpl
-    :param e_zpl: zero phonon line (ZPL) energy in Rydberg
-    :type e_zpl: float
+    Args:
+        westpp_file (string): The JSON output file of Westpp
+        ispin (int): spin index
+        band1 (int): band index (transition from band1 to band2 is computed)
+        band2 (int): band index (transition from band1 to band2 is computed)
+        n (float or function of e_zpl): refractive index
+        e_zpl (float): zero-phonon line (ZPL) energy (Rydberg)
 
     :Example:
 

@@ -4,10 +4,11 @@
 def extractFileNamefromUrl(url):
     """Extracts a file name from url.
 
-    :param url: url
-    :type url: string
-    :returns: file name
-    :rtype: string
+    Args:
+        url (string): url
+
+    Returns:
+        string: file name
 
     :Example:
 
@@ -25,10 +26,9 @@ def extractFileNamefromUrl(url):
 def download(url, fname=None):
     """Downloads a file from url.
 
-    :param url: url
-    :type url: string
-    :param fname: file name, optional
-    :type fname: string
+    Args:
+        url (string): url
+        fname (string): file name
 
     :Example:
 
@@ -56,10 +56,11 @@ def download(url, fname=None):
 def bool2str(logical):
     """Converts a boolean type into a string .TRUE. or .FALSE. .
 
-    :param logical: logical
-    :type logical: boolean
-    :returns: .TRUE. or .FALSE.
-    :rtype: string
+    Args:
+        logical (boolean): logical
+
+    Returns:
+        string: .TRUE. or .FALSE.
 
     :Example:
 
@@ -79,10 +80,9 @@ def bool2str(logical):
 def writeJsonFile(fname, data):
     """Writes data to file using the JSON format.
 
-    :param fname: file name
-    :type fname: string
-    :param data: data
-    :type data: dict/list
+    Args:
+        fname (string): file name
+        data (dict/list): data
 
     :Example:
 
@@ -106,10 +106,11 @@ def writeJsonFile(fname, data):
 def readJsonFile(fname):
     """Reads data from file using the JSON format.
 
-    :param fname: file name
-    :type fname: string
-    :returns: data
-    :rtype: dict/list
+    Args:
+        fname (string): file name
+
+    Returns:
+        dict/list: data
 
     :Example:
 
@@ -132,10 +133,9 @@ def readJsonFile(fname):
 def convertYaml2Json(fyml, fjson):
     """Converts the file from YAML to JSON.
 
-    :param fyml: Name of YAML file
-    :type fyml: string
-    :param fjson: Name of JSON file
-    :type fjson: string
+    Args:
+        fyml (string): Name of YAML file
+        fjson (string): Name of JSON file
 
     :Example:
 
@@ -156,12 +156,12 @@ def convertYaml2Json(fyml, fjson):
 def listLinesWithKeyfromOnlineText(url, key):
     """List lines from text file located at url, with key.
 
-    :param url: url
-    :type url: string
-    :param key: key word
-    :type key: string
-    :returns: list of lines
-    :rtype: list
+    Args:
+        url (string): url
+        key (string): keyword
+
+    Returns:
+        list: list of lines
 
     :Example:
 
@@ -188,12 +188,12 @@ def listLinesWithKeyfromOnlineText(url, key):
 def listValuesWithKeyFromOnlineXML(url, key):
     """List values from XML file located at url, with key.
 
-    :param url: url
-    :type url: string
-    :param key: key word
-    :type key: string
-    :returns: list of values
-    :rtype: list
+    Args:
+        url (string): url
+        key (string): keyword
+
+    Returns:
+        list: list of values
 
     :Example:
 
@@ -221,14 +221,13 @@ def gaussian(x, mu, sig):
 
     :math:`f(x;\\mu,\\sigma) = \\frac{1}{\\sigma\sqrt{2\\pi}}e^{-\\frac{(x-\\mu)^2}{2\\sigma^2}}`
 
-    :param x: x
-    :type x: float
-    :param mu: :math:`\\mu`
-    :type mu: float
-    :param sigma: :math:`\\sigma`
-    :type sigma: float
-    :returns: :math:`f(x;\\mu,\\sigma)`
-    :rtype: float
+    Args:
+        x (float): x
+        mu (float): :math:`\\mu`
+        sigma (float): :math:`\\sigma`
+
+    Returns:
+        float: :math:`f(x;\\mu,\\sigma)`
 
     :Example:
 
@@ -247,10 +246,11 @@ def _putline(*args):
     Generate a line to be written to a cube file where
     the first field is an int and the remaining fields are floats.
 
-    params:
+    Args:
         *args: first arg is formatted as int and remaining as floats
 
-    returns: formatted string to be written to file with trailing newline
+    Returns:
+        string: Formatted string to be written to file with trailing newline
     """
     s = "{0:^ 8d}".format(args[0])
     s += "".join("{0:< 12.6f}".format(arg) for arg in args[1:])
@@ -262,10 +262,11 @@ def _getline(cube):
     Read a line from cube file where first field is an int
     and the remaining fields are floats.
 
-    params:
+    Args:
         cube: file object of the cube file
 
-    returns: (int, list<float>)
+    Returns:
+        (int, list<float>)
     """
     l = cube.readline().strip().split()
     return int(l[0]), map(float, l[1:])
@@ -275,10 +276,11 @@ def read_cube(fname):
     """
     Read cube file into numpy array
 
-    :param fname: filename of cube file
-    :type fname: string
-    :returns: (data, metadata)
-    :rtype: (np.array, dict)
+    Args:
+        fname (string): file name of cube file
+
+    Returns:
+        (np.array, dict): (data, metadata)
     """
     import numpy as np
 
@@ -305,14 +307,14 @@ def read_imcube(rfname, ifname=""):
     """
     Convenience function to read in two cube files at once,
     where one contains the real part and the other contains the
-    imag part. If only one filename given, other filename is inferred.
+    imag part. If only one file name given, other file name is inferred.
 
-    :param rfname: filename of cube file of real part
-    :type rfname: string
-    :param ifname: optional, filename of cube file of imag part
-    :type fname: string
-    :returns: (data, metadata), where data is (real part + j*imag part)
-    :rtype: (np.array, dict)
+    Args:
+        rfname (string): file name of cube file of real part
+        ifname (string): optional, file name of cube file of imag part
+
+    Returns:
+        (np.array, dict): (data, metadata), where data is (real part + j*imag part)
     """
     import numpy as np
 
@@ -331,16 +333,13 @@ def write_cube(data, meta, fname):
     """
     Write volumetric data to cube file along
 
-    :param data: volumetric data consisting real values
-    :type data: list of float
-    :param meta: dict containing metadata with following keys:
-
-        - atoms: list of atoms in the form (mass, [position])
-        - org: origin
-        - xvec,yvec,zvec: lattice vector basis
-    :type meta: dict
-    :param fname: filename of cubefile (existing files overwritten)
-    :type fname: string
+    Args:
+        data (list of float): volumetric data consisting of real values
+        meta (dict): dict containing metadata with following keys:
+            - atoms: list of atoms in the form (mass, [position])
+            - org: origin
+            - xvec,yvec,zvec: lattice vector basis
+        fname (string): file name of cubefile (existing files overwritten)
     """
     with open(fname, "w") as cube:
         # first two lines are comments
@@ -366,20 +365,16 @@ def write_imcube(data, meta, rfname, ifname=""):
     Convenience function to write two cube files from complex valued
     volumetric data, one for the real part and one for the imaginary part.
     Data about atoms, origin and lattice vectors are kept same for both.
-    If only one filename given, other filename is inferred.
+    If only one file name given, other file name is inferred.
 
-    :param data: volumetric data consisting complex values
-    :type data: list of complex
-    :param meta: dict containing metadata with following keys:
-
-        - atoms: list of atoms in the form (mass, [position])
-        - org: origin
-        - xvec,yvec,zvec: lattice vector basis
-    :type meta: dict
-    :param rfname: filename of cubefile containing real part
-    :type rfname: string
-    :param ifname: optional, filename of cubefile containing imag part
-    :type ifname: string
+    Args:
+        data (list of float): volumetric data consisting of complex values
+        meta (dict): dict containing metadata with following keys:
+            - atoms: list of atoms in the form (mass, [position])
+            - org: origin
+            - xvec,yvec,zvec: lattice vector basis
+        rfname (string): file name of cubefile of real part
+        ifname (string): file name of cubefile of imag part
     """
     ifname = ifname or rfname.replace("real", "imag")
     print("Writing data to files ", rfname, " and ", ifname)
@@ -405,12 +400,12 @@ def wfreq2df(
     """
     Loads the wfreq JSON output into a pandas dataframe.
 
-    :param fname: filename of JSON output file
-    :type fname: string
-    :param dfKeys: energy keys to be added to dataframe
-    :type dfKeys: list of string
-    :returns: (dataframe, data)
-    :rtype: (pd.DataFrame, dict)
+    Args:
+        fname (string): file name of JSON output file
+        dfKeys (list of string): energy keys to be added to dataframe
+
+    Returns:
+        (pd.DataFrame, dict): (dataframe, data)
     """
     #
     import json

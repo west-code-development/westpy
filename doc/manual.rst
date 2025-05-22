@@ -5,23 +5,6 @@ Manual
 
 The complete **WESTpy** reference is reported below.
 
-
-Units
------
-
-.. automodule:: westpy.units
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-Utilities
----------
-
-.. automodule:: westpy.utils
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 Atom
 ----
 
@@ -30,18 +13,23 @@ Atom
     :undoc-members:
     :show-inheritance:
 
-Geometry
---------
+BSE
+---
 
-.. automodule:: westpy.geometry
+.. automodule:: westpy.bse.bseresult
     :members:
     :undoc-members:
     :show-inheritance:
 
-Ground State
-------------
+.. automodule:: westpy.bse.qbox2bse
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
-.. automodule:: westpy.groundState
+Cell
+----
+
+.. automodule:: westpy.cell
     :members:
     :undoc-members:
     :show-inheritance:
@@ -62,10 +50,71 @@ Electronic Structure
     :undoc-members:
     :show-inheritance:
 
+Geometry
+--------
+
+.. automodule:: westpy.geometry
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+Ground State
+------------
+
+.. automodule:: westpy.groundState
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+Life Time
+---------
+
+.. automodule:: westpy.lifetime
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+QDET
+----
+
+.. automodule:: westpy.qdet.qdetresult
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. automodule:: westpy.qdet.symm
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+Relaxation
+----------
+
+.. automodule:: westpy.relaxation
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 Session
 -------
 
 .. automodule:: westpy.session
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+Units
+-----
+
+.. automodule:: westpy.units
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+Utilities
+---------
+
+.. automodule:: westpy.utils
     :members:
     :undoc-members:
     :show-inheritance:

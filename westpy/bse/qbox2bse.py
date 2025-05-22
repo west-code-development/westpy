@@ -5,18 +5,18 @@ from xml.etree import ElementTree as ET
 
 
 class Qbox2BSE(object):
+    """Parses Qbox output and generates files needed by WEST BSE.
+
+    Args:
+        filename (string): Qbox output file (XML)
+
+    :Example:
+
+    >>> from westpy.bse import *
+    >>> qb = Qbox2BSE("qb.out")
+    """
+
     def __init__(self, filename: str):
-        """Parses Qbox output and generates files needed by WEST BSE.
-
-        :param filename: Qbox output file (XML)
-        :type filename: string
-
-        :Example:
-
-        >>> from westpy.bse import *
-        >>> qb = Qbox2BSE("qb.out")
-        """
-
         self.filename = filename
 
         root = ET.parse(filename)
@@ -37,8 +37,8 @@ class Qbox2BSE(object):
         """
         Reads localization from XML file then writes to text file.
 
-        :param filename: name of Qbox bisection information file
-        :type filename: string
+        Args:
+            filename (string): name of Qbox bisection information file
 
         :Example:
 
@@ -75,8 +75,8 @@ class Qbox2BSE(object):
         """
         Reads wavefunctions from XML file then writes to HDF5 file.
 
-        :param filename: name of Qbox wavefunction file
-        :type filename: string
+        Args:
+            filename (string): name of Qbox wavefunction file
 
         :Example:
 

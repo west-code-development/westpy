@@ -7,18 +7,18 @@ from westpy.units import eV
 
 
 class BSEResult(object):
+    """Parses BSE/TDDFT results.
+
+    Args:
+        filename (string): Wbse or Westpp output file (JSON)
+
+    :Example:
+
+    >>> from westpy.bse import *
+    >>> wbse = BSEResult("wbse.json")
+    """
+
     def __init__(self, filename: str):
-        """Parses BSE/TDDFT results.
-
-        :param filename: Wbse or Westpp output file (JSON)
-        :type filename: string
-
-        :Example:
-
-        >>> from westpy.bse import *
-        >>> wbse = BSEResult("wbse.json")
-        """
-
         self.filename = filename
 
         with open(filename, "r") as f:
@@ -83,16 +83,12 @@ class BSEResult(object):
     ):
         """Plots BSE/TDDFT absorption spectrum.
 
-        :param ipol: which component to compute ("XX", "XY", "XZ", "YX", "YY", "YZ", "ZX", "ZY", "ZZ", or "XYZ")
-        :type ipol: string
-        :param energyRange: energy range = min, max, step (eV)
-        :type energyRange: 3-dim float
-        :param sigma: Broadening width (eV)
-        :type sigma: float
-        :param n_extra: Number of extrapolation steps (Lanczos only)
-        :type n_extra: int
-        :param fname: Output file name
-        :type fname: string
+        Args:
+            ipol (string): which component to compute ("XX", "XY", "XZ", "YX", "YY", "YZ", "ZX", "ZY", "ZZ", or "XYZ")
+            energyRange (3-dim float): energy range = min, max, step (eV)
+            sigma (float): Broadening width (eV)
+            n_extra (int): Number of extrapolation steps (Lanczos only)
+            fname (string): Output file name
 
         :Example:
 

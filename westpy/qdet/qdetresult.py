@@ -28,7 +28,7 @@ class QDETResult(object):
 
         Args:
             filename: name of JSON file that contains the output of WEST
-            calculation.
+                calculation.
             point_group: point group of the system.
             symmetrize: arguments for symmetrization function of Heff.
         """
@@ -74,7 +74,7 @@ class QDETResult(object):
     def __str__(self):
         """Print a summary of QDET calculation."""
         string = "---------------------------------------------------------------\n"
-        string += "CGW Results General Info\n"
+        string += "QDET Results General Info\n"
         string += f"path: {self.path}\n"
         string += f"nspin = {self.nspin}, nel = {self.nel}, nproj = {len(self.bases)}\n"
         if self.point_group is not None:
@@ -86,7 +86,7 @@ class QDETResult(object):
 
         return string
 
-    def write(self, *args):
+    def _write(self, *args):
         data = ""
         for i in args:
             data += str(i)
@@ -97,15 +97,12 @@ class QDETResult(object):
     def solve(
         self, nelec: Tuple = None, nroots: int = 10, verbose: bool = True
     ) -> Dict:
-        """Build effective Hamiltonians for given active space.
-
-        The highest level function of CGWResults class. Call self.make_heff to build
-        effective Hamiltonians for given set of W. Can run FCI calculations in place.
+        """Build and diagonalize effective Hamiltonians for given active space.
 
         Args:
-            nelec: # of electrons in each spin-channel
-            nroots: # of roots for FCI calculations.
-            verbose: if True, write detailed info for FCI calculations.
+            nelec (2-dim tuple of int): Number of electrons in each spin channel
+            nroots (int): Number of roots for FCI calculations
+            verbose (boolean): If True, write detailed info for FCI calculations
         """
         basis_indices = self.basis
         basis_labels = [""] * len(basis_indices)
@@ -124,13 +121,13 @@ class QDETResult(object):
         fcires = self.heff.FCI(nelec=nelec, nroots=nroots)
 
         if verbose:
-            self.write(
+            self._write(
                 "==============================================================="
             )
-            self.write("Building effective Hamiltonian...")
-            self.write(f"nspin: {self.nspin}")
-            self.write(f"occupations: {self.occupation[:]}")
-            self.write(
+            self._write("Building effective Hamiltonian...")
+            self._write(f"nspin: {self.nspin}")
+            self._write(f"occupations: {self.occupation[:]}")
+            self._write(
                 "==============================================================="
             )
             # header
@@ -151,7 +148,7 @@ class QDETResult(object):
                 df.loc[ie] = row
             # display
             display(df)
-            self.write("-----------------------------------------------------")
+            self._write("-----------------------------------------------------")
 
             # remove keys that are confusing to the user and are no longer
             # needed

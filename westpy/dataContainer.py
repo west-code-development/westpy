@@ -22,12 +22,10 @@ class DataContainer:
 
         If identifier exists, update the document associated to the identifier, otherwise insert the document with the identifier.
 
-        :param identifier: identifier
-        :type key: * (hashable object)
-        :param document: document
-        :type document: * (hashable object)
-        :param incremental_update: if the document exists, only update it, do not remove its other keys.
-        :type incremental_update: boolean
+        Args:
+            identifier (hashable object): identifier
+            document (hashable object): document
+            incremental_update (boolean): if the document exists, only update it, do not remove its other keys.
 
         :Example:
 
@@ -69,8 +67,8 @@ class DataContainer:
     def removePoint(self, identifier):
         """Removes point with given identifier from the data container.
 
-        :param identifier: identifier
-        :type key: * (hashable object)
+        Args:
+            identifier (hashable object): identifier
 
         :Example:
 
@@ -88,10 +86,9 @@ class DataContainer:
     def upsertKey(self, key, description):
         """Updates or inserts a new key and its description.
 
-        :param key: key
-        :type key: string
-        :param description: description
-        :type description: * (hashable object)
+        Args:
+            key (string): key
+            description (hashable object): description
 
         :Example:
 
@@ -108,8 +105,8 @@ class DataContainer:
     def removeKey(self, key):
         """Removes the description of a key
 
-        :param key: key
-        :type key: string
+        Args:
+            key (string): key
 
         :Example:
 
@@ -128,13 +125,11 @@ class DataContainer:
     def checkKeys(self, printSummary=True):
         """Checks that all keys are described.
 
-        :param printSummary: if True prints summary
-        :type printSummary: boolean
-        :returns: True if all keys are described, False otherwise.
-        :rtype: boolean
+        Args:
+            printSummary (boolean): if True prints summary
 
-        :param key: key
-        :type key: string
+        Returns:
+            boolean: True if all keys are described, False otherwise.
 
         :Example:
 
