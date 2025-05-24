@@ -43,7 +43,7 @@ Contents
 
 .. note::
 
-   To get help using the **WESTpy** package, send an email to `mgovoni@anl.gov <mailto:mgovoni@anl.gov>`_.
+   To get help using the **WESTpy** package, open an issue on `GitHub <https://github.com/west-code-development/westpy/issues>`_.
 
 The **WESTpy** package is hosted on `GitHub <https://github.com/west-code-development/westpy>`_, and licensed under the open-source GPLv3 license.
 
