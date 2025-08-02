@@ -1,4 +1,4 @@
-""" Set of utilities."""
+"""Set of utilities."""
 
 
 def extractFileNamefromUrl(url):
