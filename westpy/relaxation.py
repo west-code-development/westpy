@@ -493,7 +493,7 @@ class bfgs_iter:
 
         for start, line in enumerate(lines):
             if line:
-                if line.split()[0] == "ATOMIC_POSITIONS":
+                if line.split() and line.split()[0] == "ATOMIC_POSITIONS":
                     break
 
         # update atomic positions
@@ -518,7 +518,7 @@ class bfgs_iter:
 
             for start, line in enumerate(lines):
                 if line:
-                    if line.split()[0] == "ATOMIC_POSITIONS":
+                    if line.split() and line.split()[0] == "ATOMIC_POSITIONS":
                         break
 
             # update atomic positions
