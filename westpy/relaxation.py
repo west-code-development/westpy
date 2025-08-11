@@ -492,9 +492,8 @@ class bfgs_iter:
             lines = f.readlines()
 
         for start, line in enumerate(lines):
-            if line:
-                if line.split()[0] == "ATOMIC_POSITIONS":
-                    break
+            if line.strip().startswith("ATOMIC_POSITIONS"):
+                break
 
         # update atomic positions
         for iat in range(self.nat):
@@ -517,9 +516,8 @@ class bfgs_iter:
                 lines = f.readlines()
 
             for start, line in enumerate(lines):
-                if line:
-                    if line.split()[0] == "ATOMIC_POSITIONS":
-                        break
+                if line.strip().startswith("ATOMIC_POSITIONS"):
+                    break
 
             # update atomic positions
             for iat in range(self.nat):
