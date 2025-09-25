@@ -2,14 +2,21 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to WESTpy's documentation!
-==================================
+Welcome to the documentation of WESTpy |version|
+================================================
 
-.. .. important::
+The **WESTpy** package is designed to assist users of the **WEST** code in pre- and post-processing operations.
 
-    This is documentation for the **WESTpy** *package*, which is part of the WEST_ framework.
+Features:
 
-.. _WEST: https://west-code.org
+   - Guided generation of input files for ground state density functional theory calculations (Qbox, Quantum ESPRESSO)
+   - Guided generation of input files for WEST
+   - Plot of density of states (DOS), local density of states (LDOS), full-frequency self-energy, and optical absorption spectrum
+   - Diagonalization of quantum defect embedding theory (QDET) Hamiltonian
+   - Excited-state geometry relaxation using time-dependent density functional theory (TDDFT) forces
+
+.. seealso::
+   **WEST** is massively parallel code for many-body perturbation theory calculations. Click `here <https://west-code.org/doc/West/latest/>`_ to know more.
 
 Contents
 --------
@@ -18,7 +25,6 @@ Contents
    :hidden:
    :maxdepth: 2
 
-   overview
    installation
    tutorial
    manual
@@ -26,24 +32,21 @@ Contents
 
 .. glossary::
 
-    :ref:`overview`
-      An illustration of **WESTpy**.
-
-    :ref:`installation`
+   :ref:`installation`
       Instructions on how to install the **WESTpy** package.
 
-    :ref:`tutorial`
-      Compact demonstration of usage of **WESTpy** for pre- and post-processing WEST calculations.
+   :ref:`tutorial`
+      A compact demonstration of the usage of **WESTpy** for pre- and post-processing WEST calculations.
 
-    :ref:`manual`
-      The complete reference.
+   :ref:`manual`
+      The complete documentation of the **WESTpy** API.
 
-    :ref:`acknowledge`
+   :ref:`acknowledge`
       Instructions on how to acknowledge this software in publications.
+
+The **WESTpy** package is hosted on `GitHub <https://github.com/west-code-development/westpy>`_, and licensed under the open-source GPLv3 license.
 
 .. note::
 
    To get help using the **WESTpy** package, open an issue on `GitHub <https://github.com/west-code-development/westpy/issues>`_.
-
-The **WESTpy** package is hosted on `GitHub <https://github.com/west-code-development/westpy>`_, and licensed under the open-source GPLv3 license.
 

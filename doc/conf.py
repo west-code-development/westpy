@@ -4,6 +4,7 @@ import json
 
 import sphinx_rtd_theme
 from unittest.mock import MagicMock
+from datetime import datetime
 
 class Mock(MagicMock):
     @classmethod
@@ -60,8 +61,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = data['name']
-copyright = u'2025, Marco Govoni'
-author = u'Marco Govoni'
+author = 'Marco Govoni'
+copyright = f'{datetime.now().year}, {author}'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -129,7 +130,6 @@ html_theme = 'sphinx_rtd_theme'
 #html_theme_options = {}
 
 # Add any paths that contain custom themes here, relative to this directory.
-html_theme = "sphinx_rtd_theme"
 html_show_sourcelink = False
 html_show_copyright = False
 html_show_sphinx = False
@@ -250,8 +250,8 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  (master_doc, 'westpy.tex', u'westpy Documentation',
-   u'Marco Govoni', 'manual'),
+  (master_doc, 'westpy.tex', 'westpy Documentation',
+   'Marco Govoni', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -280,7 +280,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'westpy', u'westpy Documentation',
+    (master_doc, 'westpy', 'westpy Documentation',
      [author], 1)
 ]
 
@@ -294,7 +294,7 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  (master_doc, 'westpy', u'westpy Documentation',
+  (master_doc, 'westpy', 'westpy Documentation',
    author, 'westpy', 'Python package to pre- and post-process WEST calculations.',
    'Miscellaneous'),
 ]
