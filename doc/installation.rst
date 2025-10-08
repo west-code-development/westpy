@@ -33,7 +33,7 @@ To install **WESTpy** and its dependencies, execute:
 
     $ git clone https://github.com/west-code-development/westpy.git
     $ cd westpy
-    $ pip install .
+    $ pip install --user .
 
 or simply execute:
 
