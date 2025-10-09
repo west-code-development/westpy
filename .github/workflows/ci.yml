@@ -1,6 +1,10 @@
 name: CI
 
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+  schedule:
+  - cron: "0 0 * * *"
 
 jobs:
   test:
@@ -8,7 +12,7 @@ jobs:
     container: continuumio/miniconda3:latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Build
       run: |
         pip install .
