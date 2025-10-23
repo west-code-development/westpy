@@ -13,7 +13,7 @@ def read_parameters(filename: str):
         raw_ = json.load(f)
 
     nspin = int(raw_["system"]["electron"]["nspin"])
-    bands = np.array(raw_["input"]["wfreq_control"]["qp_bands"][0], dtype=int)
+    bands = np.array(raw_["input"]["wfreq_control"]["qp_bands"][0], dtype=np.int32)
     nband = len(bands)
     npair = nband * (nband + 1) // 2
 
@@ -80,7 +80,7 @@ def read_matrix_elements(filename: str, string: str = "eri_w"):
     nband = len(bands)
 
     # generate indexmap
-    indexmap = np.zeros((npair, 2), dtype=int)
+    indexmap = np.zeros((npair, 2), dtype=np.int32)
     ipair = 0
     for ib in range(nband):
         for jb in range(ib, nband):

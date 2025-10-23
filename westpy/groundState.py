@@ -1,6 +1,3 @@
-import requests
-
-
 class GroundState:
     """Class for representing a ground state calculation with DFT.
 

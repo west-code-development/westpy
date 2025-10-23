@@ -1,22 +1,21 @@
 import numpy as np
-import json
 import pandas as pd
 from IPython.display import display
 
 from pyscf.fci.cistring import make_strings, num_strings
-from pyscf.fci.spin_op import spin_square
 from pyscf.fci.addons import transform_ci_for_orbital_rotation
 from pyscf.fci import direct_uhf
 from typing import Tuple
 
 from westpy import eV, Hartree
-from westpy.qdet.json_parser import (
+from .json_parser import (
     read_parameters,
     read_occupation,
     read_matrix_elements,
     read_qp_energies,
-    read_overlap
+    read_overlap,
 )
+from .misc import spin_square_spin_polarized
 
 
 class eBSEResult:
@@ -25,9 +24,9 @@ class eBSEResult:
 
         Args:
             filename (str): name of the JSON file that contains the output of the
-            WEST calculation.
+                WEST calculation.
             spin_flip (boolean): trigger for spin-conserving (False) or
-            spin-flip (True) calculation.
+                spin-flip (True) calculation.
         """
 
         self.filename = filename
@@ -36,33 +35,30 @@ class eBSEResult:
         assert self.nspin == 2
         # read QP energies and occupation from file
         self.qp_energies = read_qp_energies(self.filename)
-        self.occ = read_occupation(self.filename)
+        self.occupation = read_occupation(self.filename)
 
-        # TODO: add assert to make sure that all dimensions are correct
         # make global arrays
-        # TODO: add assert to make sure that occupations don't violate Aufbau
-        # principle
         self.v = read_matrix_elements(self.filename, string="eri_w")[1]
         self.w = read_matrix_elements(self.filename, string="eri_w_full")[1]
 
         self.spin_flip = spin_flip_
 
         # get size of single-particle space
-        self.n_orbitals = self.basis.shape[0]
+        self.norb = self.basis.shape[0]
         # get number of electrons
-        self.nelec = [int(np.sum(self.occ[0])), int(np.sum(self.occ[1]))]
+        self.nelec = [int(np.sum(self.occupation[0])), int(np.sum(self.occupation[1]))]
 
         # read overlap matrix from file
         self.ovlpab = read_overlap(filename)
 
         # create mapping between transitions and single-particle indices
-        self.smap = self.get_smap()
+        self.smap = self._get_smap()
         self.n_tr = self.smap.shape[0]
 
         # create mapping between transitions and FCI vectors
-        self.cmap, self.jwstring = self.get_map_transitions_to_cistrings()
+        self.cmap, self.jwstring = self._get_map_transitions_to_cistrings()
 
-    def write(self, *args):
+    def _write(self, *args):
         data = ""
         for i in args:
             data += str(i)
@@ -70,33 +66,34 @@ class eBSEResult:
         data = data[:-1]
         print(data)
 
-    def get_smap(self):
+    def _get_smap(self):
         """Creates a map between the transition index s and the combination of
         KS indices (v,c) of the valence state v and conduction state c and the
-        spin index m.The format is smap[s] = (v, c, m).
+        spin index m. The format is smap[s] = (v,c,m).
         """
 
         smap_ = []
 
         if not self.spin_flip:
+            smap_.append([0, 0, 0])  # ground state, represented by no transition
             # loop over spin
             for m in range(2):
                 # loop over occupied states
-                for v in range(self.occ.shape[1]):
-                    if self.occ[m][v] == 1.0:
+                for v in range(self.occupation.shape[1]):
+                    if self.occupation[m][v] == 1.0:
                         # loop over conduction states
-                        for c in range(self.occ.shape[1]):
-                            if self.occ[m][c] == 0.0:
+                        for c in range(self.occupation.shape[1]):
+                            if self.occupation[m][c] == 0.0:
                                 smap_.append([v, c, m])
         else:
             # for spin-flip BSE only transitions from spin-up to spin-down are
             # considered
             # loop over occupied states
-            for v in range(self.occ.shape[1]):
-                if self.occ[0][v] == 1.0:
+            for v in range(self.occupation.shape[1]):
+                if self.occupation[0][v] == 1.0:
                     # loop over conduction states
-                    for c in range(self.occ.shape[1]):
-                        if self.occ[1][c] == 0.0:
+                    for c in range(self.occupation.shape[1]):
+                        if self.occupation[1][c] == 0.0:
                             smap_.append([v, c, 0])
 
         return np.asarray(smap_)
@@ -109,7 +106,7 @@ class eBSEResult:
         """
 
         # initialize dictionary for results
-        results = {}
+        res = {}
         # allocate BSE Hamiltonian
         bse_hamiltonian = np.zeros((self.n_tr, self.n_tr))
 
@@ -144,37 +141,40 @@ class eBSEResult:
                     if m == m2:
                         bse_hamiltonian[s, s2] += -self.w[m, 1 - m, v, v2, c, c2]
 
-        results["hamiltonian"] = bse_hamiltonian[:, :]
+        res["hamiltonian"] = bse_hamiltonian[:, :]
         # diagonalize Hamiltonian
         evs_, evcs_ = np.linalg.eigh(bse_hamiltonian)
         # bring eigenvectors in the same format as the QDET ones,
-        # such that results['evcs'][i] yields the i-th eigenstate
+        # such that res['evcs'][i] yields the i-th eigenstate
         evcs_ = evcs_.T
 
-        results["evs_au"] = evs_ * eV / Hartree
-        results["evs"] = evs_ - evs_[0]
-        results["evcs"] = evcs_
+        if not self.spin_flip:
+            nelec_ = self.nelec
+        else:
+            nelec_ = (self.nelec[0] - 1, self.nelec[1] + 1)
+        res["nelec"] = nelec_
+        res["norb"] = self.norb
+        res["evs_au"] = evs_ * eV / Hartree
+        res["evs"] = evs_ - evs_[0]
+        res["evcs"] = evcs_
 
         # store density matrix and multiplicty
-        results["rdm1s"] = self.generate_density_matrix(evs_, evcs_)
-        results["mults"] = np.array(
-            [self.get_spin(evcs_[i])[1] for i in range(len(evs_))]
-        )
+        res["rdm1s"] = self._get_1rdm(evcs_)
+        res["mults"] = np.array([self._get_spin(evcs_[i])[1] for i in range(len(evs_))])
         # get occupation difference relative to the groundstate
-        results["excitations"] = np.array(
-            [
-                np.diag(results["rdm1s"][i] - results["rdm1s"][0])
-                for i in range(len(evs_))
-            ]
+        res["excitations"] = np.array(
+            [np.diag(res["rdm1s"][i] - res["rdm1s"][0]) for i in range(len(evs_))]
         )
 
         # write summary to screen
         if verbose:
-            self.write(
+            self._write(
                 "==============================================================="
             )
-            self.write("Solving eBSE Hamiltonian...")
-            self.write(
+            self._write("Diagonalizing eBSE Hamiltonian...")
+            self._write(f"nspin: {self.nspin}")
+            self._write(f"occupations: {self.occupation[:]}")
+            self._write(
                 "==============================================================="
             )
             # header
@@ -185,19 +185,18 @@ class eBSEResult:
             # formatting float
             pd.options.display.float_format = "{:,.3f}".format
             # data
-            for ie, energy in enumerate(results["evs"]):
+            for ie, energy in enumerate(res["evs"]):
                 row = [energy]
-                row.append(results["mults"][ie])
+                row.append(res["mults"][ie])
                 for ib, b in enumerate(self.basis):
-                    row.append(results["excitations"][ie, ib])
+                    row.append(res["excitations"][ie, ib])
                 df.loc[ie] = row
             # display
             display(df)
-            self.write("-----------------------------------------------------")
 
-        return results
+        return res
 
-    def get_cistring(self, s):
+    def _get_cistring(self, s):
         """For a given transition s, the function returns the cistring (in
         pyscf notation) of the excited spin-up and spin-down Slater determinant
         of the final state of the transition.
@@ -207,7 +206,7 @@ class eBSEResult:
         """
         v, c, m = self.smap[s][:]
         # adjust occupation for a given transition
-        occ_ = np.copy(self.occ)
+        occ_ = np.copy(self.occupation)
 
         if not self.spin_flip:
             occ_[m, v] = 0.0
@@ -226,34 +225,34 @@ class eBSEResult:
 
         return np.asarray(cistring_)
 
-    def get_map_transitions_to_cistrings(self):
+    def _get_map_transitions_to_cistrings(self):
         """returns a map that associates each transition s of the transition
         space to a pair of fci-vector indices in pyscf.fci
-        additionally: stores Jordan-Wigner string for each product of up- and
-        down-Slater determinant.
+        additionally: stores Jordan-Wigner string for each product of up and
+        down Slater determinant.
         """
         # generate all possible cistrings
         if not self.spin_flip:
             cistring_ = [
-                make_strings(range(self.n_orbitals), self.nelec[0]),
-                make_strings(range(self.n_orbitals), self.nelec[1]),
+                make_strings(range(self.norb), self.nelec[0]),
+                make_strings(range(self.norb), self.nelec[1]),
             ]
         else:
             cistring_ = [
-                make_strings(range(self.n_orbitals), self.nelec[0] - 1),
-                make_strings(range(self.n_orbitals), self.nelec[1] + 1),
+                make_strings(range(self.norb), self.nelec[0] - 1),
+                make_strings(range(self.norb), self.nelec[1] + 1),
             ]
 
         # allocate map
-        cmap_ = np.zeros((self.n_tr, 2), dtype=int)
+        cmap_ = np.zeros((self.n_tr, 2), dtype=np.int32)
 
         # allocate Jordan-Wigner strings
-        jwstring_ = np.zeros(self.n_tr, dtype=int)
+        jwstring_ = np.zeros(self.n_tr, dtype=np.int32)
 
         # loop over all transitions
         for s in range(self.n_tr):
             # determine cistrings for transition
-            transition_strings = self.get_cistring(s)
+            transition_strings = self._get_cistring(s)
 
             # loop over spin
             for m in range(2):
@@ -261,8 +260,6 @@ class eBSEResult:
                 for i in range(cistring_[m].shape[0]):
                     if cistring_[m][i] == transition_strings[m]:
                         cmap_[s, m] = i
-            # definition is in my notes
-            # TODO: put derivation in repo so it does not get lost...
             if self.spin_flip:
                 jwstring_[s] = (-1) ** (self.nelec[1] + self.smap[s][0])
             else:
@@ -273,7 +270,7 @@ class eBSEResult:
 
     def transform_transition_to_fci(self, evcs_):
         """Transforms an eBSE eigenstate into an FCI state in
-        second-quantization. The format of the FCI state follows that of
+        second quantization. The format of the FCI state follows that of
         pyscf.fci
 
         Args:
@@ -285,15 +282,15 @@ class eBSEResult:
         if not self.spin_flip:
             fci_ = np.zeros(
                 (
-                    num_strings(self.n_orbitals, self.nelec[0]),
-                    num_strings(self.n_orbitals, self.nelec[1]),
+                    num_strings(self.norb, self.nelec[0]),
+                    num_strings(self.norb, self.nelec[1]),
                 )
             )
         else:
             fci_ = np.zeros(
                 (
-                    num_strings(self.n_orbitals, self.nelec[0] - 1),
-                    num_strings(self.n_orbitals, self.nelec[1] + 1),
+                    num_strings(self.norb, self.nelec[0] - 1),
+                    num_strings(self.norb, self.nelec[1] + 1),
                 )
             )
 
@@ -308,62 +305,7 @@ class eBSEResult:
 
         return fci_
 
-    def spin_square_spin_polarized(
-        self,
-        fcivec: np.ndarray,
-        norb: int,
-        nelec: Tuple[int, int],
-        ovlpab: np.ndarray = None,
-    ) -> Tuple[float, float]:
-        """Compute the spin multiplicity for spin polarized calculations. Modified from pyscf spin_square_general().
-
-        Args:
-            fcivec: FCI eigenvector.
-            norb: # of orbitals.
-            nelec: # of spin up and spin down electrons.
-            ovlpab: overlap matrix between orbitals in spin up and spin down channels.
-
-        Returns:
-            Tuple[spin_square, spin_multiplicity].
-        """
-
-        # compute the density matrices
-        (dm1a, dm1b), (dm2aa, dm2ab, dm2bb) = direct_uhf.make_rdm12s( fcivec, norb=norb, nelec=nelec )
-
-        ovlpaa = np.eye(norb)
-        ovlpbb = np.eye(norb)
-        if ovlpab is None:
-            ovlpab = np.eye(norb)
-            ovlpba = np.eye(norb)
-        else:
-            ovlpba = ovlpab.T
-
-        # if ovlp=1, ssz = (neleca-nelecb)**2 * .25
-        ssz = (
-            np.einsum("ijkl,ij,kl->", dm2aa, ovlpaa, ovlpaa)
-            - np.einsum("ijkl,ij,kl->", dm2ab, ovlpaa, ovlpbb)
-            + np.einsum("ijkl,ij,kl->", dm2bb, ovlpbb, ovlpbb)
-            - np.einsum("ijkl,ij,kl->", dm2ab, ovlpaa, ovlpbb)
-        ) * 0.25
-        ssz += (
-            np.einsum("ji,ij->", dm1a, ovlpaa) + np.einsum("ji,ij->", dm1b, ovlpbb)
-        ) * 0.25
-
-        dm2abba = -dm2ab.transpose(0, 3, 2, 1)  # alpha^+ beta^+ alpha beta
-        dm2baab = -dm2ab.transpose(2, 1, 0, 3)  # beta^+ alpha^+ beta alpha
-        ssxy = (
-            np.einsum("ijkl,ij,kl->", dm2baab, ovlpba, ovlpab)
-            + np.einsum("ijkl,ij,kl->", dm2abba, ovlpab, ovlpba)
-            + np.einsum("ji,ij->", dm1a, ovlpaa)
-            + np.einsum("ji,ij->", dm1b, ovlpbb)
-        ) * 0.5
-        ss = ssxy + ssz
-
-        s = np.sqrt(ss + 0.25) - 0.5
-        multip = s * 2 + 1
-        return ss, multip
-
-    def get_spin(self, evcs_):
+    def _get_spin(self, evcs_):
         """Calculates the expectation value of the total spin $\langle
         \hat{S}^2 \rangle$ and spin multiplicity $M_S$ for a given eBSE
         eigenstate.
@@ -379,76 +321,25 @@ class eBSEResult:
         else:
             nelec_ = (self.nelec[0] - 1, self.nelec[1] + 1)
 
-        return self.spin_square_spin_polarized( fcivec=fci_, norb=self.n_orbitals, 
-                                                nelec=nelec_, ovlpab=self.ovlpab )
-
-    def _pretty_binary_print(self, binary):
-        return format(binary, "0" + str(self.n_orbitals) + "b")
-
-    def get_transition_information(self, evcs_, cutoff=10 ** (-3)):
-        """Visualizes a given eBSE eigenstate as linear combination of Slater
-        determinants.
-
-        Args:
-            evcs_: eBSE eigenstate.
-            cutoff: only Slater determinants with contribution larger than the
-            cutoff are included.
-        """
-        # returns a string that displays the excited state vector as a linear
-        # combination of Fock vectors
-
-        # get all possible FCI strings
-        if not self.spin_flip:
-            cistring_ = [
-                make_strings(range(self.n_orbitals), self.nelec[0]),
-                make_strings(range(self.n_orbitals), self.nelec[1]),
-            ]
-        else:
-            cistring_ = [
-                make_strings(range(self.n_orbitals), self.nelec[0] - 1),
-                make_strings(range(self.n_orbitals), self.nelec[1] + 1),
-            ]
-        # output string
-        str_ = ""
-        # get string and contribution for each component of the BSE eigenvector
-        for s in range(evcs_.shape[0]):
-            if abs(evcs_[s]) >= cutoff:
-                s1 = self.cmap[s, 0]
-                s2 = self.cmap[s, 1]
-                string_fock1 = (
-                    "|"
-                    + format(cistring_[0][s1], "0" + str(self.n_orbitals) + "b")
-                    + ">"
-                )
-                string_fock2 = (
-                    "|"
-                    + format(cistring_[1][s2], "0" + str(self.n_orbitals) + "b")
-                    + ">"
-                )
-                str_ += (
-                    format(evcs_[s] * self.jwstring[s], "+4.3f")
-                    + ""
-                    + string_fock1
-                    + string_fock2
-                )
-
-        return str_
+        return spin_square_spin_polarized(
+            fcievc=fci_, norb=self.norb, nelec=nelec_, ovlpab=self.ovlpab
+        )
 
     def get_transition_symmetry(self, vector, point_group_rep):
-        """Determines the character of a eBSE eigenstate for a given point
+        """Determines the character of an eBSE eigenstate for a given point
         group representation. The function mimicks the corresponding
         functionality in the qdetresult object.
 
         Args:
-            vector: eBSE eigenstet
-            point_group_rep: point group representation on the active-space
-            orbitals.
+            vector: eBSE eigenstate
+            point_group_rep: point group representation on the active space
+                orbitals.
         """
 
         fcivec = self.transform_transition_to_fci(vector)
 
         # get <S^2> and multiplicity for state
-        ss, ms = self.get_spin(vector)
+        ss, ms = self._get_spin(vector)
         # generate best-guess integer multiplicity
         ms = int(np.rint(ms))
 
@@ -469,7 +360,7 @@ class eBSEResult:
 
             for chi, U in zip(chis, point_group_rep.rep_matrices.values()):
                 pfcivec += chi * transform_ci_for_orbital_rotation(
-                    ci=fcivec, norb=self.n_orbitals, nelec=nelec_, u=U.T
+                    ci=fcivec, norb=self.norb, nelec=nelec_, u=U.T
                 )
 
             irprojs.append(l / h_ * np.sum(fcivec * pfcivec))
@@ -481,25 +372,25 @@ class eBSEResult:
 
         return str(ms) + str(irreps[imax])
 
-    def generate_density_matrix(self, evs_, evcs_):
+    def _get_1rdm(self, evcs_):
         """generates density matrix for all eBSE eigenstates.
         Args:
-            evs_: list of eBSE eigenvalues
             evcs_: list of eBSE eigenstates
         """
 
-        solver = direct_uhf.FCISolver()
         if self.spin_flip:
             nelec_ = (self.nelec[0] - 1, self.nelec[1] + 1)
         else:
             nelec_ = (self.nelec[0], self.nelec[1])
 
         rdm1s = []
-        for i in range(len(evs_)):
-            fci_ = self.transform_transition_to_fci(evcs_[i])
+        for evc_ in evcs_:
+            fci_ = self.transform_transition_to_fci(evc_)
             rdm1s.append(
-                np.average(
-                    solver.make_rdm1s(fcivec=fci_, norb=len(self.basis), nelec=nelec_),
+                np.sum(
+                    direct_uhf.make_rdm1s(
+                        fcivec=fci_, norb=len(self.basis), nelec=nelec_
+                    ),
                     axis=0,
                 )
             )

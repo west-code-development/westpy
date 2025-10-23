@@ -1,7 +1,6 @@
 import numpy as np
 from six import string_types
 from copy import deepcopy
-from pyscf.fci import cistring
 from westpy import Angstrom, Cell
 
 

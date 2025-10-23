@@ -321,7 +321,7 @@ def read_imcube(rfname, ifname=""):
     ifname = ifname or rfname.replace("real", "imag")
     print("Reading from files ", rfname, " and ", ifname)
     re, im = read_cube(rfname), read_cube(ifname)
-    fin = np.zeros(re[0].shape, dtype="complex128")
+    fin = np.zeros(re[0].shape, dtype=np.complex128)
     if re[1] != im[1]:
         print("Warning: meta data mismatch, real part metadata retained")
     fin += re[0]
