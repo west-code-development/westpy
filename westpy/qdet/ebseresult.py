@@ -7,6 +7,7 @@ from pyscf.fci.cistring import make_strings, num_strings
 from pyscf.fci.spin_op import spin_square
 from pyscf.fci.addons import transform_ci_for_orbital_rotation
 from pyscf.fci import direct_uhf
+from typing import Tuple
 
 from westpy import eV, Hartree
 from westpy.qdet.json_parser import (
@@ -14,6 +15,7 @@ from westpy.qdet.json_parser import (
     read_occupation,
     read_matrix_elements,
     read_qp_energies,
+    read_overlap
 )
 
 
@@ -30,7 +32,8 @@ class eBSEResult:
 
         self.filename = filename
         # read QDET active space from file
-        self.basis = read_parameters(self.filename)[2]
+        self.nspin, self.npair, self.basis = read_parameters(filename)
+        assert self.nspin == 2
         # read QP energies and occupation from file
         self.qp_energies = read_qp_energies(self.filename)
         self.occ = read_occupation(self.filename)
@@ -48,6 +51,9 @@ class eBSEResult:
         self.n_orbitals = self.basis.shape[0]
         # get number of electrons
         self.nelec = [int(np.sum(self.occ[0])), int(np.sum(self.occ[1]))]
+
+        # read overlap matrix from file
+        self.ovlpab = read_overlap(filename)
 
         # create mapping between transitions and single-particle indices
         self.smap = self.get_smap()
@@ -302,6 +308,61 @@ class eBSEResult:
 
         return fci_
 
+    def spin_square_spin_polarized(
+        self,
+        fcivec: np.ndarray,
+        norb: int,
+        nelec: Tuple[int, int],
+        ovlpab: np.ndarray = None,
+    ) -> Tuple[float, float]:
+        """Compute the spin multiplicity for spin polarized calculations. Modified from pyscf spin_square_general().
+
+        Args:
+            fcivec: FCI eigenvector.
+            norb: # of orbitals.
+            nelec: # of spin up and spin down electrons.
+            ovlpab: overlap matrix between orbitals in spin up and spin down channels.
+
+        Returns:
+            Tuple[spin_square, spin_multiplicity].
+        """
+
+        # compute the density matrices
+        (dm1a, dm1b), (dm2aa, dm2ab, dm2bb) = direct_uhf.make_rdm12s( fcivec, norb=norb, nelec=nelec )
+
+        ovlpaa = np.eye(norb)
+        ovlpbb = np.eye(norb)
+        if ovlpab is None:
+            ovlpab = np.eye(norb)
+            ovlpba = np.eye(norb)
+        else:
+            ovlpba = ovlpab.T
+
+        # if ovlp=1, ssz = (neleca-nelecb)**2 * .25
+        ssz = (
+            np.einsum("ijkl,ij,kl->", dm2aa, ovlpaa, ovlpaa)
+            - np.einsum("ijkl,ij,kl->", dm2ab, ovlpaa, ovlpbb)
+            + np.einsum("ijkl,ij,kl->", dm2bb, ovlpbb, ovlpbb)
+            - np.einsum("ijkl,ij,kl->", dm2ab, ovlpaa, ovlpbb)
+        ) * 0.25
+        ssz += (
+            np.einsum("ji,ij->", dm1a, ovlpaa) + np.einsum("ji,ij->", dm1b, ovlpbb)
+        ) * 0.25
+
+        dm2abba = -dm2ab.transpose(0, 3, 2, 1)  # alpha^+ beta^+ alpha beta
+        dm2baab = -dm2ab.transpose(2, 1, 0, 3)  # beta^+ alpha^+ beta alpha
+        ssxy = (
+            np.einsum("ijkl,ij,kl->", dm2baab, ovlpba, ovlpab)
+            + np.einsum("ijkl,ij,kl->", dm2abba, ovlpab, ovlpba)
+            + np.einsum("ji,ij->", dm1a, ovlpaa)
+            + np.einsum("ji,ij->", dm1b, ovlpbb)
+        ) * 0.5
+        ss = ssxy + ssz
+
+        s = np.sqrt(ss + 0.25) - 0.5
+        multip = s * 2 + 1
+        return ss, multip
+
     def get_spin(self, evcs_):
         """Calculates the expectation value of the total spin $\langle
         \hat{S}^2 \rangle$ and spin multiplicity $M_S$ for a given eBSE
@@ -318,7 +379,8 @@ class eBSEResult:
         else:
             nelec_ = (self.nelec[0] - 1, self.nelec[1] + 1)
 
-        return spin_square(fci_, self.n_orbitals, nelec_)
+        return self.spin_square_spin_polarized( fcivec=fci_, norb=self.n_orbitals, 
+                                                nelec=nelec_, ovlpab=self.ovlpab )
 
     def _pretty_binary_print(self, binary):
         return format(binary, "0" + str(self.n_orbitals) + "b")
