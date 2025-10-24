@@ -3,9 +3,7 @@ from typing import Dict, Tuple, Union
 import numpy as np
 from westpy import Hartree, eV
 from .symm import PointGroupRep
-
-# Note that some functions in this file requires PySCF or Qiskit to execute. The imports commands are written
-# within functions to avoiding making them global dependencies.
+from .misc import spin_square_spin_polarized
 
 
 class Heff:
@@ -172,13 +170,13 @@ class Heff:
             "mults": np.array(
                 [
                     (
-                        self.spin_square_spin_polarized(
-                            fcivec=evc, norb=self.norb, nelec=nelec
+                        spin_square_spin_polarized(
+                            fcievc=evc, norb=self.norb, nelec=nelec
                         )[1]
                         if self.nspin == 1
                         else (
-                            self.spin_square_spin_polarized(
-                                fcivec=evc,
+                            spin_square_spin_polarized(
+                                fcievc=evc,
                                 norb=self.norb,
                                 nelec=nelec,
                                 ovlpab=self.ovlpab,
@@ -202,11 +200,11 @@ class Heff:
         else:
             res["rdm1s"] = np.array(
                 [
-                    np.average(
+                    np.sum(
                         self.fcisolver.make_rdm1s(
                             fcivec=evc, norb=self.norb, nelec=nelec
                         ),
-                        axis=0,  # average over spin index
+                        axis=0,  # sum over spin index
                     )
                     for evc in evcs
                 ]
@@ -241,7 +239,7 @@ class Heff:
                             ci=fcivec, norb=self.norb, nelec=nelec, u=U.T
                         )
                     irproj = l / h * np.sum(fcivec * pfcivec)
-                    irprojs[irrep] = irproj  # "{:.2f}".format()
+                    irprojs[irrep] = irproj
                 res["symms_full"].append(
                     {ir: "{:.2f}".format(irproj) for ir, irproj in irprojs.items()}
                 )
@@ -255,8 +253,6 @@ class Heff:
         else:
             res["symms_maxproj"] = ["-"] * nstates
             res["symms_full"] = ["-"] * nstates
-
-        print("-----------------------------------------------------")
 
         return res
 
@@ -285,63 +281,6 @@ class Heff:
             self.h1e, self.eri = h1e, eri
         else:
             return Heff(h1e, eri, point_group_rep=self.point_group_rep)
-
-    def spin_square_spin_polarized(
-        self,
-        fcivec: np.ndarray,
-        norb: int,
-        nelec: Tuple[int, int],
-        ovlpab: np.ndarray = None,
-    ) -> Tuple[float, float]:
-        """Compute the spin multiplicity for spin polarized calculations. Modified from pyscf spin_square_general().
-
-        Args:
-            fcivec: FCI eigenvector.
-            norb: # of orbitals.
-            nelec: # of spin up and spin down electrons.
-            ovlpab: overlap matrix between orbitals in spin up and spin down channels.
-
-        Returns:
-            Tuple[spin_square, spin_multiplicity].
-        """
-
-        # compute the density matrices
-        (dm1a, dm1b), (dm2aa, dm2ab, dm2bb) = self.fcisolver.make_rdm12s(
-            fcivec, norb=norb, nelec=nelec
-        )
-
-        ovlpaa = np.eye(norb)
-        ovlpbb = np.eye(norb)
-        if ovlpab is None:
-            ovlpab = np.eye(norb)
-            ovlpba = np.eye(norb)
-        else:
-            ovlpba = ovlpab.T
-
-        # if ovlp=1, ssz = (neleca-nelecb)**2 * .25
-        ssz = (
-            np.einsum("ijkl,ij,kl->", dm2aa, ovlpaa, ovlpaa)
-            - np.einsum("ijkl,ij,kl->", dm2ab, ovlpaa, ovlpbb)
-            + np.einsum("ijkl,ij,kl->", dm2bb, ovlpbb, ovlpbb)
-            - np.einsum("ijkl,ij,kl->", dm2ab, ovlpaa, ovlpbb)
-        ) * 0.25
-        ssz += (
-            np.einsum("ji,ij->", dm1a, ovlpaa) + np.einsum("ji,ij->", dm1b, ovlpbb)
-        ) * 0.25
-
-        dm2abba = -dm2ab.transpose(0, 3, 2, 1)  # alpha^+ beta^+ alpha beta
-        dm2baab = -dm2ab.transpose(2, 1, 0, 3)  # beta^+ alpha^+ beta alpha
-        ssxy = (
-            np.einsum("ijkl,ij,kl->", dm2baab, ovlpba, ovlpab)
-            + np.einsum("ijkl,ij,kl->", dm2abba, ovlpab, ovlpba)
-            + np.einsum("ji,ij->", dm1a, ovlpaa)
-            + np.einsum("ji,ij->", dm1b, ovlpbb)
-        ) * 0.5
-        ss = ssxy + ssz
-
-        s = np.sqrt(ss + 0.25) - 0.5
-        multip = s * 2 + 1
-        return ss, multip
 
     @staticmethod
     def apply_permutation_symm_to_h1e(h1e: np.ndarray) -> np.ndarray:

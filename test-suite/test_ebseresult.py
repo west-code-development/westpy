@@ -32,7 +32,7 @@ class eBSEResultTestCase(unittest.TestCase):
         )
         # test all scalar parameters
         self.assertEqual(self.ebseresult.spin_flip, self.ebse_ref["spin_flip"])
-        self.assertEqual(self.ebseresult.n_orbitals, self.ebse_ref["n_orbitals"])
+        self.assertEqual(self.ebseresult.norb, self.ebse_ref["norb"])
         self.assertEqual(self.ebseresult.nelec, self.ebse_ref["nelec"])
         self.assertEqual(self.ebseresult.n_tr, self.ebse_ref["n_tr"])
 
@@ -41,7 +41,7 @@ class eBSEResultTestCase(unittest.TestCase):
         self.assertListEqual(
             self.ebseresult.qp_energies.tolist(), self.ebse_ref["qp_energies"]
         )
-        self.assertListEqual(self.ebseresult.occ.tolist(), self.ebse_ref["occ"])
+        self.assertListEqual(self.ebseresult.occupation.tolist(), self.ebse_ref["occupation"])
         self.assertListEqual(self.ebseresult.v.tolist(), self.ebse_ref["v"])
         self.assertListEqual(self.ebseresult.w.tolist(), self.ebse_ref["w"])
         self.assertListEqual(self.ebseresult.smap.tolist(), self.ebse_ref["smap"])

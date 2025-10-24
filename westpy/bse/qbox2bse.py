@@ -125,6 +125,6 @@ class Qbox2BSE(object):
                     b = base64.b64decode(s)
 
                     # bytes -> numpy
-                    array = np.frombuffer(b, dtype="float64")
+                    array = np.frombuffer(b, dtype=np.float64)
 
                     wfcs.create_dataset(f"wfc{igf+1}", data=array, compression="gzip")

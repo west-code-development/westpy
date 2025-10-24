@@ -1,14 +1,12 @@
 from typing import Dict, Optional, Tuple
 import numpy as np
-import matplotlib.pyplot as plt
 import pandas as pd
-import json
 from IPython.display import display
-from westpy import eV, Hartree
+from westpy import eV, Hartree, VData
 from westpy import VData
-from westpy.qdet.heff import Heff
-from westpy.qdet.symm import PointGroup, PointGroupRep
-from westpy.qdet.json_parser import (
+from .heff import Heff
+from .symm import PointGroup
+from .json_parser import (
     read_parameters,
     read_occupation,
     read_matrix_elements,
@@ -24,7 +22,7 @@ class QDETResult(object):
         wfct_filenames: Optional[list] = None,
         symmetrize: Dict[str, bool] = {},
     ):
-        """Parser for Quantum Defect Embedding Theory (QDET) calculations.
+        """Parser for quantum defect embedding theory (QDET) calculations.
 
         Args:
             filename: name of JSON file that contains the output of WEST
@@ -124,7 +122,7 @@ class QDETResult(object):
             self._write(
                 "==============================================================="
             )
-            self._write("Building effective Hamiltonian...")
+            self._write("Diagonalizing QDET effective Hamiltonian...")
             self._write(f"nspin: {self.nspin}")
             self._write(f"occupations: {self.occupation[:]}")
             self._write(
@@ -148,7 +146,6 @@ class QDETResult(object):
                 df.loc[ie] = row
             # display
             display(df)
-            self._write("-----------------------------------------------------")
 
             # remove keys that are confusing to the user and are no longer
             # needed
