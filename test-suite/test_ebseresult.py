@@ -41,7 +41,9 @@ class eBSEResultTestCase(unittest.TestCase):
         self.assertListEqual(
             self.ebseresult.qp_energies.tolist(), self.ebse_ref["qp_energies"]
         )
-        self.assertListEqual(self.ebseresult.occupation.tolist(), self.ebse_ref["occupation"])
+        self.assertListEqual(
+            self.ebseresult.occupation.tolist(), self.ebse_ref["occupation"]
+        )
         self.assertListEqual(self.ebseresult.v.tolist(), self.ebse_ref["v"])
         self.assertListEqual(self.ebseresult.w.tolist(), self.ebse_ref["w"])
         self.assertListEqual(self.ebseresult.smap.tolist(), self.ebse_ref["smap"])
