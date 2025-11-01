@@ -18,19 +18,18 @@ class bfgs_iter:
         run_wbse (string): Full command to run wbse, e.g., mpirun -n 4 /path/to/qe/bin/wbse.x -nb 4
         run_nscf (string): Full command to run nscf, e.g., mpirun -n 2 /path/to/qe/bin/pw.x
         run_wbse_init (string): Full command to run wbse_init, e.g., mpirun -n 4 /path/to/qe/bin/wbse_init.x
+        run_wstat (string): Full command to run wstat, e.g., mpirun -n 4 /path/to/qe/bin/wstat.x
         pp (string): List of pseudopotential files
         pw_input (string): pw.x input file name
-        nscf_input (string): pw.x input file name for nscf calculation
         wbse_input (string): wbse.x input file name
+        nscf_input (string): pw.x input file name for nscf calculation
         wbse_init_input (string): wbse_init.x input file name
-        l_copy_save_dir (boolean): If False, does not copy .save dir (True if startingpot/wfc='file')
+        wstat_input (string): wstat.x input file name
+        l_copy_save_dir (boolean): If False, do not copy .save dir (must be True if startingpot/wfc='file')
         l_restart (boolean): If True, restart an unfinished run
         energy_thr (float): Convergence threshold on total energy (Ry) for ionic minimization
         grad_thr (float): Convergence threshold on forces (Ry/Bohr) for ionic minimization
         maxiter (int): Maximum number of BFGS steps
-        w1 (float): Parameters used in line search based on the Wolfe conditions
-        w2 (float): Parameters used in line search based on the Wolfe conditions
-        bfgs_ndim (int): Dimension of BFGS. Only bfgs_ndim == 1 implemented
         trust_radius_ini (float): Initial ionic displacement in the structural relaxation
         trust_radius_min (float): Minimum ionic displacement in the structural relaxation
         trust_radius_max (float): Maximum ionic displacement in the structural relaxation
@@ -40,7 +39,6 @@ class bfgs_iter:
     >>> from westpy import *
     >>> run_pw = "mpirun -n 1 pw.x"
     >>> run_wbse = "mpirun -n 4 wbse.x -nb 4"
-    >>> run_wbse_init = "mpirun -n 4 wbse_init.x -ni 4"
     >>> bfgs = bfgs_iter(run_pw=run_pw, run_wbse=run_wbse, grad_thr=1e-4, maxiter=30)
     >>> bfgs.solve()
 
@@ -52,19 +50,18 @@ class bfgs_iter:
         run_wbse: str,
         run_nscf: str = None,
         run_wbse_init: str = None,
+        run_wstat: str = None,
         pp: list = [],
         pw_input: str = "pw.in",
-        nscf_input: str = "nscf.in",
         wbse_input: str = "wbse.in",
+        nscf_input: str = "nscf.in",
         wbse_init_input: str = "wbse_init.in",
+        wstat_input: str = "wstat.in",
         l_copy_save_dir: bool = True,
         l_restart: bool = False,
         energy_thr: float = 1.0e-4,
         grad_thr: float = 1.0e-3,
         maxiter: int = 100,
-        w1: float = 0.01,
-        w2: float = 0.5,
-        bfgs_ndim: int = 1,
         trust_radius_ini: float = 0.5,
         trust_radius_min: float = 2.0e-4,
         trust_radius_max: float = 0.8,
@@ -74,30 +71,35 @@ class bfgs_iter:
         self.run_nscf = run_nscf
         self.run_wbse = run_wbse
         self.run_wbse_init = run_wbse_init
+        self.run_wstat = run_wstat
         self.pp = pp
         self.pw_input = pw_input
+        self.wbse_input = wbse_input
         if self.run_nscf:
             self.nscf_input = nscf_input
         if self.run_wbse_init:
             self.wbse_init_input = wbse_init_input
-        self.wbse_input = wbse_input
+        if self.run_wstat:
+            self.wstat_input = wstat_input
 
         # how to do BFGS
         self.energy_thr = energy_thr
         self.grad_thr = grad_thr
         self.maxiter = maxiter
-        self.w1 = w1
-        self.w2 = w2
-        self.bfgs_ndim = bfgs_ndim
-        assert self.bfgs_ndim == 1, "bfgs_ndim > 1 not implemented"
         self.trust_radius_ini = trust_radius_ini
         self.trust_radius_min = trust_radius_min
         self.trust_radius_max = trust_radius_max
 
         # internal parameters
+        # parameters used in line search based on Wolfe conditions
+        self.w1 = 0.01
+        self.w2 = 0.5
+        # dimension of BFGS (only bfgs_ndim == 1 implemented)
+        self.bfgs_ndim = 1
         self.folder_name = "step-"
         self.tmp_file = "bfgs_tmp.json"
         self.l_exx = False
+        self.l_bse = False
         self.conv_bfgs = False
         self.l_copy_save_dir = l_copy_save_dir
         if l_restart:
@@ -106,10 +108,11 @@ class bfgs_iter:
             self.start_iter = 0
         self._read_prefix()
         self._read_pos_unit()
+        self._read_solver()
 
     def _log(self, string: str, indent: int = 5):
         """
-        write bfgs information
+        write information
         string: a string of message
         indent: indentation level
         """
@@ -127,22 +130,14 @@ class bfgs_iter:
         with open(wbse_in, "r") as f:
             data = yaml.load(f, Loader=yaml.SafeLoader)
 
-        self.pw_prefix = "pwscf"
-        self.west_prefix = "west"
-        self.outdir = "./"
-
-        if "input_west" in data:
-            if "qe_prefix" in data["input_west"]:
-                self.pw_prefix = data["input_west"]["qe_prefix"]
-            if "west_prefix" in data["input_west"]:
-                self.west_prefix = data["input_west"]["west_prefix"]
-            if "outdir" in data["input_west"]:
-                self.outdir = data["input_west"]["outdir"] + "/"
+        self.pw_prefix = data.get("input_west", {}).get("qe_prefix", "pwscf")
+        self.west_prefix = data.get("input_west", {}).get("west_prefix", "west")
+        self.outdir = data.get("input_west", {}).get("outdir", "./")
 
     def _read_pos_unit(self):
         pw_in = os.getcwd() + "/" + self.pw_input
 
-        # extract the unit for ATOMIC_POSITIONS from pw.in
+        # extract ATOMIC_POSITIONS unit from pw.in
         with open(pw_in, "r") as f:
             for line in f:
                 match = re.search(
@@ -160,6 +155,18 @@ class bfgs_iter:
 
         self.pos_unit = pos_unit
 
+    def _read_solver(self):
+        wbse_in = os.getcwd() + "/" + self.wbse_input
+
+        with open(wbse_in, "r") as f:
+            data = yaml.load(f, Loader=yaml.SafeLoader)
+
+        self.l_bse = True
+
+        solver = data.get("wbse_init_control", {}).get("solver")
+        if solver == "TDDFT" or solver == "tddft":
+            self.l_bse = False
+
     def _run_calc(self):
         root_dir = os.getcwd() + "/"
         work_dir = root_dir + self.folder_name + str(self.scf_iter) + "/"
@@ -167,7 +174,7 @@ class bfgs_iter:
         if self.scf_iter == 1:
             os.mkdir(work_dir)
             shutil.copy2(self.pw_input, work_dir + self.pw_input)
-            # also copy the nscf.in file if necessary
+            # also copy nscf.in if necessary
             if self.run_nscf:
                 shutil.copy2(self.nscf_input, work_dir + self.nscf_input)
 
@@ -212,12 +219,23 @@ class bfgs_iter:
             shutil.rmtree(save_dir)
             shutil.move(copy_dir, save_dir)
 
-        # run wbse_init
-        if self.l_exx:
-            if self.run_wbse_init is None:
-                self._log("EXX calculations require wbse_init")
+        # run wstat
+        if self.run_wstat:
+            self._log("Running wstat.x ...")
+            shutil.copy2(self.wstat_input, work_dir + self.wstat_input)
+            command = f"{self.run_wstat} -i {self.wstat_input} > wstat.out"
+            try:
+                subprocess.run(command, shell=True, cwd=work_dir, check=True)
+            except subprocess.CalledProcessError:
+                self._log(f"wstat.x failed: {work_dir}")
+                exit()
+        else:
+            if self.l_bse:
+                self._log("BSE calculations require wstat")
                 exit()
 
+        # run wbse_init
+        if self.run_wbse_init:
             self._log("Running wbse_init.x ...")
             shutil.copy2(self.wbse_init_input, work_dir + self.wbse_init_input)
             command = f"{self.run_wbse_init} -i {self.wbse_init_input} > wbse_init.out"
@@ -225,6 +243,13 @@ class bfgs_iter:
                 subprocess.run(command, shell=True, cwd=work_dir, check=True)
             except subprocess.CalledProcessError:
                 self._log(f"wbse_init.x failed: {work_dir}")
+                exit()
+        else:
+            if self.l_exx:
+                self._log("EXX calculations require wbse_init")
+                exit()
+            elif self.l_bse:
+                self._log("BSE calculations require wbse_init")
                 exit()
 
         # run wbse
