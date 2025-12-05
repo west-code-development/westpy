@@ -7,6 +7,7 @@ import shutil
 import subprocess
 import xml.etree.ElementTree as ET
 import yaml
+from ase.io import read, write
 from westpy.units import Angstrom, Hartree, Rydberg
 
 
@@ -97,6 +98,7 @@ class bfgs_iter:
         # internal parameters
         self.folder_name = "step-"
         self.tmp_file = "bfgs_tmp.json"
+        self.traj_file = "bfgs_traj.xyz"
         self.l_exx = False
         self.conv_bfgs = False
         self.l_copy_save_dir = l_copy_save_dir
@@ -117,7 +119,7 @@ class bfgs_iter:
 
     def _read_restart(self):
         bfgs_tmp_file = os.getcwd() + "/" + self.tmp_file
-        with open(bfgs_tmp_file) as f:
+        with open(bfgs_tmp_file, "r") as f:
             bfgs_data = json.load(f)
         return int(bfgs_data["scf_iter"])
 
@@ -243,6 +245,9 @@ class bfgs_iter:
         # load excited state forces and energy
         self._read_excited_state_forces_energy()
 
+        # save trajectory
+        self._save_traj()
+
     def _initialize(self):
         self.lwolfe = False
 
@@ -271,18 +276,15 @@ class bfgs_iter:
             self.pos_p = np.zeros(self.nat * 3)
             self.grad_p = np.zeros(self.nat * 3)
             self.bfgs_iter = 0
-            self.gdiis_iter = 0
             self.energy_p = self.energy
             self.step_old = np.zeros(self.nat * 3)
             self.nr_step_length = 0.0
             self.trust_radius_old = self.trust_radius_ini
-            self.pos_old = np.zeros(self.nat * 3)
-            self.grad_old = np.zeros(self.nat * 3)
             self.tr_min_hit = 0
         else:
             # load from bfgs.tmp
             bfgs_tmp_file = os.getcwd() + "/" + self.tmp_file
-            with open(bfgs_tmp_file) as f:
+            with open(bfgs_tmp_file, "r") as f:
                 bfgs_data = json.load(f)
 
             self.pos_p = np.array(bfgs_data["pos"])
@@ -291,10 +293,7 @@ class bfgs_iter:
                 self._log("unexpected scf_iter error")
                 exit()
             self.bfgs_iter = int(bfgs_data["bfgs_iter"])
-            self.gdiis_iter = int(bfgs_data["gdiis_iter"])
             self.energy_p = float(bfgs_data["energy"])
-            self.pos_old = np.array(bfgs_data["pos_old"])
-            self.grad_old = np.array(bfgs_data["grad_old"])
             self.inv_hess = np.array(bfgs_data["inv_hess"])
             self.tr_min_hit = int(bfgs_data["tr_min_hit"])
             self.nr_step_length = float(bfgs_data["nr_step_length"])
@@ -341,6 +340,21 @@ class bfgs_iter:
             self._log("")
 
         self._terminate_bfgs()
+
+    def _save_traj(self):
+        # save trajectory
+        root_dir = os.getcwd() + "/"
+        traj_file = root_dir + self.traj_file
+        if os.path.exists(traj_file) and self.scf_iter == 1:
+            os.remove(traj_file)
+        last_dir = root_dir + self.folder_name + str(self.scf_iter) + "/"
+        pw_file = last_dir + self.pw_input
+
+        atoms = read(pw_file)
+        atoms.info["step"] = self.scf_iter
+        atoms.info["energy"] = self.energy
+
+        write(traj_file, atoms, format="extxyz", append=True)
 
     def _save_final_geo(self):
         # save final geometry
@@ -451,10 +465,7 @@ class bfgs_iter:
             "grad": self.grad.tolist(),
             "scf_iter": self.scf_iter,
             "bfgs_iter": self.bfgs_iter,
-            "gdiis_iter": self.gdiis_iter,
             "energy": self.energy,
-            "pos_old": self.pos_old.tolist(),
-            "grad_old": self.grad_old.tolist(),
             "inv_hess": self.inv_hess.tolist(),
             "tr_min_hit": self.tr_min_hit,
             "nr_step_length": self.nr_step_length,
@@ -601,6 +612,7 @@ class bfgs_iter:
             if self.tr_min_hit == 1:
                 self._log("history already reset at previous step: stopping")
                 self.tr_min_hit = 2
+                exit()
             else:
                 self.tr_min_hit = 1
 
