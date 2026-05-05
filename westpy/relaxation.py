@@ -464,7 +464,7 @@ class bfgs_iter:
             if np.dot(self.grad, self.step) > 0.0:
                 # resetting bfgs
                 self._log("resetting bfgs history")
-                self.inv_hess = self._reset_bfgs()
+                self._reset_bfgs()
                 self.step = -np.dot(self.inv_hess, self.grad)
 
             self.nr_step_length = self._scnorm(self.step)
