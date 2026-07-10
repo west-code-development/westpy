@@ -3,6 +3,7 @@ import json
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.linalg.lapack as la
+import pandas as pd
 from westpy.units import eV
 
 
@@ -171,8 +172,9 @@ class BSEResult(object):
         fig = plt.figure()
         ax = fig.add_subplot(1, 1, 1)
         dosPlot = ax.plot(energyAxis, chiAxis.imag, label=f"chi_{ipol}")
-        for aa, bb in zip(energyAxis, chiAxis.imag):
-            print(f"{aa:5.3f}, {bb}")
+
+        df = pd.DataFrame({"Energy": energyAxis, "Chi_Imag": chiAxis.imag})
+        df.to_csv(f"{fname}.csv", index=False, float_format="%.6f")
 
         plt.xlim([xmin, xmax])
         plt.xlabel("$\omega$ (eV)")
