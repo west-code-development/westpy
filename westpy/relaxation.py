@@ -351,6 +351,8 @@ class bfgs_iter:
 
             energy_error = abs(self.energy_p - self.energy)
             grad_error = np.max(abs(np.dot(self.hinv_block.T, self.grad)))
+            self._log(f"energy error            = {energy_error:18.10f} Ry")
+            self._log(f"gradient error          = {grad_error:18.10f} Ry/Bohr")
             self.conv_bfgs = energy_error < self.energy_thr
             self.conv_bfgs = self.conv_bfgs and (grad_error < self.grad_thr)
             self.conv_bfgs = self.conv_bfgs or (self.tr_min_hit > 1)
