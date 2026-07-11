@@ -53,6 +53,15 @@ class Heff:
             assert eri.shape == (self.norb, self.norb, self.norb, self.norb)
             self.h1e = h1e
             self.eri = eri
+        elif h1e.ndim == 2 and eri.ndim == 1:
+            # FCIDUMP
+            self.nspin = 1
+            self.norb = h1e.shape[0]
+            assert h1e.shape == (self.norb, self.norb)
+            npair = self.norb * (self.norb + 1) // 2
+            assert eri.shape == (npair * (npair + 1) // 2,)
+            self.h1e = h1e
+            self.eri = eri
         else:
             raise TypeError
 
