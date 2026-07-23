@@ -1,5 +1,6 @@
 from typing import Dict, Optional, Tuple
 import numpy as np
+from pyscf.tools import fcidump
 import pandas as pd
 from IPython.display import display
 from westpy import eV, Hartree, VData
@@ -21,6 +22,7 @@ class QDETResult(object):
         point_group: Optional[PointGroup] = None,
         wfct_filenames: Optional[list] = None,
         symmetrize: Dict[str, bool] = {},
+        fcidump_filename: str = None,
     ):
         """Parser for quantum defect embedding theory (QDET) calculations.
 
@@ -28,7 +30,9 @@ class QDETResult(object):
             filename: name of JSON file that contains the output of WEST
                 calculation.
             point_group: point group of the system.
+            wfct_filenames: wave function file names.
             symmetrize: arguments for symmetrization function of Heff.
+            fcidump_filename: FCIDUMP file name.
         """
         self.filename = filename
 
@@ -38,8 +42,17 @@ class QDETResult(object):
         # read occupation from file
         self.occupation = read_occupation(filename)
 
-        # read one- and two-body terms from JSON file
-        self.h1e, self.eri = read_matrix_elements(filename)
+        # read one- and two-body terms
+        if fcidump_filename:
+            assert self.nspin == 1
+
+            fcid = fcidump.read(fcidump_filename)
+            self.h1e = fcid["H1"] / Hartree
+            self.eri = fcid["H2"] / Hartree
+        else:
+            self.h1e, self.eri = read_matrix_elements(filename)
+            self.h1e = self.h1e * eV / Hartree
+            self.eri = self.eri * eV / Hartree
 
         # read overlap matrix from file
         if self.nspin == 2:
@@ -58,9 +71,6 @@ class QDETResult(object):
                 self.point_group_rep,
                 self.orbital_symms,
             ) = self.point_group.compute_rep_on_orbitals(orbitals, orthogonalize=True)
-
-        self.h1e = self.h1e * eV / Hartree
-        self.eri = self.eri * eV / Hartree
 
         # generate effective Hamiltonian
         self.heff = Heff(
