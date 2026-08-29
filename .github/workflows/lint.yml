@@ -8,7 +8,7 @@ jobs:
     container: continuumio/miniconda3:latest
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v7
     - name: Lint
       run: |
         conda install black
