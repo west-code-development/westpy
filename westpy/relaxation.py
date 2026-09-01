@@ -447,7 +447,7 @@ class bfgs_iter:
                 self.trust_radius = min(self.trust_radius_ini, self.nr_step_length)
                 #
             else:
-                self.tr_min_hit = 0
+                pass
         else:
             # a new bfgs step is done
             self.bfgs_iter = self.bfgs_iter + 1
@@ -639,7 +639,6 @@ class bfgs_iter:
             if self.tr_min_hit == 1:
                 self._log("history already reset at previous step: stopping")
                 self.tr_min_hit = 2
-                exit()
             else:
                 self.tr_min_hit = 1
 
